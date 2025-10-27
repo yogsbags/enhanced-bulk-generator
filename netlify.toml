@@ -22,12 +22,9 @@
   # Force webpack instead of Turbopack for production builds
   TURBOPACK = "0"
 
-# Next.js on Netlify plugin with minimal config
+# Next.js on Netlify plugin (no inputs - plugin doesn't accept any)
 [[plugins]]
   package = "@netlify/plugin-nextjs"
-  [plugins.inputs]
-    # Disable automatic error page generation
-    generateErrorPages = false
 
 # API routes to serverless functions, others to static
 [[redirects]]
