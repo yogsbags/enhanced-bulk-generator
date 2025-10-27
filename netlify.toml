@@ -48,11 +48,11 @@
 
 # Development context (for branch deploys)
 [context.deploy-preview]
-  command = "npm install && npm run build"
+  command = "cd frontend && npm install && npm run build"
 
 [context.branch-deploy]
-  command = "npm install && npm run build"
+  command = "cd frontend && npm install && npm run build"
 
 # Production context
 [context.production]
-  command = "npm install && npm run build"
+  command = "cd frontend && npm install && npm run build"
