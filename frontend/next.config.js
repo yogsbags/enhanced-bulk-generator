@@ -13,19 +13,25 @@ const nextConfig = {
     turbo: {
       // Set root directory to handle multiple lockfiles
       root: process.cwd(),
+      // Resolve aliases for Turbopack
+      resolveAlias: {
+        // Allow dynamic imports in API routes
+      },
     },
   },
-  // Webpack configuration fallback (for production builds)
-  webpack: (config, { isServer }) => {
-    if (isServer) {
-      // Ignore dynamic requires in API routes
-      config.externals = config.externals || []
-      config.externals.push({
-        // External modules that shouldn't be bundled
-        'child_process': 'commonjs child_process',
-        'fs': 'commonjs fs',
-        'path': 'commonjs path',
-      })
+  // Serverless function configuration
+  serverExternalPackages: ['child_process', 'fs', 'path'],
+  // Webpack configuration (used for production builds)
+  webpack: (config, { isServer, dev }) => {
+    if (isServer && !dev) {
+      // Don't bundle Node.js built-ins for server components
+      config.externals = [...(config.externals || []), 'child_process', 'fs', 'path']
+      
+      // Ignore dynamic require warnings for spawn
+      config.ignoreWarnings = [
+        { module: /node_modules/ },
+        { message: /Can't resolve/ },
+      ]
     }
     return config
   },
