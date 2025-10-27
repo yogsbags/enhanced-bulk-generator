@@ -1,0 +1,68 @@
+# Netlify Configuration for Enhanced Bulk Generator
+# This deploys the Next.js frontend with serverless functions for workflow execution
+
+[build]
+  # Build command runs Next.js build
+  command = "cd frontend && npm install && npm run build"
+
+  # Publish directory is the Next.js build output
+  publish = "frontend/.next"
+
+  # Base directory
+  base = ""
+
+[build.environment]
+  # Node version
+  NODE_VERSION = "20"
+
+  # Next.js environment
+  NEXT_TELEMETRY_DISABLED = "1"
+
+# Netlify Functions configuration (for serverless API routes)
+[functions]
+  # Directory for serverless functions (Next.js API routes are auto-detected)
+  directory = "frontend/.netlify/functions"
+
+  # Increase timeout for long-running workflow operations
+  # Max is 26 seconds on free tier, 60 seconds on Pro
+  included_files = ["../**"]
+
+# Redirects for Next.js routes
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  force = false
+
+# Headers for security and performance
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# Environment variables (set in Netlify dashboard)
+# GROQ_API_KEY = "your-groq-api-key"
+# OPENAI_API_KEY = "your-openai-key"
+# UAT_WP_BASE_URL = "https://uat.plindia.com"
+# UAT_WP_USERNAME = "pl_capital_admin"
+# UAT_WP_APPLICATION_PASSWORD = "your-password"
+# SANITY_PROJECT_ID = "1eg1vt8d"
+# SANITY_DATASET = "production"
+# SANITY_TOKEN = "your-token"
+# IMGBB_API_KEY = "8921800e17a535d6fe1bbb016d3bddd7"
+# NEXT_FRONTEND_BASE_URL = "https://your-site.netlify.app"
+
+# Development context (for branch deploys)
+[context.deploy-preview]
+  command = "cd frontend && npm install && npm run build"
+
+[context.branch-deploy]
+  command = "cd frontend && npm install && npm run build"
+
+# Production context
+[context.production]
+  command = "cd frontend && npm install && npm run build"
+  environment = { NODE_ENV = "production" }
