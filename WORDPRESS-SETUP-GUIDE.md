@@ -167,7 +167,7 @@ Complete WordPress configuration should look like:
 ```bash
 # WordPress Publishing (Port 8080)
 WP_BASE_URL=http://localhost:8080/
-WP_USERNAME=admin
+WP_USERNAME=your-username
 WP_APPLICATION_PASSWORD=AbCd1234EfGh5678IjKl9012
 
 # Or keep both for compatibility
@@ -176,7 +176,7 @@ WP_APPLICATION_PASSWORD=AbCd1234EfGh5678IjKl9012
 
 # Sanity Publishing (Port 3333)
 SANITY_PROJECT_ID=1eg1vt8d
-SANITY_DATASET=production
+SANITY_DATASET=your-dataset
 SANITY_TOKEN=skGLxW3XG6LMTFp55nJDFXjZrW2GqIIJXu5BKI3NEawfk9IBurOala1wzxwBrmRQgoVccUd5QhSPHg6yuR3BXZQuvXFY2Ed5sbjeQxwW3JPP6XNyehDm1BD6AQpN26ZaXHnLVqtUnGILiceNANWuW5n4065kcYlCaQPsiss5HcCeNVCSP1OJ
 
 # Next.js Frontend (Port 3001)

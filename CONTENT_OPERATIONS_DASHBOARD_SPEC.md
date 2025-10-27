@@ -1751,13 +1751,13 @@ NEXT_PUBLIC_BACKEND_API_URL=http://localhost:4000/api
 
 # Sanity CMS
 NEXT_PUBLIC_SANITY_PROJECT_ID=abc123xyz
-NEXT_PUBLIC_SANITY_DATASET=production
+NEXT_PUBLIC_SANITY_DATASET=your-dataset
 SANITY_TOKEN=skABCD...
 SANITY_STUDIO_URL=http://localhost:3333
 
 # WordPress
 NEXT_PUBLIC_WP_BASE_URL=http://localhost:8080
-WP_USERNAME=admin
+WP_USERNAME=your-username
 WP_APPLICATION_PASSWORD=xxxx yyyy zzzz wwww
 
 # Google APIs

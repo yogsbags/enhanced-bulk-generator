@@ -17,14 +17,14 @@ OPENAI_API_KEY=your-openai-api-key-here
 ### WordPress Configuration
 ```bash
 UAT_WP_BASE_URL=https://uat.plindia.com
-UAT_WP_USERNAME=pl_capital_admin
+UAT_WP_USERNAME=your-username
 UAT_WP_APPLICATION_PASSWORD=your-wordpress-app-password-here
 ```
 
 ### Sanity CMS Configuration
 ```bash
 SANITY_PROJECT_ID=1eg1vt8d
-SANITY_DATASET=production
+SANITY_DATASET=your-dataset
 SANITY_TOKEN=your-sanity-token-here
 ```
 

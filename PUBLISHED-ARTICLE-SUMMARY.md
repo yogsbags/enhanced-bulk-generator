@@ -211,7 +211,7 @@ To publish to WordPress as well:
 2. Set WordPress credentials in `.env.local`:
    ```
    WP_BASE_URL=http://localhost:8080
-   WP_USERNAME=admin
+   WP_USERNAME=your-username
    WP_APPLICATION_PASSWORD=your-app-password
    ```
 3. Re-run the test script: `node test-publish.js`
