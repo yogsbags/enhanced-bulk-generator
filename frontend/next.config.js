@@ -7,10 +7,6 @@ const nextConfig = {
   },
   // Serverless function configuration - externalize Node.js built-ins
   serverExternalPackages: ['child_process', 'fs', 'path'],
-  // Disable static generation of problematic pages
-  experimental: {
-    appDir: true,
-  },
   // Webpack configuration
   webpack: (config, { isServer, dev }) => {
     if (isServer && !dev) {
