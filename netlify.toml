@@ -2,14 +2,14 @@
 # Deploys entire project with frontend and backend access
 
 [build]
-  # Base directory is the frontend folder
-  base = "frontend"
+  # Base directory is root (deploy entire repo for backend access)
+  base = ""
 
-  # Build command: install dependencies and build Next.js
-  command = "npm install && npm run build"
+  # Build command: navigate to frontend, install, and build
+  command = "cd frontend && npm install && npm run build"
 
-  # Publish directory must be specified explicitly for Next.js plugin
-  publish = ".next"
+  # Publish directory relative to base (root)
+  publish = "frontend/.next"
 
 [build.environment]
   # Node version
@@ -22,16 +22,8 @@
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
-# API routes to serverless functions, others to static
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/nextjs/:splat"
-  status = 200
-
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+# Next.js plugin handles all routing automatically
+# No custom redirects needed when using @netlify/plugin-nextjs
 
 # Headers for security and performance
 [[headers]]
