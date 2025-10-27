@@ -5,11 +5,11 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  // Skip static page generation (404, error pages) - causes issues with Netlify plugin
-  experimental: {
-    skipMiddlewareUrlNormalize: true,
-    skipTrailingSlashRedirect: true,
-  },
+  // Move skip flags to root level (no longer experimental in Next.js 15)
+  skipMiddlewareUrlNormalize: true,
+  skipTrailingSlashRedirect: true,
+  // Disable static optimization to avoid Html import errors
+  output: 'export' === 'never' ? 'export' : undefined, // Force dynamic rendering
   // Serverless function configuration - externalize Node.js built-ins
   serverExternalPackages: ['child_process', 'fs', 'path'],
   // Webpack configuration (used when TURBOPACK=0)
