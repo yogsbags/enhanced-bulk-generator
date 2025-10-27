@@ -67,3 +67,6 @@ token.json
 # Netlify
 .netlify/
 
+# Claude Code configuration (may contain example env vars)
+.claude/
+
