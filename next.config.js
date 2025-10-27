@@ -5,23 +5,15 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  // Output standalone for better Netlify compatibility
+  output: 'standalone',
   // Serverless function configuration - externalize Node.js built-ins
   serverExternalPackages: ['child_process', 'fs', 'path'],
-  // Try to disable static generation completely
-  experimental: {
-    dynamicIO: true,
-  },
   // Custom webpack configuration
-  webpack: (config, { isServer, dev }) => {
-    if (isServer && !dev) {
+  webpack: (config, { isServer }) => {
+    if (isServer) {
       // Externalize Node.js built-ins for serverless functions
       config.externals = [...(config.externals || []), 'child_process', 'fs', 'path']
-      
-      // Try to prevent error page compilation
-      config.resolve.alias = {
-        ...config.resolve.alias,
-        'next/document': false,
-      }
     }
     return config
   },
