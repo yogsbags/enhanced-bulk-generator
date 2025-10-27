@@ -99,13 +99,13 @@ export OPENAI_API_KEY="your-openai-key"  # Optional for advanced models
 
 # WordPress Publishing (Port 8080)
 export WP_BASE_URL="http://localhost:8080"
-export WP_USERNAME="admin"
+export WP_USERNAME="your-username"
 export WP_APPLICATION_PASSWORD="your-app-password"
 export PUBLISH_STATUS="draft"  # or "publish"
 
 # Sanity Publishing (Port 3333)
 export SANITY_PROJECT_ID="your-project-id"
-export SANITY_DATASET="production"  # or "development"
+export SANITY_DATASET="your-dataset"  # or "development"
 export SANITY_TOKEN="your-write-token"
 
 # Next.js Frontend (Port 3001)
@@ -489,11 +489,11 @@ node main.js stage publication
 
 # Live publishing (requires all credentials)
 export WP_BASE_URL="http://localhost:8080"
-export WP_USERNAME="admin"
-export WP_APPLICATION_PASSWORD="xxxx yyyy zzzz wwww"
-export SANITY_PROJECT_ID="abc123xyz"
-export SANITY_DATASET="production"
-export SANITY_TOKEN="skABCD..."
+export WP_USERNAME="your-username"
+export WP_APPLICATION_PASSWORD="your-app-password"
+export SANITY_PROJECT_ID="your-project-id"
+export SANITY_DATASET="your-dataset"
+export SANITY_TOKEN="your-token"
 export NEXT_FRONTEND_BASE_URL="http://localhost:3001"
 
 node main.js stage publication

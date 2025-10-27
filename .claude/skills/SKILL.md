@@ -136,14 +136,14 @@ export OPENAI_API_KEY="your-openai-key"
 
 # WordPress (port 8080)
 export WP_BASE_URL="http://localhost:8080"
-export WP_USERNAME="admin"
-export WP_APPLICATION_PASSWORD="xxxx yyyy zzzz"
+export WP_USERNAME="your-username"
+export WP_APPLICATION_PASSWORD="your-app-password"
 export PUBLISH_STATUS="draft"  # or "publish"
 
 # Sanity (port 3333)
-export SANITY_PROJECT_ID="project-id"
-export SANITY_DATASET="production"
-export SANITY_TOKEN="skABCD..."
+export SANITY_PROJECT_ID="your-project-id"
+export SANITY_DATASET="your-dataset"
+export SANITY_TOKEN="your-token"
 
 # Next.js (port 3001)
 export NEXT_FRONTEND_BASE_URL="http://localhost:3001"

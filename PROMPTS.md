@@ -828,20 +828,20 @@ CONTENT-001,TOPIC-001,http://localhost:8080/?p=123,https://uat.plindia.com/?p=45
 ```bash
 # Local WordPress (port 8080)
 WP_BASE_URL="http://localhost:8080"
-WP_USERNAME="admin"
-WP_APPLICATION_PASSWORD="xxxx yyyy zzzz wwww"
+WP_USERNAME="your-username"
+WP_APPLICATION_PASSWORD="your-app-password"
 PUBLISH_STATUS="draft"  # or "publish"
 
 # UAT WordPress (production)
 UAT_WP_BASE_URL="https://uat.plindia.com"
-UAT_WP_USERNAME="admin"
-UAT_WP_APPLICATION_PASSWORD="xxxx yyyy zzzz wwww"
+UAT_WP_USERNAME="your-username"
+UAT_WP_APPLICATION_PASSWORD="your-app-password"
 UAT_PUBLISH_STATUS="draft"  # or "publish"
 
 # Sanity CMS (port 3333)
-SANITY_PROJECT_ID="abc123xyz"
-SANITY_DATASET="production"  # or "development"
-SANITY_TOKEN="skABCD..."
+SANITY_PROJECT_ID="your-project-id"
+SANITY_DATASET="your-dataset"  # or "development"
+SANITY_TOKEN="your-token"
 
 # Next.js Frontend (port 3001)
 NEXT_FRONTEND_BASE_URL="http://localhost:3001"

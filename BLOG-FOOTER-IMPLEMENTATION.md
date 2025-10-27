@@ -428,7 +428,7 @@ cd /Users/yogs87/Downloads/sanity/enhanced-bulk-generator
 
 # Ensure environment variables are set
 export WP_BASE_URL="http://localhost:8080"
-export WP_USERNAME="admin"
+export WP_USERNAME="your-username"
 export WP_APPLICATION_PASSWORD="your-app-password"
 
 # Publish content with footer
