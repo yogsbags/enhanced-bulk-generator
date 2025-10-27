@@ -4,7 +4,7 @@
 [build]
   # Base directory is root (includes both frontend and backend)
   base = ""
-  
+
   # Build command: install root dependencies, then build frontend
   # Use TURBOPACK=0 to force webpack instead of turbopack
   command = "npm install && cd frontend && npm install && TURBOPACK=0 npm run build && cd .."
@@ -18,18 +18,23 @@
 
   # Next.js environment
   NEXT_TELEMETRY_DISABLED = "1"
-  
+
   # Force webpack instead of Turbopack for production builds
   TURBOPACK = "0"
 
-# Next.js on Netlify plugin for proper routing
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
+# Next.js on Netlify plugin DISABLED temporarily to fix Html import error
+# [[plugins]]
+#   package = "@netlify/plugin-nextjs"
 
-# Redirects are handled by Next.js
+# Redirects - serve static files and API routes
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/nextjs/:splat"
+  status = 200
+
 [[redirects]]
   from = "/*"
-  to = "/.netlify/functions/nextjs/:splat"
+  to = "/index.html"
   status = 200
 
 # Headers for security and performance
