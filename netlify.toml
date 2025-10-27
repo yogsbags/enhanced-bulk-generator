@@ -8,7 +8,8 @@
   # Build command: install dependencies and build Next.js
   command = "npm install && npm run build"
 
-  # Publish directory is handled by Next.js plugin (no need to specify)
+  # Publish directory must be specified explicitly for Next.js plugin
+  publish = ".next"
 
 [build.environment]
   # Node version
