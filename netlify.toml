@@ -11,6 +11,15 @@
   # Publish directory relative to base (root)
   publish = "frontend/.next"
 
+  # Skip builds if only documentation or non-production files changed
+  # Returns 0 (skip build) if only .md, .claude/, or docs changed
+  # Returns 1 (proceed build) if any code files changed
+  ignore = """
+    git diff --quiet HEAD^ HEAD -- ':!*.md' ':!.claude/' ':!README.md' ':!CLAUDE.md' \
+    ':!docs/' ':!.github/' ':!.vscode/' ':!test/' ':!*.test.js' ':!*.spec.js' \
+    || exit 1
+  """
+
 [build.environment]
   # Node version
   NODE_VERSION = "20"
