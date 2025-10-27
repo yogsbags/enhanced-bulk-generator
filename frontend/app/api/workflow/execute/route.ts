@@ -15,6 +15,8 @@ export async function POST(req: NextRequest) {
         controller.enqueue(encoder.encode(message))
       }
 
+      let currentStage = 0
+
       try {
         // Parse request body to get topic limit and category
         const body = await req.json()
@@ -38,7 +40,6 @@ export async function POST(req: NextRequest) {
 
         sendEvent({ log: `🚀 Command: node ${args.slice(1).join(' ')}` })
 
-        let currentStage = 0
         const stageKeywords = [
           'SEO Research', 'research', 'gaps',
           'Topic', 'topic',
