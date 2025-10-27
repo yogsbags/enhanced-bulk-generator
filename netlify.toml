@@ -4,7 +4,7 @@
 [build]
   # Base directory is root (includes both frontend and backend)
   base = ""
-  
+
   # Build command: install root dependencies, then build frontend
   command = "npm install && cd frontend && npm install && npm run build && cd .."
 
@@ -51,12 +51,12 @@
 
 # Development context (for branch deploys)
 [context.deploy-preview]
-  command = "npm install && npm run build"
+  command = "npm install && cd frontend && npm install && npm run build && cd .."
 
 [context.branch-deploy]
-  command = "npm install && npm run build"
+  command = "npm install && cd frontend && npm install && npm run build && cd .."
 
 # Production context
 [context.production]
-  command = "npm install && npm run build"
+  command = "npm install && cd frontend && npm install && npm run build && cd .."
   environment = { NODE_ENV = "production" }
