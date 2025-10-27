@@ -4,9 +4,10 @@
 [build]
   # Base directory is root (includes both frontend and backend)
   base = ""
-
+  
   # Build command: install root dependencies, then build frontend
-  command = "npm install && cd frontend && npm install && npm run build && cd .."
+  # Use TURBOPACK=0 to force webpack instead of turbopack
+  command = "npm install && cd frontend && npm install && TURBOPACK=0 npm run build && cd .."
 
   # Publish directory is the frontend Next.js build output
   publish = "frontend/.next"
@@ -17,6 +18,9 @@
 
   # Next.js environment
   NEXT_TELEMETRY_DISABLED = "1"
+  
+  # Force webpack instead of Turbopack for production builds
+  TURBOPACK = "0"
 
 # Next.js on Netlify plugin for proper routing
 [[plugins]]
@@ -51,12 +55,12 @@
 
 # Development context (for branch deploys)
 [context.deploy-preview]
-  command = "npm install && cd frontend && npm install && npm run build && cd .."
+  command = "npm install && cd frontend && npm install && TURBOPACK=0 npm run build && cd .."
 
 [context.branch-deploy]
-  command = "npm install && cd frontend && npm install && npm run build && cd .."
+  command = "npm install && cd frontend && npm install && TURBOPACK=0 npm run build && cd .."
 
 # Production context
 [context.production]
-  command = "npm install && cd frontend && npm install && npm run build && cd .."
-  environment = { NODE_ENV = "production" }
+  command = "npm install && cd frontend && npm install && TURBOPACK=0 npm run build && cd .."
+  environment = { NODE_ENV = "production", TURBOPACK = "0" }

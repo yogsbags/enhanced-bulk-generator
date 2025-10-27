@@ -7,28 +7,17 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  // Experimental Turbopack configuration
-  experimental: {
-    // Turbopack configuration
-    turbo: {
-      // Set root directory to handle multiple lockfiles
-      root: process.cwd(),
-      // Resolve aliases for Turbopack
-      resolveAlias: {
-        // Allow dynamic imports in API routes
-      },
-    },
-  },
-  // Serverless function configuration
+  // Serverless function configuration - externalize Node.js built-ins
   serverExternalPackages: ['child_process', 'fs', 'path'],
-  // Webpack configuration (used for production builds)
+  // Webpack configuration (used when TURBOPACK=0)
   webpack: (config, { isServer, dev }) => {
     if (isServer && !dev) {
-      // Don't bundle Node.js built-ins for server components
+      // Externalize Node.js built-ins for serverless functions
       config.externals = [...(config.externals || []), 'child_process', 'fs', 'path']
       
-      // Ignore dynamic require warnings for spawn
+      // Ignore warnings about dynamic requires (spawn will work at runtime)
       config.ignoreWarnings = [
+        ...(config.ignoreWarnings || []),
         { module: /node_modules/ },
         { message: /Can't resolve/ },
       ]
