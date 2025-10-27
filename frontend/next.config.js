@@ -5,10 +5,13 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  // Output standalone for better Netlify compatibility
-  output: 'standalone',
   // Serverless function configuration - externalize Node.js built-ins
   serverExternalPackages: ['child_process', 'fs', 'path'],
+  // Skip building error pages during static generation
+  experimental: {
+    // This helps with Netlify deployment
+    skipTrailingSlashRedirect: true,
+  },
   // Custom webpack configuration
   webpack: (config, { isServer }) => {
     if (isServer) {
