@@ -2,15 +2,13 @@
 # Deploys entire project with frontend and backend access
 
 [build]
-  # Base directory is root (includes both frontend and backend)
-  base = ""
+  # Base directory is the frontend folder
+  base = "frontend"
 
-  # Build command: install root dependencies, then build frontend
-  # Use TURBOPACK=0 to force webpack instead of turbopack
-  command = "npm install && cd frontend && npm install && TURBOPACK=0 npm run build && cd .."
+  # Build command: install dependencies and build Next.js
+  command = "npm install && npm run build"
 
-  # Publish directory is the frontend Next.js build output
-  publish = "frontend/.next"
+  # Publish directory is handled by Next.js plugin (no need to specify)
 
 [build.environment]
   # Node version
@@ -60,12 +58,12 @@
 
 # Development context (for branch deploys)
 [context.deploy-preview]
-  command = "npm install && cd frontend && npm install && TURBOPACK=0 npm run build && cd .."
+  command = "npm install && npm run build"
 
 [context.branch-deploy]
-  command = "npm install && cd frontend && npm install && TURBOPACK=0 npm run build && cd .."
+  command = "npm install && npm run build"
 
 # Production context
 [context.production]
-  command = "npm install && cd frontend && npm install && TURBOPACK=0 npm run build && cd .."
-  environment = { NODE_ENV = "production", TURBOPACK = "0" }
+  command = "npm install && npm run build"
+  environment = { NODE_ENV = "production" }
