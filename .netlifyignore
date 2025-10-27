@@ -1,0 +1,41 @@
+# Netlify Ignore - Files to exclude from deployment
+# This reduces deployment size and eliminates security scan warnings
+
+# Documentation files (keep only README.md)
+*.md
+!README.md
+!frontend/README.md
+
+# Claude Code configuration
+.claude/
+
+# Development files
+.vscode/
+.idea/
+
+# Test files
+*.test.js
+*.spec.js
+test/
+tests/
+
+# Build artifacts (already in .gitignore but explicit here)
+.next/
+node_modules/
+
+# Temporary files
+temp/
+tmp/
+
+# Data files (not needed in production)
+data/*.csv
+data/generated-hero-images/
+
+# Git files
+.git/
+.gitignore
+.gitattributes
+
+# OS files
+.DS_Store
+Thumbs.db
