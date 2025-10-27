@@ -22,19 +22,14 @@
   # Force webpack instead of Turbopack for production builds
   TURBOPACK = "0"
 
-# Next.js on Netlify plugin DISABLED temporarily to fix Html import error
-# [[plugins]]
-#   package = "@netlify/plugin-nextjs"
+# Next.js on Netlify plugin for proper routing
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
 
-# Redirects - serve static files and API routes
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/nextjs/:splat"
-  status = 200
-
+# Redirects are handled by Next.js
 [[redirects]]
   from = "/*"
-  to = "/index.html"
+  to = "/.netlify/functions/nextjs/:splat"
   status = 200
 
 # Headers for security and performance
