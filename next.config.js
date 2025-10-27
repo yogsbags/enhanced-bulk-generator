@@ -1,16 +1,24 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // Try export mode to avoid server-side rendering issues
-  output: 'export',
-  // Disable image optimization for static export
+  // Disable image optimization for Netlify
   images: {
     unoptimized: true,
   },
-  // Disable trailing slash redirect
-  trailingSlash: false,
-  // Generate only essential pages
-  generateBuildId: () => 'build',
+  // Serverless function configuration - externalize Node.js built-ins
+  serverExternalPackages: ['child_process', 'fs', 'path'],
+  // Disable static generation of problematic pages
+  experimental: {
+    appDir: true,
+  },
+  // Webpack configuration
+  webpack: (config, { isServer, dev }) => {
+    if (isServer && !dev) {
+      // Externalize Node.js built-ins for serverless functions
+      config.externals = [...(config.externals || []), 'child_process', 'fs', 'path']
+    }
+    return config
+  },
 }
 
 module.exports = nextConfig
