@@ -1,15 +1,15 @@
-# Netlify Configuration for Enhanced Bulk Generator Frontend
-# This deploys the Next.js frontend
+# Netlify Configuration for Enhanced Bulk Generator
+# Deploys entire project with frontend and backend access
 
 [build]
-  # Base directory for the frontend
-  base = "frontend"
+  # Base directory is root (includes both frontend and backend)
+  base = ""
   
-  # Build command runs Next.js build
-  command = "npm install && npm run build"
+  # Build command: install root dependencies, then build frontend
+  command = "npm install && cd frontend && npm install && npm run build"
 
-  # Publish directory is the Next.js build output
-  publish = ".next"
+  # Publish directory is the frontend Next.js build output
+  publish = "frontend/.next"
 
 [build.environment]
   # Node version
