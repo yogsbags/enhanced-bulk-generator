@@ -48,5 +48,8 @@
   "bugs": {
     "url": "https://github.com/plcapital/enhanced-bulk-generator/issues"
   },
-  "homepage": "https://github.com/plcapital/enhanced-bulk-generator#readme"
+  "homepage": "https://github.com/plcapital/enhanced-bulk-generator#readme",
+  "devDependencies": {
+    "netlify-cli": "^23.9.5"
+  }
 }
