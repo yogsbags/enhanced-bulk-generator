@@ -34,6 +34,20 @@
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
+# Netlify Functions configuration
+[functions]
+  directory = "netlify/functions"
+  # Include all backend files in the function bundle
+  included_files = [
+    "main.js",
+    "core/**/*",
+    "research/**/*",
+    "content/**/*",
+    "data/**/*",
+    "package.json",
+    "node_modules/**/*"
+  ]
+
 # Next.js plugin handles all routing automatically
 # No custom redirects needed when using @netlify/plugin-nextjs
 
