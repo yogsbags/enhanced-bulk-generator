@@ -37,6 +37,17 @@
   directory = "netlify/functions"
   # Use esbuild bundler but mark main.js as external
   node_bundler = "esbuild"
+  # Include backend workflow files for all functions
+  included_files = [
+    "main.js",
+    "core/**",
+    "research/**",
+    "content/**",
+    "data/**",
+    "integrations/**",
+    "config/**",
+    "package.json"
+  ]
 
 [functions."workflow-execute"]
   # Don't bundle - keep as-is to avoid breaking dependencies

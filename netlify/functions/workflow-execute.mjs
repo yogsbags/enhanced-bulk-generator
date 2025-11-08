@@ -19,15 +19,15 @@ export const handler = async (event, context) => {
   const topicLimit = body.topicLimit || 1
   const category = body.category || 'derivatives'
 
-  // In Netlify Functions, the repo is deployed to /var/task
-  // The function itself is in /var/task/.netlify/functions
-  // So we go up to get to the repo root where main.js is
-  const repoRoot = '/var/task'
-  const mainJsPath = path.join(repoRoot, 'main.js')
+  // In Netlify Functions with included_files, the backend files are copied
+  // to the same directory as the function (alongside workflow-execute.mjs)
+  // So we reference main.js from the current directory
+  const functionDir = __dirname
+  const mainJsPath = path.join(functionDir, 'main.js')
 
   console.log('Workflow Execution Request:', {
+    functionDir,
     mainJsPath,
-    repoRoot,
     topicLimit,
     category,
   })
@@ -37,7 +37,7 @@ export const handler = async (event, context) => {
   return new Promise((resolve, reject) => {
     const args = [mainJsPath, 'full', '--auto-approve', '--topic-limit', topicLimit.toString(), '--category', category]
     const nodeProcess = spawn('node', args, {
-      cwd: repoRoot,
+      cwd: functionDir,
       env: { ...process.env },
     })
 
