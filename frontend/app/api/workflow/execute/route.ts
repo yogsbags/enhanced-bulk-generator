@@ -23,18 +23,37 @@ export async function POST(req: NextRequest) {
         const topicLimit = body.topicLimit || 1
         const category = body.category || 'derivatives'
 
-        // Path to main.js (go up from frontend to parent directory)
-        const mainJsPath = path.join(process.cwd(), '..', 'main.js')
+        // Path to main.js - In Netlify, files are deployed relative to the function
+        // The function is in .netlify/functions-internal, and main.js is at repo root
+        // On local dev: process.cwd() = /path/to/frontend
+        // On Netlify: process.cwd() = /var/task (function root)
+        // Solution: main.js is bundled with the function in Netlify's serverless context
+
+        let mainJsPath: string
+        let workingDir: string
+
+        // Check if we're in Netlify environment
+        if (process.env.NETLIFY === 'true' || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+          // In Netlify serverless, the entire repo is available at /var/task
+          // The build publishes frontend/.next, but @netlify/plugin-nextjs bundles dependencies
+          mainJsPath = path.join('/var/task', 'main.js')
+          workingDir = '/var/task'
+        } else {
+          // Local development: go up from frontend to parent directory
+          mainJsPath = path.join(process.cwd(), '..', 'main.js')
+          workingDir = path.join(process.cwd(), '..')
+        }
 
         sendEvent({ log: '🔧 Initializing workflow execution...' })
         sendEvent({ log: `📍 Executing: ${mainJsPath}` })
+        sendEvent({ log: `📍 Working Dir: ${workingDir}` })
         sendEvent({ log: `📊 Topic Limit: ${topicLimit}` })
         sendEvent({ log: `📂 Category Focus: ${category}` })
 
         // Execute main.js with 'full' command, topic limit, and category
         const args = [mainJsPath, 'full', '--auto-approve', '--topic-limit', topicLimit.toString(), '--category', category]
         const nodeProcess = spawn('node', args, {
-          cwd: path.join(process.cwd(), '..'),
+          cwd: workingDir,
           env: { ...process.env },
         })
 
