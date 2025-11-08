@@ -46,7 +46,17 @@ export async function POST(req: NextRequest) {
               body: JSON.stringify({ topicLimit, category }),
             })
 
+            sendEvent({ log: `📡 Response status: ${response.status} ${response.statusText}` })
+
+            if (!response.ok) {
+              const errorText = await response.text()
+              sendEvent({ log: `❌ HTTP Error: ${errorText}` })
+              sendEvent({ stage: 1, status: 'error', message: `HTTP ${response.status}: ${response.statusText}` })
+              return
+            }
+
             const result = await response.json()
+            sendEvent({ log: `📦 Response received: ${JSON.stringify(result).substring(0, 200)}...` })
 
             if (result.success) {
               // Stream output logs

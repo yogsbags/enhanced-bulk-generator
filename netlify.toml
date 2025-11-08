@@ -5,9 +5,17 @@
   # Base directory is root (deploy entire repo for backend access)
   base = ""
 
-  # Build command: install dependencies, build frontend (no copying needed)
+  # Build command: install dependencies, copy backend files, build frontend
   command = """
     npm install && \
+    mkdir -p netlify/functions/backend && \
+    cp main.js netlify/functions/backend/ && \
+    cp -r core netlify/functions/backend/ && \
+    cp -r research netlify/functions/backend/ && \
+    cp -r content netlify/functions/backend/ && \
+    cp -r data netlify/functions/backend/ && \
+    cp -r integrations netlify/functions/backend/ && \
+    cp package.json netlify/functions/backend/ && \
     cd frontend && \
     npm install && \
     npm run build
@@ -35,19 +43,8 @@
 # Netlify Functions configuration
 [functions]
   directory = "netlify/functions"
-  # Use esbuild bundler but mark main.js as external
+  # Backend files are manually copied to backend/ subdirectory during build
   node_bundler = "esbuild"
-  # Include backend workflow files for all functions
-  included_files = [
-    "main.js",
-    "core/**",
-    "research/**",
-    "content/**",
-    "data/**",
-    "integrations/**",
-    "config/**",
-    "package.json"
-  ]
 
 [functions."workflow-execute"]
   # Don't bundle - keep as-is to avoid breaking dependencies

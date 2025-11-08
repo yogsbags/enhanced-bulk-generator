@@ -19,14 +19,16 @@ export const handler = async (event, context) => {
   const topicLimit = body.topicLimit || 1
   const category = body.category || 'derivatives'
 
-  // In Netlify Functions with included_files, the backend files are copied
-  // to the same directory as the function (alongside workflow-execute.mjs)
-  // So we reference main.js from the current directory
+  // Backend files are copied to netlify/functions/backend/ during build
+  // The function is deployed to .netlify/functions/workflow-execute/
+  // So we need to reference the backend directory
   const functionDir = __dirname
-  const mainJsPath = path.join(functionDir, 'main.js')
+  const backendDir = path.join(functionDir, 'backend')
+  const mainJsPath = path.join(backendDir, 'main.js')
 
   console.log('Workflow Execution Request:', {
     functionDir,
+    backendDir,
     mainJsPath,
     topicLimit,
     category,
@@ -37,7 +39,7 @@ export const handler = async (event, context) => {
   return new Promise((resolve, reject) => {
     const args = [mainJsPath, 'full', '--auto-approve', '--topic-limit', topicLimit.toString(), '--category', category]
     const nodeProcess = spawn('node', args, {
-      cwd: functionDir,
+      cwd: backendDir,
       env: { ...process.env },
     })
 
