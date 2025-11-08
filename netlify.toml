@@ -83,7 +83,21 @@
 # Development context (for branch deploys)
 [context.deploy-preview]
   command = """
+    echo "📦 Installing root dependencies..." && \
     npm install && \
+    echo "📂 Creating backend directory..." && \
+    mkdir -p netlify/functions/backend && \
+    echo "📋 Copying backend files..." && \
+    cp main.js netlify/functions/backend/ && \
+    cp -r core netlify/functions/backend/ && \
+    cp -r research netlify/functions/backend/ && \
+    cp -r content netlify/functions/backend/ && \
+    cp -r data netlify/functions/backend/ && \
+    cp -r integrations netlify/functions/backend/ && \
+    cp package.json netlify/functions/backend/ && \
+    echo "✅ Backend files copied successfully" && \
+    ls -la netlify/functions/backend/ && \
+    echo "🔨 Building frontend..." && \
     cd frontend && \
     npm install && \
     npm run build
@@ -91,7 +105,21 @@
 
 [context.branch-deploy]
   command = """
+    echo "📦 Installing root dependencies..." && \
     npm install && \
+    echo "📂 Creating backend directory..." && \
+    mkdir -p netlify/functions/backend && \
+    echo "📋 Copying backend files..." && \
+    cp main.js netlify/functions/backend/ && \
+    cp -r core netlify/functions/backend/ && \
+    cp -r research netlify/functions/backend/ && \
+    cp -r content netlify/functions/backend/ && \
+    cp -r data netlify/functions/backend/ && \
+    cp -r integrations netlify/functions/backend/ && \
+    cp package.json netlify/functions/backend/ && \
+    echo "✅ Backend files copied successfully" && \
+    ls -la netlify/functions/backend/ && \
+    echo "🔨 Building frontend..." && \
     cd frontend && \
     npm install && \
     npm run build
@@ -100,7 +128,21 @@
 # Production context
 [context.production]
   command = """
+    echo "📦 Installing root dependencies..." && \
     npm install && \
+    echo "📂 Creating backend directory..." && \
+    mkdir -p netlify/functions/backend && \
+    echo "📋 Copying backend files..." && \
+    cp main.js netlify/functions/backend/ && \
+    cp -r core netlify/functions/backend/ && \
+    cp -r research netlify/functions/backend/ && \
+    cp -r content netlify/functions/backend/ && \
+    cp -r data netlify/functions/backend/ && \
+    cp -r integrations netlify/functions/backend/ && \
+    cp package.json netlify/functions/backend/ && \
+    echo "✅ Backend files copied successfully" && \
+    ls -la netlify/functions/backend/ && \
+    echo "🔨 Building frontend..." && \
     cd frontend && \
     npm install && \
     npm run build
