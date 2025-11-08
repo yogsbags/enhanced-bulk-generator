@@ -19,11 +19,9 @@
     cp -r data netlify/functions/workflow-execute/ && \
     cp -r integrations netlify/functions/workflow-execute/ && \
     cp package.json netlify/functions/workflow-execute/backend-package.json && \
-    cp netlify/functions/package.json netlify/functions/workflow-execute/package.json && \
-    mv netlify/functions/workflow-execute.mjs netlify/functions/workflow-execute/index.mjs && \
+    cp netlify/functions/workflow-execute.js netlify/functions/workflow-execute/index.js && \
     echo "✅ Backend files copied to function directory" && \
     ls -la netlify/functions/workflow-execute/ && \
-    cat netlify/functions/workflow-execute/package.json && \
     echo "🔨 Building frontend..." && \
     cd frontend && \
     npm install && \
@@ -97,8 +95,8 @@
     cp -r content netlify/functions/workflow-execute/ && \
     cp -r data netlify/functions/workflow-execute/ && \
     cp -r integrations netlify/functions/workflow-execute/ && \
-    cp package.json netlify/functions/workflow-execute/backend-package.json && cp netlify/functions/package.json netlify/functions/workflow-execute/package.json && \
-    mv netlify/functions/workflow-execute.mjs netlify/functions/workflow-execute/index.mjs && \
+    cp package.json netlify/functions/workflow-execute/backend-package.json && \
+    cp netlify/functions/workflow-execute.js netlify/functions/workflow-execute/index.js && \
     echo "✅ Backend files copied to function directory" && \
     ls -la netlify/functions/workflow-execute/ && \
     echo "🔨 Building frontend..." && \
@@ -120,8 +118,8 @@
     cp -r content netlify/functions/workflow-execute/ && \
     cp -r data netlify/functions/workflow-execute/ && \
     cp -r integrations netlify/functions/workflow-execute/ && \
-    cp package.json netlify/functions/workflow-execute/backend-package.json && cp netlify/functions/package.json netlify/functions/workflow-execute/package.json && \
-    mv netlify/functions/workflow-execute.mjs netlify/functions/workflow-execute/index.mjs && \
+    cp package.json netlify/functions/workflow-execute/backend-package.json && \
+    cp netlify/functions/workflow-execute.js netlify/functions/workflow-execute/index.js && \
     echo "✅ Backend files copied to function directory" && \
     ls -la netlify/functions/workflow-execute/ && \
     echo "🔨 Building frontend..." && \
@@ -144,8 +142,8 @@
     cp -r content netlify/functions/workflow-execute/ && \
     cp -r data netlify/functions/workflow-execute/ && \
     cp -r integrations netlify/functions/workflow-execute/ && \
-    cp package.json netlify/functions/workflow-execute/backend-package.json && cp netlify/functions/package.json netlify/functions/workflow-execute/package.json && \
-    mv netlify/functions/workflow-execute.mjs netlify/functions/workflow-execute/index.mjs && \
+    cp package.json netlify/functions/workflow-execute/backend-package.json && \
+    cp netlify/functions/workflow-execute.js netlify/functions/workflow-execute/index.js && \
     echo "✅ Backend files copied to function directory" && \
     ls -la netlify/functions/workflow-execute/ && \
     echo "🔨 Building frontend..." && \
