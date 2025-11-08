@@ -19,12 +19,11 @@ export const handler = async (event, context) => {
   const topicLimit = body.topicLimit || 1
   const category = body.category || 'derivatives'
 
-  // In Netlify Functions, we need to find the repo root
-  // During build, backend files are copied to the function directory
-  // So main.js should be in the same directory as this function
-  const functionDir = process.env.LAMBDA_TASK_ROOT || __dirname
-  const mainJsPath = path.join(functionDir, 'main.js')
-  const repoRoot = functionDir
+  // In Netlify Functions, the repo is deployed to /var/task
+  // The function itself is in /var/task/.netlify/functions
+  // So we go up to get to the repo root where main.js is
+  const repoRoot = '/var/task'
+  const mainJsPath = path.join(repoRoot, 'main.js')
 
   console.log('Workflow Execution Request:', {
     mainJsPath,

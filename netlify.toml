@@ -5,15 +5,12 @@
   # Base directory is root (deploy entire repo for backend access)
   base = ""
 
-  # Build command: install dependencies, build frontend, copy backend files to Netlify function
+  # Build command: install dependencies, build frontend (no copying needed)
   command = """
     npm install && \
     cd frontend && \
     npm install && \
-    npm run build && \
-    cd .. && \
-    mkdir -p netlify/functions && \
-    cp -r main.js core research content data package.json netlify/functions/
+    npm run build
   """
 
   # Publish directory relative to base (root)
@@ -38,9 +35,12 @@
 # Netlify Functions configuration
 [functions]
   directory = "netlify/functions"
-  # Don't include node_modules - they'll be available in the function environment
-  # Netlify automatically includes dependencies listed in package.json
+  # Use esbuild bundler but mark main.js as external
   node_bundler = "esbuild"
+
+[functions."workflow-execute"]
+  # Don't bundle - keep as-is to avoid breaking dependencies
+  node_bundler = "none"
 
 # Next.js plugin handles all routing automatically
 # No custom redirects needed when using @netlify/plugin-nextjs
@@ -72,10 +72,7 @@
     npm install && \
     cd frontend && \
     npm install && \
-    npm run build && \
-    cd .. && \
-    mkdir -p netlify/functions && \
-    cp -r main.js core research content data package.json netlify/functions/
+    npm run build
   """
 
 [context.branch-deploy]
@@ -83,10 +80,7 @@
     npm install && \
     cd frontend && \
     npm install && \
-    npm run build && \
-    cd .. && \
-    mkdir -p netlify/functions && \
-    cp -r main.js core research content data package.json netlify/functions/
+    npm run build
   """
 
 # Production context
@@ -95,8 +89,5 @@
     npm install && \
     cd frontend && \
     npm install && \
-    npm run build && \
-    cd .. && \
-    mkdir -p netlify/functions && \
-    cp -r main.js core research content data package.json netlify/functions/
+    npm run build
   """
