@@ -5,14 +5,15 @@
   # Base directory is root (deploy entire repo for backend access)
   base = ""
 
-  # Build command: install all dependencies, build frontend, copy backend to function context
+  # Build command: install dependencies, build frontend, copy backend files to Netlify function
   command = """
     npm install && \
     cd frontend && \
     npm install && \
     npm run build && \
     cd .. && \
-    cp -r main.js core research content data package.json node_modules frontend/
+    mkdir -p netlify/functions && \
+    cp -r main.js core research content data package.json netlify/functions/
   """
 
   # Publish directory relative to base (root)
@@ -37,16 +38,9 @@
 # Netlify Functions configuration
 [functions]
   directory = "netlify/functions"
-  # Include all backend files in the function bundle
-  included_files = [
-    "main.js",
-    "core/**/*",
-    "research/**/*",
-    "content/**/*",
-    "data/**/*",
-    "package.json",
-    "node_modules/**/*"
-  ]
+  # Don't include node_modules - they'll be available in the function environment
+  # Netlify automatically includes dependencies listed in package.json
+  node_bundler = "esbuild"
 
 # Next.js plugin handles all routing automatically
 # No custom redirects needed when using @netlify/plugin-nextjs
@@ -80,7 +74,8 @@
     npm install && \
     npm run build && \
     cd .. && \
-    cp -r main.js core research content data package.json node_modules frontend/
+    mkdir -p netlify/functions && \
+    cp -r main.js core research content data package.json netlify/functions/
   """
 
 [context.branch-deploy]
@@ -90,7 +85,8 @@
     npm install && \
     npm run build && \
     cd .. && \
-    cp -r main.js core research content data package.json node_modules frontend/
+    mkdir -p netlify/functions && \
+    cp -r main.js core research content data package.json netlify/functions/
   """
 
 # Production context
@@ -101,5 +97,6 @@
     npm install && \
     npm run build && \
     cd .. && \
-    cp -r main.js core research content data package.json node_modules frontend/
+    mkdir -p netlify/functions && \
+    cp -r main.js core research content data package.json netlify/functions/
   """

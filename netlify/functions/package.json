@@ -1,0 +1,16 @@
+{
+  "name": "netlify-workflow-functions",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "csv-parse": "^5.5.2",
+    "csv-stringify": "^6.4.4",
+    "dotenv": "^16.4.5",
+    "form-data": "^4.0.4",
+    "google-auth-library": "^9.15.1",
+    "jsonrepair": "^3.6.1",
+    "node-fetch": "^2.7.0",
+    "sharp": "^0.34.4",
+    "sqlite3": "^5.1.7"
+  }
+}

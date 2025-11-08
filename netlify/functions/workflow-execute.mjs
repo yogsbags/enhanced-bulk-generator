@@ -1,9 +1,10 @@
 import { spawn } from 'child_process'
 import path from 'path'
+import { dirname } from 'path'
 import { fileURLToPath } from 'url'
 
 const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
+const __dirname = dirname(__filename)
 
 export const handler = async (event, context) => {
   // Only allow POST requests
@@ -18,10 +19,12 @@ export const handler = async (event, context) => {
   const topicLimit = body.topicLimit || 1
   const category = body.category || 'derivatives'
 
-  // In Netlify Functions, the entire repo is available at the function root
-  // We need to go up from netlify/functions to the repo root
-  const repoRoot = path.join(__dirname, '..', '..')
-  const mainJsPath = path.join(repoRoot, 'main.js')
+  // In Netlify Functions, we need to find the repo root
+  // During build, backend files are copied to the function directory
+  // So main.js should be in the same directory as this function
+  const functionDir = process.env.LAMBDA_TASK_ROOT || __dirname
+  const mainJsPath = path.join(functionDir, 'main.js')
+  const repoRoot = functionDir
 
   console.log('Workflow Execution Request:', {
     mainJsPath,
