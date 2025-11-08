@@ -31,7 +31,14 @@ export async function POST(req: NextRequest) {
           sendEvent({ log: `📂 Category Focus: ${category}` })
 
           try {
-            const response = await fetch('/.netlify/functions/workflow-execute', {
+            // In Netlify, we need to construct the full URL for the function
+            // Get the current site URL from environment or construct from request
+            const siteUrl = process.env.URL || process.env.DEPLOY_PRIME_URL || 'https://content-creator-pl.netlify.app'
+            const functionUrl = `${siteUrl}/.netlify/functions/workflow-execute`
+
+            sendEvent({ log: `📍 Calling function: ${functionUrl}` })
+
+            const response = await fetch(functionUrl, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
