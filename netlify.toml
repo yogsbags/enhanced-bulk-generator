@@ -5,8 +5,15 @@
   # Base directory is root (deploy entire repo for backend access)
   base = ""
 
-  # Build command: navigate to frontend, install, and build
-  command = "cd frontend && npm install && npm run build"
+  # Build command: install all dependencies, build frontend, copy backend to function context
+  command = """
+    npm install && \
+    cd frontend && \
+    npm install && \
+    npm run build && \
+    cd .. && \
+    cp -r main.js core research content data package.json node_modules frontend/
+  """
 
   # Publish directory relative to base (root)
   publish = "frontend/.next"
@@ -53,11 +60,32 @@
 
 # Development context (for branch deploys)
 [context.deploy-preview]
-  command = "cd frontend && npm install && npm run build"
+  command = """
+    npm install && \
+    cd frontend && \
+    npm install && \
+    npm run build && \
+    cd .. && \
+    cp -r main.js core research content data package.json node_modules frontend/
+  """
 
 [context.branch-deploy]
-  command = "cd frontend && npm install && npm run build"
+  command = """
+    npm install && \
+    cd frontend && \
+    npm install && \
+    npm run build && \
+    cd .. && \
+    cp -r main.js core research content data package.json node_modules frontend/
+  """
 
 # Production context
 [context.production]
-  command = "cd frontend && npm install && npm run build"
+  command = """
+    npm install && \
+    cd frontend && \
+    npm install && \
+    npm run build && \
+    cd .. && \
+    cp -r main.js core research content data package.json node_modules frontend/
+  """

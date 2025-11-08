@@ -70,3 +70,4 @@ netlify env:set IMGBB_API_KEY "your-imgbb-key"
 netlify env:set NEXT_FRONTEND_BASE_URL "https://your-site.netlify.app"
 ```
 
+

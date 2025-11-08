@@ -23,21 +23,22 @@ export async function POST(req: NextRequest) {
         const topicLimit = body.topicLimit || 1
         const category = body.category || 'derivatives'
 
-        // Path to main.js - In Netlify, files are deployed relative to the function
-        // The function is in .netlify/functions-internal, and main.js is at repo root
-        // On local dev: process.cwd() = /path/to/frontend
-        // On Netlify: process.cwd() = /var/task (function root)
-        // Solution: main.js is bundled with the function in Netlify's serverless context
+        // Path to main.js resolution for different environments:
+        // Local dev: process.cwd() = /path/to/enhanced-bulk-generator/frontend
+        //           main.js is at ../main.js
+        // Netlify:  process.cwd() = /var/task
+        //           We copy main.js and backend files to frontend/ during build
+        //           So they're accessible from process.cwd()
 
         let mainJsPath: string
         let workingDir: string
 
-        // Check if we're in Netlify environment
+        // Check if we're in Netlify/serverless environment
         if (process.env.NETLIFY === 'true' || process.env.AWS_LAMBDA_FUNCTION_NAME) {
-          // In Netlify serverless, the entire repo is available at /var/task
-          // The build publishes frontend/.next, but @netlify/plugin-nextjs bundles dependencies
-          mainJsPath = path.join('/var/task', 'main.js')
-          workingDir = '/var/task'
+          // In Netlify: backend files are copied to frontend directory during build
+          // The @netlify/plugin-nextjs bundles everything from the publish directory
+          mainJsPath = path.join(process.cwd(), 'main.js')
+          workingDir = process.cwd()
         } else {
           // Local development: go up from frontend to parent directory
           mainJsPath = path.join(process.cwd(), '..', 'main.js')

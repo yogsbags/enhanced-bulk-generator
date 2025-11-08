@@ -167,3 +167,4 @@ The Next.js API routes in `frontend/app/api/*` need:
 - Use `npx netlify open` to quickly access your admin dashboard
 - Check build logs immediately if deployment fails
 
+
