@@ -37,8 +37,18 @@ export const handler = async (event, context) => {
   // For streaming responses, we need to use a different approach
   // Netlify Functions don't support SSE well, so we'll return the full output
   return new Promise((resolve, reject) => {
+    // In AWS Lambda (Netlify Functions), use process.execPath for the Node.js executable
+    // instead of relying on 'node' being in PATH
+    const nodeExecutable = process.execPath
     const args = [mainJsPath, 'full', '--auto-approve', '--topic-limit', topicLimit.toString(), '--category', category]
-    const nodeProcess = spawn('node', args, {
+
+    console.log('Spawning process:', {
+      nodeExecutable,
+      args,
+      cwd: backendDir,
+    })
+
+    const nodeProcess = spawn(nodeExecutable, args, {
       cwd: backendDir,
       env: { ...process.env },
     })
