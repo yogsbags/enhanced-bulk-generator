@@ -36,6 +36,9 @@ class TopicGenerator {
     // 🎯 Category filter for focused topic generation
     this.selectedCategory = config.category || null;
 
+    // 🎯 Topic limit for controlled generation
+    this.topicLimit = config.topicLimit || null;
+
     // 🎯 MCP DATA FETCHERS - Store them from config!
     this.gscDataFetcher = config.gscDataFetcher || null;
     this.seoDataFetcher = config.seoDataFetcher || null;
@@ -73,6 +76,9 @@ class TopicGenerator {
     console.log(`🔄 Backup Models: ${this.models.compoundMini} (web search), ${this.models.browserSearch20B}, ${this.models.browserSearch120B}, ${this.models.gemini}, ${this.models.fallback}`);
     if (this.selectedCategory) {
       console.log(`📂 Category Focus: ${this.selectedCategory.toUpperCase()}`);
+    }
+    if (this.topicLimit !== null) {
+      console.log(`📊 Topic Limit: ${this.topicLimit}`);
     }
     return true;
   }
@@ -116,12 +122,18 @@ class TopicGenerator {
    * NOW WITH CSE DUPLICATE DETECTION!
    */
   async generateTopics() {
+    // Determine effective topic target (use limit if specified, otherwise default to 50)
+    const targetTopics = this.topicLimit ?? 50;
+
     console.log('\n🎯 TOPIC GENERATION STARTED');
     console.log('='.repeat(50));
     console.log(`🤖 AI Model: ${this.groqModel}`);
-    console.log(`📊 Target: 50 strategic topics`);
+    console.log(`📊 Target: ${targetTopics} strategic topics`);
     if (this.selectedCategory) {
       console.log(`📂 Category Filter: ${this.selectedCategory.toUpperCase()}`);
+    }
+    if (this.topicLimit !== null) {
+      console.log(`🔍 Topic limit applied: ${this.topicLimit}`);
     }
 
     try {
@@ -152,7 +164,7 @@ class TopicGenerator {
       }
 
       // Generate topics with batch strategy for reliability
-      let topics = await this.generateTopicsInBatches(approvedGaps);
+      let topics = await this.generateTopicsInBatches(approvedGaps, targetTopics);
 
       if (!topics || !Array.isArray(topics) || topics.length < 1) {
         throw new Error(`No topics generated`);
@@ -244,11 +256,10 @@ class TopicGenerator {
 
   /**
    * Generate topics in batches for reliability
-   * Generates 50 topics by calling AI 2 times (25 topics each)
+   * Dynamically generates N topics based on topicLimit (defaults to 50)
    */
-  async generateTopicsInBatches(approvedGaps) {
-    const targetTotal = 50;
-    const batchSize = 25;  // Generate 25 topics per batch
+  async generateTopicsInBatches(approvedGaps, targetTotal = 50) {
+    const batchSize = Math.min(25, targetTotal);  // Max 25 topics per batch, or less if target is smaller
     const batches = Math.ceil(targetTotal / batchSize);
 
     console.log(`\n🔄 Batch Generation Strategy: ${batches} batches of ${batchSize} topics each`);
