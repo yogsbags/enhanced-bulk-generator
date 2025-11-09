@@ -1,0 +1,9 @@
+#!/usr/bin/env node
+
+/**
+ * Deep Topic Researcher for Enhanced Bulk Generator
+ * Implements N8N Workflow 3: Deep Topic Research
+ * Analyzes top 10 competitors and creates content battle plan
+ */
+
+// Resolve module paths for Vercel deployment

@@ -5,6 +5,9 @@
  * Publishes SEO-ready content to WordPress and Sanity
  */
 
+// Resolve module paths for Vercel deployment
+require('../module-resolver');
+
 const fetch = require('node-fetch');
 const CSVDataManager = require('../core/csv-data-manager');
 
