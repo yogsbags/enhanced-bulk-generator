@@ -6,6 +6,9 @@
  * Uses Groq/compound model for research and topic generation
  */
 
+// Resolve module paths for Vercel deployment (must be first)
+require('./module-resolver');
+
 const fs = require('fs');
 const path = require('path');
 const dotenv = require('dotenv');

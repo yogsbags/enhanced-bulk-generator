@@ -1,0 +1,9 @@
+#!/usr/bin/env node
+
+/**
+ * Topic Generator for Enhanced Bulk Generator
+ * Uses Groq/compound model to generate 50 strategic topics from approved research gaps
+ * Implements N8N Workflow 2: Topic Generation
+ */
+
+// Resolve module paths for Vercel deployment

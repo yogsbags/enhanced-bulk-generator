@@ -1,0 +1,6 @@
+/**
+ * Hero Image Generator Integration
+ * Wraps OpenAI image generation with graceful fallbacks for bulk workflows.
+ */
+
+// Resolve module paths for Vercel deployment

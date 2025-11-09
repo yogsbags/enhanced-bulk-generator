@@ -6,6 +6,9 @@
  * Generates E-E-A-T compliant, SEO-optimized financial content per topic
  */
 
+// Resolve module paths for Vercel deployment
+require('../module-resolver');
+
 const fetch = require('node-fetch');
 const { jsonrepair } = require('jsonrepair');
 const fs = require('fs');
