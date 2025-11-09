@@ -33,6 +33,9 @@ class TopicGenerator {
     // Load optimized model parameters
     this.modelParams = this.loadModelParameters();
 
+    // 🎯 Category filter for focused topic generation
+    this.selectedCategory = config.category || null;
+
     // 🎯 MCP DATA FETCHERS - Store them from config!
     this.gscDataFetcher = config.gscDataFetcher || null;
     this.seoDataFetcher = config.seoDataFetcher || null;
@@ -68,6 +71,9 @@ class TopicGenerator {
     console.log('✅ Topic Generator initialized');
     console.log(`🤖 Primary Model: ${this.currentModel} (native web search)`);
     console.log(`🔄 Backup Models: ${this.models.compoundMini} (web search), ${this.models.browserSearch20B}, ${this.models.browserSearch120B}, ${this.models.gemini}, ${this.models.fallback}`);
+    if (this.selectedCategory) {
+      console.log(`📂 Category Focus: ${this.selectedCategory.toUpperCase()}`);
+    }
     return true;
   }
 
@@ -114,16 +120,36 @@ class TopicGenerator {
     console.log('='.repeat(50));
     console.log(`🤖 AI Model: ${this.groqModel}`);
     console.log(`📊 Target: 50 strategic topics`);
+    if (this.selectedCategory) {
+      console.log(`📂 Category Filter: ${this.selectedCategory.toUpperCase()}`);
+    }
 
     try {
       // Get approved research gaps
-      const approvedGaps = this.csvManager.getApprovedResearchGaps();
+      let approvedGaps = this.csvManager.getApprovedResearchGaps();
 
       if (approvedGaps.length === 0) {
         throw new Error('No approved research gaps found. Run master-seo-researcher.js first and approve some gaps.');
       }
 
-      console.log(`✅ Found ${approvedGaps.length} approved research gaps`);
+      console.log(`✅ Found ${approvedGaps.length} total approved research gaps`);
+
+      // Filter by category if specified
+      if (this.selectedCategory) {
+        const categoryLower = this.selectedCategory.toLowerCase().replace(/-/g, '_');
+        const originalLength = approvedGaps.length;
+
+        approvedGaps = approvedGaps.filter(gap => {
+          const gapCategory = (gap.topic_area || gap.category || '').toLowerCase().replace(/-/g, '_');
+          return gapCategory === categoryLower;
+        });
+
+        console.log(`🎯 Filtered to ${approvedGaps.length} gaps in "${this.selectedCategory}" category (from ${originalLength} total)`);
+
+        if (approvedGaps.length === 0) {
+          throw new Error(`No approved research gaps found for category "${this.selectedCategory}". Available categories: ${[...new Set(this.csvManager.getApprovedResearchGaps().map(g => g.topic_area || g.category))].join(', ')}`);
+        }
+      }
 
       // Generate topics with batch strategy for reliability
       let topics = await this.generateTopicsInBatches(approvedGaps);
@@ -654,7 +680,11 @@ class TopicGenerator {
       authority_builder: gap.authority_builder
     }));
 
-    return `Generate ${topicCount} strategic content topics from approved research data.
+    const categoryInstruction = this.selectedCategory
+      ? `\n\n⚠️ CRITICAL: Generate ALL ${topicCount} topics EXCLUSIVELY from the "${this.selectedCategory}" category. DO NOT include topics from other categories like tax_planning, mutual_funds, stock_market, etc. ONLY focus on "${this.selectedCategory}" content gaps provided in the research data.`
+      : '';
+
+    return `Generate ${topicCount} strategic content topics from approved research data.${categoryInstruction}
 
 RESEARCH CONTEXT:
 ${JSON.stringify({ approved_gaps: gapsContext }, null, 2)}
