@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid stage' }, { status: 400 })
     }
 
-    const csvPath = path.join(process.cwd(), '..', 'data', csvFile)
+    const csvPath = path.join(process.cwd(), 'backend', 'data', csvFile)
 
     // Check if file exists
     if (!fs.existsSync(csvPath)) {
