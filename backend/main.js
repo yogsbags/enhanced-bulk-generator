@@ -83,6 +83,14 @@ class EnhancedBulkGenerator {
     console.log(`🔄 Backup Models: ${this.config.models.compoundMini}, ${this.config.models.browserSearch20B}, ${this.config.models.browserSearch120B}, ${this.config.models.gemini}, ${this.config.models.fallback}`);
     console.log(`📊 Batch Size: ${this.config.batchSize}`);
     console.log(`📂 Category Focus: ${this.config.category}`);
+
+    // Debug logging for limits
+    if (this.config.topicLimit !== null || this.config.deepResearchLimit !== null || this.config.contentLimit !== null) {
+      console.log(`📊 Topic Limit: ${this.config.topicLimit}`);
+      console.log(`🔍 Deep Research Limit: ${this.config.deepResearchLimit}`);
+      console.log(`📝 Content Limit: ${this.config.contentLimit}`);
+      console.log(`🚀 Publication Limit: ${this.config.publicationLimit}`);
+    }
   }
 
   /**
@@ -425,11 +433,12 @@ async function main() {
           process.exit(1);
         }
         const stageOptions = {};
-        if (stageName === 'deep-research' && generator.config.deepResearchLimit) {
+        // Always pass limit regardless of truthiness - let the orchestrator handle null/undefined
+        if (stageName === 'deep-research') {
           stageOptions.limit = generator.config.deepResearchLimit;
-        } else if (stageName === 'content' && generator.config.contentLimit) {
+        } else if (stageName === 'content') {
           stageOptions.limit = generator.config.contentLimit;
-        } else if (stageName === 'publication' && generator.config.publicationLimit) {
+        } else if (stageName === 'publication') {
           stageOptions.limit = generator.config.publicationLimit;
         }
         await generator.orchestrator.executeStage(stageName, stageOptions);
