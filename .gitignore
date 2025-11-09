@@ -70,3 +70,4 @@ token.json
 # Claude Code configuration (may contain example env vars)
 .claude/
 
+.vercel
