@@ -4,6 +4,7 @@ import path from 'path'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+export const maxDuration = 300 // 5 minutes (Vercel Pro plan)
 
 export async function POST(req: NextRequest) {
   const encoder = new TextEncoder()
@@ -83,9 +84,9 @@ export async function POST(req: NextRequest) {
             sendEvent({ stage: 1, status: 'error', message: error.message })
           }
         } else {
-          // Local development: Execute main.js directly via spawn
-          const mainJsPath = path.join(process.cwd(), '..', 'main.js')
-          const workingDir = path.join(process.cwd(), '..')
+          // Vercel/Local: Execute main.js from backend directory
+          const mainJsPath = path.join(process.cwd(), 'backend', 'main.js')
+          const workingDir = path.join(process.cwd(), 'backend')
 
           sendEvent({ log: '🔧 Initializing workflow execution...' })
           sendEvent({ log: `📍 Executing: ${mainJsPath}` })
