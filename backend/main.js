@@ -434,7 +434,9 @@ async function main() {
         }
         const stageOptions = {};
         // Always pass limit regardless of truthiness - let the orchestrator handle null/undefined
-        if (stageName === 'deep-research') {
+        if (stageName === 'topics') {
+          stageOptions.limit = generator.config.topicLimit;
+        } else if (stageName === 'deep-research') {
           stageOptions.limit = generator.config.deepResearchLimit;
         } else if (stageName === 'content') {
           stageOptions.limit = generator.config.contentLimit;
