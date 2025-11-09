@@ -442,7 +442,7 @@ export default function Home() {
                         {stage.message && (
                           <p className="text-sm text-gray-600 mt-1">{stage.message}</p>
                         )}
-                        {stageData[stage.id] && (
+                        {stageData[stage.id]?.summary && (
                           <p className="text-xs text-gray-500 mt-1">
                             📊 {stageData[stage.id].summary.total} items • {stageData[stage.id].summary.approved} approved
                           </p>
@@ -459,7 +459,7 @@ export default function Home() {
                       )}
 
                       {/* View Data Button (available after completion) */}
-                      {stageData[stage.id] && stage.status === 'completed' && (
+                      {stageData[stage.id]?.data && stage.status === 'completed' && (
                         <button
                           onClick={() => setExpandedStage(expandedStage === stage.id ? null : stage.id)}
                           className="text-sm px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
@@ -542,7 +542,7 @@ export default function Home() {
                 </div>
 
                 {/* Expandable CSV Data */}
-                {expandedStage === stage.id && stageData[stage.id] && (
+                {expandedStage === stage.id && stageData[stage.id]?.data && stageData[stage.id]?.summary && (
                   <div className="border-t-2 border-green-200 p-4 bg-white">
                     <div className="mb-3 flex items-center justify-between">
                       <h4 className="font-semibold text-gray-700">
