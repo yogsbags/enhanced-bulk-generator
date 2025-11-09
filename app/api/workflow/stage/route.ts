@@ -39,19 +39,26 @@ export async function POST(req: NextRequest) {
 
         const stageName = STAGE_NAMES[stageId]
 
-        // Path to main.js
-        const mainJsPath = path.join(process.cwd(), '..', 'main.js')
+        // Path to main.js (backend directory)
+        const workingDir = path.join(process.cwd(), 'backend')
+        const mainJsPath = path.join(workingDir, 'main.js')
 
         sendEvent({ log: `🔧 Executing Stage ${stageId}: ${stageName}...` })
         sendEvent({ log: `📊 Topic Limit: ${topicLimit}` })
         sendEvent({ log: `📂 Category Focus: ${category}` })
         sendEvent({ stage: stageId, status: 'running', message: `Executing ${stageName}...` })
 
-        // Execute stage
+        // Execute stage with NODE_PATH for module resolution
+        const parentNodeModules = path.join(process.cwd(), 'node_modules')
+        const nodeEnv = {
+          ...process.env,
+          NODE_PATH: parentNodeModules + (process.env.NODE_PATH ? ':' + process.env.NODE_PATH : '')
+        }
+
         const args = [mainJsPath, 'stage', stageName, '--auto-approve', '--topic-limit', topicLimit.toString(), '--category', category]
         const nodeProcess = spawn('node', args, {
-          cwd: path.join(process.cwd(), '..'),
-          env: { ...process.env },
+          cwd: workingDir,
+          env: nodeEnv,
         })
 
         sendEvent({ log: `🚀 Command: node ${args.slice(1).join(' ')}` })
