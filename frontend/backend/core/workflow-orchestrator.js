@@ -237,7 +237,7 @@ class WorkflowOrchestrator {
    * Stage 2: Topic Generation
    * Takes approved research gaps and creates strategic content topics
    */
-  async executeStage2Topics() {
+  async executeStage2Topics(options = {}) {
     console.log('\n📍 STAGE 2: Topic Generation');
     console.log('-'.repeat(40));
 
@@ -267,8 +267,24 @@ class WorkflowOrchestrator {
       console.log('🎯 Generating strategic topics...');
       console.log('');
 
+      // Get topic limit from options or config
+      const limit = options.limit ?? this.config.topicLimit ?? null;
+
+      // Create topic generator with limit if specified
+      const topicGenerator = limit !== null
+        ? new TopicGenerator({
+            ...this.config,
+            topicLimit: limit,
+            seoDataFetcher: this.seoDataFetcher
+          })
+        : this.topicGenerator;
+
+      if (limit !== null) {
+        console.log(`🔍 Limiting topic generation to ${limit} topic(s)`);
+      }
+
       // Generate topics
-      const topics = await this.topicGenerator.generateTopics();
+      const topics = await topicGenerator.generateTopics();
 
       // Update workflow status
       this.csvManager.updateWorkflowStatus(
@@ -642,15 +658,15 @@ class WorkflowOrchestrator {
       case 'research':
         return await this.executeStage1Research();
       case 'topics':
-        return await this.executeStage2Topics();
+        return await this.executeStage2Topics(options);
       case 'deep-research':
         return await this.executeStage3DeepResearch(options);
       case 'content':
-        return await this.executeStage4ContentCreation();
+        return await this.executeStage4ContentCreation(options);
       case 'seo':
         return await this.executeStage5SEOOptimization();
       case 'publication':
-        return await this.executeStage6Publication();
+        return await this.executeStage6Publication(options);
       case 'completion':
         return await this.executeStage7Completion();
       default:
