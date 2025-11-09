@@ -328,6 +328,81 @@ await orchestrator.executeStage('topics', { limit: 1 });
 4. **Incremental Workflows**: Generate 5 topics, review, generate 5 more
 5. **Backward Compatible**: Default behavior unchanged (50 topics)
 
+## Complete Fix Analysis
+
+### The Missing Piece in main.js
+
+The initial implementation updated `topic-generator.js` and `workflow-orchestrator.js` correctly, but **missed a critical piece in main.js**!
+
+**Before Fix (main.js:236-244):**
+```javascript
+const stageOptions = {};
+// Always pass limit regardless of truthiness - let the orchestrator handle null/undefined
+if (stageName === 'deep-research') {
+  stageOptions.limit = generator.config.deepResearchLimit;
+} else if (stageName === 'content') {
+  stageOptions.limit = generator.config.contentLimit;
+} else if (stageName === 'publication') {
+  stageOptions.limit = generator.config.publicationLimit;
+}
+// ❌ NO CONDITION FOR 'topics' - stageOptions remains empty {}
+await generator.orchestrator.executeStage(stageName, stageOptions);
+```
+
+**After Fix (main.js:437-445):**
+```javascript
+const stageOptions = {};
+// Always pass limit regardless of truthiness - let the orchestrator handle null/undefined
+if (stageName === 'topics') {  // ✅ ADDED THIS!
+  stageOptions.limit = generator.config.topicLimit;
+} else if (stageName === 'deep-research') {
+  stageOptions.limit = generator.config.deepResearchLimit;
+} else if (stageName === 'content') {
+  stageOptions.limit = generator.config.contentLimit;
+} else if (stageName === 'publication') {
+  stageOptions.limit = generator.config.publicationLimit;
+}
+await generator.orchestrator.executeStage(stageName, stageOptions);
+```
+
+### Why The Initial Fix Failed
+
+The complete data flow requires **THREE files** to work together:
+
+1. **main.js** - Must pass `topicLimit` to orchestrator via `stageOptions` ❌ **MISSING**
+2. **workflow-orchestrator.js** - Must receive `options.limit` and pass to TopicGenerator ✅ **DONE**
+3. **topic-generator.js** - Must use `topicLimit` instead of hardcoded 50 ✅ **DONE**
+
+**The Flow with the Missing Piece:**
+```
+Command Line: --topic-limit=1
+    ↓ (parsed correctly)
+main.js: generator.config.topicLimit = 1
+    ↓ (❌ NOT passed to orchestrator)
+main.js: stageOptions = {}  ← EMPTY!
+    ↓
+orchestrator.executeStage('topics', {})
+    ↓ (options.limit is undefined)
+TopicGenerator created WITHOUT limit
+    ↓
+Generates 50 topics (default) ❌
+```
+
+**The Flow After Complete Fix:**
+```
+Command Line: --topic-limit=1
+    ↓ (parsed correctly)
+main.js: generator.config.topicLimit = 1
+    ↓ (✅ NOW passed to orchestrator)
+main.js: stageOptions = { limit: 1 }
+    ↓
+orchestrator.executeStage('topics', { limit: 1 })
+    ↓ (options.limit = 1)
+TopicGenerator created WITH limit: 1
+    ↓
+Generates 1 topic ✅
+```
+
 ## Related Files Modified
 
 1. **`/backend/research/topic-generator.js`**
@@ -342,7 +417,14 @@ await orchestrator.executeStage('topics', { limit: 1 });
    - Updated `executeStage()` to pass options to Stage 2
    - Added Stage 4 options passing (was missing before)
 
+3. **`/backend/main.js`** ⚠️ **CRITICAL FIX**
+   - Added missing `topics` stage condition to pass `topicLimit` to `stageOptions`
+   - Now matches the pattern for `deep-research`, `content`, and `publication` stages
+   - Completes the data flow from CLI → orchestrator → TopicGenerator
+
 ## Deployment
+
+### Initial Deployment (Partial Fix)
 
 ```bash
 # Commit changes
@@ -363,6 +445,35 @@ Fixes topic generation ignoring --topic-limit parameter"
 # Push to Railway (auto-deploy)
 git push origin main
 ```
+
+**Status:** ❌ Incomplete - Still failed in production testing
+
+### Critical Bug Fix (Complete Solution)
+
+After deployment, production testing revealed the fix **did NOT work**. The system still generated 50 topics instead of 1.
+
+**Root Cause Discovered:** The `main.js` file was missing the condition to pass `topicLimit` to `stageOptions` for the `topics` stage!
+
+```bash
+# Commit the missing piece
+git add backend/main.js
+
+git commit -m "fix: Add missing 'topics' stage condition to pass topicLimit in main.js
+
+- Stage 2 (Topic Generation) was ignoring --topic-limit parameter
+- Root cause: main.js:236-244 had conditions for deep-research, content, publication but NOT topics
+- Fixed by adding: if (stageName === 'topics') { stageOptions.limit = generator.config.topicLimit; }
+- Now Stage 2 correctly receives the limit and generates only N topics instead of hardcoded 50
+- Completes the topic limit implementation started in workflow-orchestrator.js and topic-generator.js
+
+Fixes: Stage 2 ignoring --topic-limit=1 parameter (was generating 50 topics)
+Related: STAGE2_TOPIC_LIMIT_IMPLEMENTATION.md, TOPIC_LIMIT_FIX.md"
+
+# Push to Railway (auto-deploy)
+git push origin main
+```
+
+**Status:** ✅ Complete - All files updated
 
 ## Next Steps
 
