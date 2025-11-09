@@ -96,9 +96,17 @@ export async function POST(req: NextRequest) {
 
           // Execute main.js with 'full' command, topic limit, and category
           const args = [mainJsPath, 'full', '--auto-approve', '--topic-limit', topicLimit.toString(), '--category', category]
+
+          // Add parent node_modules to NODE_PATH for Vercel deployment
+          const parentNodeModules = path.join(process.cwd(), 'node_modules')
+          const nodeEnv = {
+            ...process.env,
+            NODE_PATH: parentNodeModules + (process.env.NODE_PATH ? ':' + process.env.NODE_PATH : '')
+          }
+
           const nodeProcess = spawn('node', args, {
             cwd: workingDir,
-            env: { ...process.env },
+            env: nodeEnv,
           })
 
           sendEvent({ log: `🚀 Command: node ${args.slice(1).join(' ')}` })
