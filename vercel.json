@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "buildCommand": "cd frontend && npm install && npm run build",
+  "outputDirectory": "frontend/.next",
+  "devCommand": "cd frontend && npm run dev",
+  "installCommand": "npm install && cd frontend && npm install",
+  "framework": "nextjs",
+  "functions": {
+    "frontend/app/api/**/*.ts": {
+      "maxDuration": 300
+    }
+  },
+  "regions": ["iad1"],
+  "env": {
+    "GROQ_API_KEY": "@groq_api_key",
+    "OPENAI_API_KEY": "@openai_api_key",
+    "UAT_WP_BASE_URL": "@uat_wp_base_url",
+    "UAT_WP_USERNAME": "@uat_wp_username",
+    "UAT_WP_APPLICATION_PASSWORD": "@uat_wp_application_password",
+    "SANITY_PROJECT_ID": "@sanity_project_id",
+    "SANITY_DATASET": "@sanity_dataset",
+    "SANITY_TOKEN": "@sanity_token",
+    "IMGBB_API_KEY": "@imgbb_api_key"
+  }
+}
