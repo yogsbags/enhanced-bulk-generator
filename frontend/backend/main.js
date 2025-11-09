@@ -14,6 +14,7 @@ const path = require('path');
 const dotenv = require('dotenv');
 const WorkflowOrchestrator = require('./core/workflow-orchestrator');
 const CSVDataManager = require('./core/csv-data-manager');
+const { getGoogleCredentials } = require('./utils/google-credentials');
 
 const ENV_FILES = ['.env', '.env.local'];
 ENV_FILES.forEach((file) => {
@@ -22,6 +23,9 @@ ENV_FILES.forEach((file) => {
     dotenv.config({ path: fullPath, override: false });
   }
 });
+
+// Initialize Google credentials (Railway support)
+getGoogleCredentials();
 
 // Configuration
 const CONFIG = {
