@@ -7,22 +7,17 @@
 
   # Build command: install dependencies, copy backend files TO function directory, build frontend
   command = """
-    echo "📦 Installing root dependencies..." && \
     npm install && \
-    echo "📂 Creating workflow-execute directory..." && \
     mkdir -p netlify/functions/workflow-execute && \
-    echo "📋 Copying backend files to function directory..." && \
     cp main.js netlify/functions/workflow-execute/ && \
     cp -r core netlify/functions/workflow-execute/ && \
     cp -r research netlify/functions/workflow-execute/ && \
     cp -r content netlify/functions/workflow-execute/ && \
     cp -r data netlify/functions/workflow-execute/ && \
     cp -r integrations netlify/functions/workflow-execute/ && \
-    cp package.json netlify/functions/workflow-execute/backend-package.json && \
+    cp package.json netlify/functions/workflow-execute/package.json && \
     cp netlify/functions/workflow-execute.js netlify/functions/workflow-execute/index.js && \
-    echo "✅ Backend files copied to function directory" && \
-    ls -la netlify/functions/workflow-execute/ && \
-    echo "🔨 Building frontend..." && \
+    (cd netlify/functions/workflow-execute && npm install) && \
     cd frontend && \
     npm install && \
     npm run build
