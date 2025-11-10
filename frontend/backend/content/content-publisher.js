@@ -447,7 +447,7 @@ class ContentPublisher {
       const controller = new AbortController();
       const timeout = setTimeout(() => {
         controller.abort();
-      }, 60000); // 60 second timeout
+      }, 300000); // 5 minute timeout (increased from 60s for Railway → UAT WordPress latency + slow server responses)
 
       const uploadResponse = await fetch(endpoint, {
         method: 'POST',
