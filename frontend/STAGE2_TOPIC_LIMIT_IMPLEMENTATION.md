@@ -94,7 +94,7 @@ async generateTopics() {
 
   console.log('\n🎯 TOPIC GENERATION STARTED');
   console.log('='.repeat(50));
-  console.log(`🤖 AI Model: ${this.groqModel}`);
+  console.log(`🤖 AI Model: ${this.currentModel}`);  // ✅ Fixed from this.groqModel
   console.log(`📊 Target: ${targetTopics} strategic topics`);  // ✅ Dynamic
 
   if (this.selectedCategory) {
@@ -475,6 +475,33 @@ git push origin main
 
 **Status:** ✅ Complete - All files updated
 
+### Additional Bug Fix (Logging Issue)
+
+After the critical fix was deployed, production logs still showed `🤖 AI Model: undefined`. This was a **logging-only bug** that did not affect actual functionality.
+
+**Root Cause:** Line 130 in `topic-generator.js` referenced `this.groqModel` (which doesn't exist) instead of `this.currentModel` (set in constructor line 30).
+
+```bash
+# Fix the logging bug
+git add backend/research/topic-generator.js
+
+git commit -m "fix: Correct AI model property name in topic-generator.js logging
+
+- Changed \`this.groqModel\` to \`this.currentModel\` on line 130
+- Root cause: Property was set as \`this.currentModel\` in constructor (line 30)
+- Bug manifested as \"🤖 AI Model: undefined\" in logs
+- This was a logging-only bug, did not affect actual model usage
+- Now correctly displays the model being used (e.g., \"groq/compound\")
+
+Fixes: User's logs showing \"🤖 AI Model: undefined\"
+Related: STAGE2_TOPIC_LIMIT_IMPLEMENTATION.md, TOPIC_LIMIT_FIX.md"
+
+# Push to Railway (auto-deploy)
+git push origin main
+```
+
+**Status:** ✅ Complete - Logging fixed
+
 ## Next Steps
 
 After Railway deployment, verify with:
@@ -489,6 +516,7 @@ node main.js full --topic-limit=1 --auto-approve
 
 Expected logs should show:
 - ✅ `📊 Topic Limit: 1`
+- ✅ `🤖 AI Model: groq/compound` (no longer "undefined")
 - ✅ `📊 Target: 1 strategic topics`
 - ✅ `🔍 Topic limit applied: 1`
 - ✅ `🔍 Limiting topic generation to 1 topic(s)`
