@@ -187,8 +187,13 @@ export async function POST(req: NextRequest) {
                 sendEvent({ log: '✅ All stages completed successfully!' })
               }
 
-              // Detect errors
-              if (lowerLine.includes('error') && !lowerLine.includes('0 error')) {
+              // Detect FATAL errors only (not warnings or optional API failures)
+              // Only trigger on actual stage failures, not Google Ads/API warnings
+              if ((lowerLine.includes('❌ stage') ||
+                   lowerLine.includes('fatal') ||
+                   lowerLine.includes('process exited with code') ||
+                   lowerLine.includes('workflow failed')) &&
+                  !lowerLine.includes('0 error')) {
                 const stageWithError = currentStage || 1
                 sendEvent({
                   stage: stageWithError,
