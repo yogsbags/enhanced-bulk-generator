@@ -222,8 +222,10 @@ class ContentPublisher {
       if (!response.ok) {
         console.warn(`⚠️  WordPress publish failed (${response.status}): ${JSON.stringify(data)}`);
         console.warn('   → Falling back to simulated draft URL for workflow continuity.');
+        // Use WordPress base URL for fallback, not frontend URL
+        const wpBase = this.config.wpBaseUrl.replace(/\/$/, '');
         return this.simulatedResult(content.slug, `wordpress-${response.status}`, {
-          url: content.frontendUrl
+          url: `${wpBase}/${content.slug}`
         });
       }
 
@@ -240,8 +242,10 @@ class ContentPublisher {
       };
     } catch (error) {
       console.error('⚠️  WordPress publish error:', error.message);
+      // Use WordPress base URL for fallback, not frontend URL
+      const wpBase = this.config.wpBaseUrl.replace(/\/$/, '');
       return this.simulatedResult(content.slug, 'wordpress-error', {
-        url: content.frontendUrl
+        url: `${wpBase}/${content.slug}`
       });
     }
   }
@@ -325,8 +329,10 @@ class ContentPublisher {
       if (!response.ok) {
         console.warn(`⚠️  UAT WordPress publish failed (${response.status}): ${JSON.stringify(data)}`);
         console.warn('   → Continuing with other platforms.');
+        // Use UAT WordPress base URL for fallback
+        const uatBase = this.config.uatWpBaseUrl.replace(/\/$/, '');
         return this.simulatedResult(content.slug, `uat-wordpress-${response.status}`, {
-          url: ''
+          url: `${uatBase}/${content.slug}`
         });
       }
 
@@ -343,8 +349,10 @@ class ContentPublisher {
       };
     } catch (error) {
       console.error('⚠️  UAT WordPress publish error:', error.message);
+      // Use UAT WordPress base URL for fallback
+      const uatBase = this.config.uatWpBaseUrl.replace(/\/$/, '');
       return this.simulatedResult(content.slug, 'uat-wordpress-error', {
-        url: ''
+        url: `${uatBase}/${content.slug}`
       });
     }
   }
