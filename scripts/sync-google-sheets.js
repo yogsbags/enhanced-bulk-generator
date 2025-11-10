@@ -54,14 +54,28 @@ async function syncToGoogleSheets(options = {}) {
   try {
     let auth;
 
+    log('🔍 Checking for credentials...');
+    log(`   - GOOGLE_CREDENTIALS_JSON env var: ${process.env.GOOGLE_CREDENTIALS_JSON ? 'SET (length: ' + process.env.GOOGLE_CREDENTIALS_JSON.length + ')' : 'NOT SET'}`);
+    log(`   - GOOGLE_APPLICATION_CREDENTIALS: ${process.env.GOOGLE_APPLICATION_CREDENTIALS || 'NOT SET'}`);
+    log(`   - Hardcoded path exists: ${fs.existsSync(HARDCODED_CREDENTIALS_PATH)}`);
+
     // Try to use GOOGLE_CREDENTIALS_JSON environment variable (for Railway/cloud deployments)
     if (process.env.GOOGLE_CREDENTIALS_JSON) {
       log('📝 Using GOOGLE_CREDENTIALS_JSON environment variable');
-      const credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS_JSON);
-      auth = new GoogleAuth({
-        credentials,
-        scopes: SCOPES
-      });
+      try {
+        const credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS_JSON);
+        log(`   ✓ Parsed JSON successfully`);
+        log(`   ✓ Service account: ${credentials.client_email || 'unknown'}`);
+        log(`   ✓ Project ID: ${credentials.project_id || 'unknown'}`);
+        auth = new GoogleAuth({
+          credentials,
+          scopes: SCOPES
+        });
+        log('   ✓ GoogleAuth initialized');
+      } catch (parseError) {
+        log(`   ✗ Failed to parse GOOGLE_CREDENTIALS_JSON: ${parseError.message}`);
+        throw new Error(`Invalid GOOGLE_CREDENTIALS_JSON: ${parseError.message}`);
+      }
     }
     // Try file path from GOOGLE_APPLICATION_CREDENTIALS env var
     else if (process.env.GOOGLE_APPLICATION_CREDENTIALS && fs.existsSync(process.env.GOOGLE_APPLICATION_CREDENTIALS)) {
@@ -82,80 +96,107 @@ async function syncToGoogleSheets(options = {}) {
       return { success: true, skipped: true, reason: 'No credentials configured' };
     }
 
+    log('🔗 Connecting to Google Sheets API...');
     const client = await auth.getClient();
+    log('   ✓ Client authenticated successfully');
 
+    log('📋 Fetching spreadsheet metadata...');
+    log(`   - Spreadsheet ID: ${spreadsheetId}`);
     const spreadsheet = await client.request({
       url: `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`,
       method: 'GET'
     });
+    log(`   ✓ Spreadsheet found: "${spreadsheet.data.properties?.title || 'Unknown'}"`);
 
     const existingSheets = new Map(
       (spreadsheet.data.sheets || []).map(sheet => [sheet.properties.title, sheet.properties.sheetId])
     );
+    log(`   ✓ Found ${existingSheets.size} existing sheets`);
 
+    log('📂 Scanning for CSV files...');
+    log(`   - CSV directory: ${csvDir}`);
     const csvFiles = fs
       .readdirSync(csvDir)
       .filter(file => file.endsWith('.csv') && !file.endsWith('.bak'));
+    log(`   ✓ Found ${csvFiles.length} CSV files to sync`);
 
     if (csvFiles.length === 0) {
-      log('No CSV files found to sync.');
+      log('⚠️  No CSV files found to sync.');
       return { success: true, syncedSheets: 0 };
     }
 
     let syncedCount = 0;
+    const errors = [];
 
     for (const file of csvFiles) {
       const sheetName = path.basename(file, '.csv');
       const csvPath = path.join(csvDir, file);
-      const raw = fs.readFileSync(csvPath, 'utf8');
 
-      const rows = parse(raw, {
-        columns: false,
-        skip_empty_lines: false
-      });
+      try {
+        log(`\n📊 Processing "${file}"...`);
+        const raw = fs.readFileSync(csvPath, 'utf8');
+        log(`   ✓ Read CSV file (${raw.length} bytes)`);
 
-      const values = rows.length > 0 ? rows : [[]];
+        const rows = parse(raw, {
+          columns: false,
+          skip_empty_lines: false
+        });
+        log(`   ✓ Parsed ${rows.length} rows`);
 
-      if (!existingSheets.has(sheetName)) {
-        log(`📄 Creating sheet "${sheetName}"...`);
-        await client.request({
-          url: `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`,
-          method: 'POST',
-          data: {
-            requests: [
-              {
-                addSheet: {
-                  properties: {
-                    title: sheetName
+        const values = rows.length > 0 ? rows : [[]];
+
+        if (!existingSheets.has(sheetName)) {
+          log(`   📄 Creating new sheet "${sheetName}"...`);
+          await client.request({
+            url: `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`,
+            method: 'POST',
+            data: {
+              requests: [
+                {
+                  addSheet: {
+                    properties: {
+                      title: sheetName
+                    }
                   }
                 }
-              }
-            ]
+              ]
+            }
+          });
+          log(`   ✓ Sheet created`);
+        }
+
+        const encodedSheetName = encodeURIComponent(sheetName);
+
+        log(`   🔄 Clearing existing data...`);
+        await client.request({
+          url: `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodedSheetName}:clear`,
+          method: 'POST'
+        });
+        log(`   ✓ Sheet cleared`);
+
+        log(`   📝 Uploading ${values.length} rows...`);
+        await client.request({
+          url: `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodedSheetName}?valueInputOption=RAW`,
+          method: 'PUT',
+          data: {
+            values
           }
         });
+        log(`   ✅ Synced successfully!`);
+
+        syncedCount++;
+      } catch (fileError) {
+        log(`   ❌ Error syncing "${sheetName}": ${fileError.message}`);
+        errors.push({ file: sheetName, error: fileError.message });
       }
-
-      const encodedSheetName = encodeURIComponent(sheetName);
-
-      log(`🔄 Syncing sheet "${sheetName}" (${values.length} rows)...`);
-      await client.request({
-        url: `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodedSheetName}:clear`,
-        method: 'POST'
-      });
-
-      await client.request({
-        url: `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodedSheetName}?valueInputOption=RAW`,
-        method: 'PUT',
-        data: {
-          values
-        }
-      });
-
-      syncedCount++;
     }
 
-    log(`✅ CSV sync completed successfully. Synced ${syncedCount} sheet(s).`);
-    return { success: true, syncedSheets: syncedCount };
+    log(`\n✅ CSV sync completed successfully. Synced ${syncedCount}/${csvFiles.length} sheet(s).`);
+    if (errors.length > 0) {
+      log(`⚠️  ${errors.length} error(s) occurred:`);
+      errors.forEach(e => log(`   - ${e.file}: ${e.error}`));
+    }
+    return { success: true, syncedSheets: syncedCount, errors: errors.length > 0 ? errors : undefined };
 
   } catch (error) {
     console.error('❌ Sync failed:', error.message);
