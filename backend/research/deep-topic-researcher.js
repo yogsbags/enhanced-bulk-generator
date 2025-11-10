@@ -717,31 +717,57 @@ Focus on Indian market context and SEBI/RBI compliance where applicable.`;
    */
   async parseResearchResponse(response, topic) {
     try {
-      // Try to extract JSON from response
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
+      // Clean Markdown formatting that breaks JSON parsing
+      let cleanedResponse = response
+        .replace(/```json\s*/gi, '')
+        .replace(/```\s*/g, '')
+        .replace(/^\s*[\*\-]\s+/gm, '')
+        .replace(/\*\*([^\*]+)\*\*/g, '$1')
+        .replace(/\*([^\*]+)\*/g, '$1')
+        .trim();
+
+      // Try to extract JSON from cleaned response
+      const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+
       if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        const sources = this.extractSourceUrls(parsed, topic);
-        const research = {
-          topic_id: topic.topic_id,
-          research_date: new Date().toISOString().split('T')[0],
-          primary_keyword: topic.primary_keyword,
-          top_10_competitors: parsed.top_10_competitors || '',
-          content_gaps: parsed.content_gaps || '',
-          search_intent: parsed.search_intent || '',
-          related_questions: parsed.related_questions || '',
-          content_superiority_plan: parsed.content_superiority_plan || '',
-          resource_requirements: parsed.resource_requirements || '',
-          regulatory_compliance: parsed.regulatory_compliance || topic.regulatory_requirements || '',
-          estimated_impact: parsed.estimated_impact || '',
-          source_urls: sources,
-          approval_status: 'Pending'
-        };
-        await this.enrichWithCompetitorOutlines(research, parsed, topic);
-        return research;
+        let jsonString = jsonMatch[0];
+
+        // Additional cleanup for common JSON issues
+        jsonString = jsonString
+          .replace(/,\s*}/g, '}')
+          .replace(/,\s*]/g, ']')
+          .replace(/\r?\n/g, ' ')
+          .replace(/\s+/g, ' ');
+
+        try {
+          const parsed = JSON.parse(jsonString);
+          const sources = this.extractSourceUrls(parsed, topic);
+          const research = {
+            topic_id: topic.topic_id,
+            research_date: new Date().toISOString().split('T')[0],
+            primary_keyword: topic.primary_keyword,
+            top_10_competitors: parsed.top_10_competitors || '',
+            content_gaps: parsed.content_gaps || '',
+            search_intent: parsed.search_intent || '',
+            related_questions: parsed.related_questions || '',
+            content_superiority_plan: parsed.content_superiority_plan || '',
+            resource_requirements: parsed.resource_requirements || '',
+            regulatory_compliance: parsed.regulatory_compliance || topic.regulatory_requirements || '',
+            estimated_impact: parsed.estimated_impact || '',
+            source_urls: sources,
+            approval_status: 'Pending'
+          };
+          await this.enrichWithCompetitorOutlines(research, parsed, topic);
+          console.log(`✅ Successfully parsed JSON response for ${topic.topic_id}`);
+          return research;
+        } catch (jsonError) {
+          console.warn(`⚠️  JSON parse failed for ${topic.topic_id}: ${jsonError.message}`);
+          console.warn(`📄 Problematic JSON (first 500 chars): ${jsonString.substring(0, 500)}`);
+        }
       }
 
       // Fallback: use raw response
+      console.warn(`⚠️  No valid JSON found, using fallback parsing for ${topic.topic_id}`);
       const fallbackSources = this.extractSourceUrls({}, topic);
       const research = {
         topic_id: topic.topic_id,
@@ -762,7 +788,7 @@ Focus on Indian market context and SEBI/RBI compliance where applicable.`;
       return research;
 
     } catch (error) {
-      console.error('⚠️  Failed to parse research response:', error.message);
+      console.error(`❌ Failed to parse research response for ${topic.topic_id}:`, error.message);
       return null;
     }
   }
