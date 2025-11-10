@@ -224,6 +224,9 @@ class WorkflowOrchestrator {
         console.log('   OR run Stage 1 again to add 10 more gaps!');
       }
 
+      // Sync to Google Sheets
+      await this.syncToGoogleSheets('research-gaps');
+
       await this.sleep(this.config.delayBetweenStages);
       return true;
 
@@ -311,6 +314,9 @@ class WorkflowOrchestrator {
         console.log('   2. Set approval_status = "Yes" for topics you want to develop');
         console.log('   3. Run Stage 3 for deep research: node main.js stage deep-research');
       }
+
+      // Sync to Google Sheets
+      await this.syncToGoogleSheets('generated-topics');
 
       await this.sleep(this.config.delayBetweenStages);
       return true;
@@ -407,6 +413,9 @@ class WorkflowOrchestrator {
 
       console.log(`\n📝 Saved ${researchResults.length} research entries to data/topic-research.csv`);
 
+      // Sync to Google Sheets
+      await this.syncToGoogleSheets('topic-research');
+
       await this.sleep(this.config.delayBetweenStages);
       return true;
 
@@ -484,6 +493,9 @@ class WorkflowOrchestrator {
 
       console.log(`\n📝 Saved ${newRecords.length} drafts to data/created-content.csv`);
 
+      // Sync to Google Sheets
+      await this.syncToGoogleSheets('created-content');
+
       await this.sleep(this.config.delayBetweenStages);
       return true;
 
@@ -525,6 +537,9 @@ class WorkflowOrchestrator {
           { seo_approval: approvalState }
         );
       });
+
+      // Sync to Google Sheets
+      await this.syncToGoogleSheets('created-content');
 
       await this.sleep(this.config.delayBetweenStages);
       return true;
@@ -581,6 +596,9 @@ class WorkflowOrchestrator {
         );
       });
 
+      // Sync to Google Sheets
+      await this.syncToGoogleSheets('published-content');
+
       await this.sleep(this.config.delayBetweenStages);
       return true;
 
@@ -636,6 +654,9 @@ class WorkflowOrchestrator {
       console.log('   - Approve research gaps and run Stage 2');
       console.log('   - Or run Stage 1 again to add 10 more gaps');
     }
+
+    // Sync to Google Sheets
+    await this.syncToGoogleSheets('workflow-status');
 
     return true;
   }
@@ -719,6 +740,56 @@ class WorkflowOrchestrator {
     console.log('   - Full workflow: node main.js full');
 
     return { status, stats };
+  }
+
+  /**
+   * Sync CSV data to Google Sheets after stage completion
+   * @param {string} primarySheet - Primary sheet to highlight (optional)
+   */
+  async syncToGoogleSheets(primarySheet = null) {
+    try {
+      const result = await this.csvManager.syncToGoogleSheets();
+
+      if (result.skipped) {
+        // Silently skip if not configured
+        return result;
+      }
+
+      if (result.success && result.syncedSheets) {
+        console.log(`📊 Synced ${result.syncedSheets} sheet(s) to Google Sheets`);
+
+        // Import the URL helper functions
+        let googleSheetsSyncModule;
+        try {
+          googleSheetsSyncModule = require('../../scripts/sync-google-sheets');
+        } catch (error) {
+          // Module not available, skip URL display
+          return result;
+        }
+
+        // Show the "View on Google Sheets" button
+        const allUrls = googleSheetsSyncModule.getAllSheetUrls();
+        const spreadsheetId = googleSheetsSyncModule.SPREADSHEET_ID;
+        const baseUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`;
+
+        console.log('');
+        console.log('🔗 View on Google Sheets:');
+
+        if (primarySheet && allUrls[primarySheet]) {
+          // Highlight the primary sheet for this stage
+          console.log(`   📊 ${primarySheet}: ${allUrls[primarySheet]}`);
+        } else {
+          // Show the main spreadsheet URL
+          console.log(`   📊 Spreadsheet: ${baseUrl}`);
+        }
+      }
+
+      return result;
+    } catch (error) {
+      // Don't fail workflow if sync fails
+      console.warn('⚠️  Google Sheets sync skipped:', error.message);
+      return { success: false, error: error.message };
+    }
   }
 
   /**

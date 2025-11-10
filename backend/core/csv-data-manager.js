@@ -10,10 +10,23 @@ const path = require('path');
 const { parse } = require('csv-parse/sync');
 const { stringify } = require('csv-stringify/sync');
 
+// Import Google Sheets sync (optional - fails gracefully if not configured)
+let googleSheetsSyncModule;
+try {
+  googleSheetsSyncModule = require('../../scripts/sync-google-sheets');
+} catch (error) {
+  // Google Sheets sync module not available (expected in some environments)
+  googleSheetsSyncModule = null;
+}
+
 class CSVDataManager {
-  constructor(dataDir = '../data') {
+  constructor(dataDir = '../data', options = {}) {
     this.dataDir = path.resolve(__dirname, dataDir);
     this.ensureDataDirectory();
+
+    // Google Sheets sync configuration
+    this.enableGoogleSheetsSync = options.enableGoogleSheetsSync !== false; // Enabled by default
+    this.silentSync = options.silentSync !== false; // Silent by default
 
     // CSV file paths
     this.files = {
@@ -926,6 +939,39 @@ class CSVDataManager {
     console.log('='.repeat(60) + '\n');
 
     return stats;
+  }
+
+  /**
+   * Sync all CSV files to Google Sheets (if configured)
+   * @returns {Promise<Object>} Sync result with success status
+   */
+  async syncToGoogleSheets() {
+    // Check if sync is enabled
+    if (!this.enableGoogleSheetsSync) {
+      return { success: true, skipped: true, reason: 'Sync disabled' };
+    }
+
+    // Check if sync module is available
+    if (!googleSheetsSyncModule || !googleSheetsSyncModule.syncToGoogleSheets) {
+      return { success: true, skipped: true, reason: 'Sync module not available' };
+    }
+
+    // Note: Credentials check removed - module now has hardcoded fallback path
+
+    try {
+      const result = await googleSheetsSyncModule.syncToGoogleSheets({
+        csvDir: this.dataDir,
+        silent: this.silentSync
+      });
+
+      return result;
+    } catch (error) {
+      // Log error but don't fail the workflow
+      if (!this.silentSync) {
+        console.warn('⚠️  Google Sheets sync failed:', error.message);
+      }
+      return { success: false, error: error.message };
+    }
   }
 
   /**
