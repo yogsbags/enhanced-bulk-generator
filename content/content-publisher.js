@@ -224,13 +224,15 @@ class ContentPublisher {
         });
       }
 
+      // Build URL using configured base + slug (ignore WordPress's data.link as it may be misconfigured)
+      const wpBase = this.config.wpBaseUrl.replace(/\/$/, '');
       return {
         success: true,
         status: 'wordpress',
-        url: data.link || `${this.config.wpBaseUrl}/?p=${data.id}`,
+        url: `${wpBase}/${content.slug}`,
         id: data.id,
         editUrl: data.id
-          ? `${this.config.wpBaseUrl.replace(/\/$/, '')}/wp-admin/post.php?post=${data.id}&action=edit`
+          ? `${wpBase}/wp-admin/post.php?post=${data.id}&action=edit`
           : ''
       };
     } catch (error) {
@@ -320,13 +322,15 @@ class ContentPublisher {
         });
       }
 
+      // Build URL using configured base + slug (ignore WordPress's data.link as it may be misconfigured)
+      const uatBase = this.config.uatWpBaseUrl.replace(/\/$/, '');
       return {
         success: true,
         status: 'uat-wordpress',
-        url: data.link || `${this.config.uatWpBaseUrl}/?p=${data.id}`,
+        url: `${uatBase}/blogs/${content.slug}`,
         id: data.id,
         editUrl: data.id
-          ? `${this.config.uatWpBaseUrl.replace(/\/$/, '')}/wp-admin/post.php?post=${data.id}&action=edit`
+          ? `${uatBase}/wp-admin/post.php?post=${data.id}&action=edit`
           : ''
       };
     } catch (error) {
