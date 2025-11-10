@@ -23,12 +23,19 @@ export async function GET(request: NextRequest) {
     }
 
     // Construct path to CSV file
-    const csvPath = path.join(process.cwd(), '..', 'data', filename)
+    // Try multiple possible paths for different environments
+    const possiblePaths = [
+      path.join(process.cwd(), 'backend', 'data', filename),  // Railway: frontend/backend/data/
+      path.join(process.cwd(), '..', 'data', filename),       // Local: ../data/
+      path.join(process.cwd(), '..', 'backend', 'data', filename)  // Alternative
+    ]
+
+    const csvPath = possiblePaths.find(p => fs.existsSync(p))
 
     // Check if file exists
-    if (!fs.existsSync(csvPath)) {
+    if (!csvPath) {
       return NextResponse.json(
-        { error: `File not found: ${filename}` },
+        { error: `File not found: ${filename}. Searched paths: ${possiblePaths.join(', ')}` },
         { status: 404 }
       )
     }

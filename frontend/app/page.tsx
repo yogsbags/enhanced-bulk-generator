@@ -549,13 +549,32 @@ export default function Home() {
                         <h4 className="font-semibold text-gray-700">
                           📄 {stageData[stage.id].file} (Showing last {stageData[stage.id].summary.showing} of {stageData[stage.id].summary.total})
                         </h4>
-                        <a
-                          href={`/api/workflow/download-csv?filename=${encodeURIComponent(stageData[stage.id].file)}`}
-                          download
+                        <button
+                          onClick={async () => {
+                            try {
+                              const response = await fetch(`/api/workflow/download-csv?filename=${encodeURIComponent(stageData[stage.id].file)}`)
+                              if (!response.ok) {
+                                const error = await response.json()
+                                alert(`Download failed: ${error.error}`)
+                                return
+                              }
+                              const blob = await response.blob()
+                              const url = window.URL.createObjectURL(blob)
+                              const a = document.createElement('a')
+                              a.href = url
+                              a.download = stageData[stage.id].file
+                              document.body.appendChild(a)
+                              a.click()
+                              window.URL.revokeObjectURL(url)
+                              document.body.removeChild(a)
+                            } catch (error) {
+                              alert('Download failed: ' + (error instanceof Error ? error.message : 'Unknown error'))
+                            }
+                          }}
                           className="text-xs px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors flex items-center gap-1"
                         >
                           📥 Download CSV
-                        </a>
+                        </button>
                       </div>
                       <span className="text-xs text-gray-500">
                         ✅ {stageData[stage.id].summary.approved} approved
