@@ -174,7 +174,9 @@ export async function POST(req: NextRequest) {
               }
 
               // Stage 7: Completion
-              else if (lowerLine.includes('📍 stage 7:') || lowerLine.includes('workflow loop') || lowerLine.includes('continuous cycle')) {
+              // Only trigger when actually executing stage 7, not during initialization
+              else if (lowerLine.includes('🎯 executing stage: completion') ||
+                       (lowerLine.includes('📍 stage 7:') && lowerLine.includes('completion'))) {
                 sendEvent({ stage: 7, status: 'running', message: 'Finalizing workflow...' })
                 currentStage = 7
               }
