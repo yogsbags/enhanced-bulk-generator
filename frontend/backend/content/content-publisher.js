@@ -266,17 +266,22 @@ class ContentPublisher {
       // Priority: imgbb hosted_url > DALL-E url > local_path
       const heroImageUrl = content.heroImage?.hosted_url || content.heroImage?.url || content.heroImage?.local_path;
       if (heroImageUrl) {
-        heroImageAttachmentId = await this.uploadImageToWordPress(
-          heroImageUrl,
-          this.config.uatWpBaseUrl,
-          this.config.uatWpUser,
-          this.config.uatWpPassword,
-          {
-            alt: content.heroImage?.alt || content.title,
-            title: content.title,
-            caption: content.heroImage?.prompt || ''
-          }
-        );
+        try {
+          heroImageAttachmentId = await this.uploadImageToWordPress(
+            heroImageUrl,
+            this.config.uatWpBaseUrl,
+            this.config.uatWpUser,
+            this.config.uatWpPassword,
+            {
+              alt: content.heroImage?.alt || content.title,
+              title: content.title,
+              caption: content.heroImage?.prompt || ''
+            }
+          );
+        } catch (uploadError) {
+          console.warn(`⚠️  Hero image upload failed, continuing without image: ${uploadError.message}`);
+          // Continue without image rather than failing entire publication
+        }
       }
 
       // Prepare ACF fields
@@ -429,13 +434,23 @@ class ContentPublisher {
       console.log('🚀 Uploading to WordPress media library...');
       console.log('   Endpoint:', endpoint);
 
+      // Create abort controller for timeout
+      const AbortController = require('abort-controller');
+      const controller = new AbortController();
+      const timeout = setTimeout(() => {
+        controller.abort();
+      }, 60000); // 60 second timeout
+
       const uploadResponse = await fetch(endpoint, {
         method: 'POST',
         headers: {
           ...form.getHeaders(),
           'Authorization': auth
         },
-        body: form
+        body: form,
+        signal: controller.signal
+      }).finally(() => {
+        clearTimeout(timeout);
       });
 
       console.log('📨 Response received:', uploadResponse.status, uploadResponse.statusText);
