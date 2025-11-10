@@ -127,49 +127,58 @@ export async function POST(req: NextRequest) {
                   (lowerLine.includes('📍 stage 1:') && lowerLine.includes('research'))) {
                 sendEvent({ stage: 1, status: 'running', message: 'Analyzing competitors...' })
                 currentStage = 1
-              } else if (lowerLine.includes('✅ stage 1 complete') ||
-                         (lowerLine.includes('research gaps:') && lowerLine.includes('saved'))) {
+              } else if (lowerLine.includes('✅ research stage completed') ||
+                         lowerLine.includes('✅ stage 1 complete')) {
                 sendEvent({ stage: 1, status: 'completed', message: 'Research gaps identified' })
               }
 
               // Stage 2: Topic Generation
-              else if (lowerLine.includes('📍 stage 2:') && lowerLine.includes('topic')) {
+              else if (lowerLine.includes('🎯 executing stage: topics') ||
+                       (lowerLine.includes('📍 stage 2:') && lowerLine.includes('topic'))) {
                 sendEvent({ stage: 2, status: 'running', message: 'Generating strategic topics...' })
                 currentStage = 2
-              } else if (lowerLine.includes('✅ stage 2 complete') ||
-                         (lowerLine.includes('topics generated:') && lowerLine.includes('saved'))) {
+              } else if (lowerLine.includes('✅ topic generation completed') ||
+                         lowerLine.includes('✅ stage 2 complete')) {
                 sendEvent({ stage: 2, status: 'completed', message: 'Topics generated' })
               }
 
               // Stage 3: Deep Research
-              else if (lowerLine.includes('📍 stage 3:') || lowerLine.includes('🎯 executing stage: deep-research')) {
+              else if (lowerLine.includes('🎯 executing stage: deep-research') ||
+                       lowerLine.includes('📍 stage 3:')) {
                 sendEvent({ stage: 3, status: 'running', message: 'Deep competitor analysis...' })
                 currentStage = 3
-              } else if (lowerLine.includes('✅ stage 3 complete')) {
+              } else if (lowerLine.includes('✅ deep research completed') ||
+                         lowerLine.includes('✅ stage 3 complete')) {
                 sendEvent({ stage: 3, status: 'completed', message: 'Research completed' })
               }
 
               // Stage 4: Content Creation
-              else if (lowerLine.includes('📍 stage 4:') || lowerLine.includes('🎯 executing stage: content')) {
+              else if (lowerLine.includes('🎯 executing stage: content') ||
+                       lowerLine.includes('📍 stage 4:')) {
                 sendEvent({ stage: 4, status: 'running', message: 'Creating E-E-A-T content...' })
                 currentStage = 4
-              } else if (lowerLine.includes('✅ stage 4 complete')) {
+              } else if (lowerLine.includes('✅ content creation completed') ||
+                         lowerLine.includes('✅ stage 4 complete')) {
                 sendEvent({ stage: 4, status: 'completed', message: 'Content created' })
               }
 
               // Stage 5: SEO Optimization
-              else if (lowerLine.includes('📍 stage 5:') || lowerLine.includes('🎯 executing stage: seo')) {
+              else if (lowerLine.includes('🎯 executing stage: seo') ||
+                       lowerLine.includes('📍 stage 5:')) {
                 sendEvent({ stage: 5, status: 'running', message: 'Optimizing SEO metadata...' })
                 currentStage = 5
-              } else if (lowerLine.includes('✅ stage 5 complete')) {
+              } else if (lowerLine.includes('✅ seo optimization completed') ||
+                         lowerLine.includes('✅ stage 5 complete')) {
                 sendEvent({ stage: 5, status: 'completed', message: 'SEO optimized' })
               }
 
               // Stage 6: Publication
-              else if (lowerLine.includes('📍 stage 6:') || lowerLine.includes('🎯 executing stage: publication')) {
+              else if (lowerLine.includes('🎯 executing stage: publication') ||
+                       lowerLine.includes('📍 stage 6:')) {
                 sendEvent({ stage: 6, status: 'running', message: 'Publishing to WordPress + Sanity...' })
                 currentStage = 6
-              } else if (lowerLine.includes('✅ stage 6 complete')) {
+              } else if (lowerLine.includes('✅ publication completed') ||
+                         lowerLine.includes('✅ stage 6 complete')) {
                 sendEvent({ stage: 6, status: 'completed', message: 'Content published' })
               }
 
