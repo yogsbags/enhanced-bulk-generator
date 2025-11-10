@@ -127,7 +127,7 @@ class TopicGenerator {
 
     console.log('\n🎯 TOPIC GENERATION STARTED');
     console.log('='.repeat(50));
-    console.log(`🤖 AI Model: ${this.groqModel}`);
+    console.log(`🤖 AI Model: ${this.currentModel}`);
     console.log(`📊 Target: ${targetTopics} strategic topics`);
     if (this.selectedCategory) {
       console.log(`📂 Category Filter: ${this.selectedCategory.toUpperCase()}`);
