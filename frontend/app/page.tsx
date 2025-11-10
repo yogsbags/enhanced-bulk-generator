@@ -545,9 +545,18 @@ export default function Home() {
                 {expandedStage === stage.id && stageData[stage.id]?.data && stageData[stage.id]?.summary && (
                   <div className="border-t-2 border-green-200 p-4 bg-white">
                     <div className="mb-3 flex items-center justify-between">
-                      <h4 className="font-semibold text-gray-700">
-                        📄 {stageData[stage.id].file} (Showing last {stageData[stage.id].summary.showing} of {stageData[stage.id].summary.total})
-                      </h4>
+                      <div className="flex items-center gap-3">
+                        <h4 className="font-semibold text-gray-700">
+                          📄 {stageData[stage.id].file} (Showing last {stageData[stage.id].summary.showing} of {stageData[stage.id].summary.total})
+                        </h4>
+                        <a
+                          href={`/api/workflow/download-csv?filename=${encodeURIComponent(stageData[stage.id].file)}`}
+                          download
+                          className="text-xs px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors flex items-center gap-1"
+                        >
+                          📥 Download CSV
+                        </a>
+                      </div>
                       <span className="text-xs text-gray-500">
                         ✅ {stageData[stage.id].summary.approved} approved
                       </span>
