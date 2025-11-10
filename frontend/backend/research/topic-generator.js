@@ -125,6 +125,8 @@ class TopicGenerator {
     // Determine effective topic target (use limit if specified, otherwise default to 50)
     const targetTopics = this.topicLimit ?? 50;
 
+    console.log(`🐛 DEBUG TopicGenerator: this.topicLimit = ${this.topicLimit}, targetTopics = ${targetTopics}`);
+
     console.log('\n🎯 TOPIC GENERATION STARTED');
     console.log('='.repeat(50));
     console.log(`🤖 AI Model: ${this.currentModel}`);

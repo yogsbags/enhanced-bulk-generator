@@ -270,6 +270,8 @@ class WorkflowOrchestrator {
       // Get topic limit from options or config
       const limit = options.limit ?? this.config.topicLimit ?? null;
 
+      console.log(`🐛 DEBUG: options.limit = ${options.limit}, this.config.topicLimit = ${this.config.topicLimit}, final limit = ${limit}`);
+
       // Create topic generator with limit if specified
       const topicGenerator = limit !== null
         ? new TopicGenerator({
