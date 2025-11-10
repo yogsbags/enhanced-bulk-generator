@@ -334,6 +334,7 @@ class EnhancedBulkGenerator {
     console.log('  full                   - Execute complete workflow (all stages)');
     console.log('  auto                   - Auto-run workflow stage-by-stage');
     console.log('  stage <name>           - Execute specific stage');
+    console.log('  sync-sheets            - Sync all CSV files to Google Sheets');
     console.log('  monitor                - Monitor workflow progress');
     console.log('  status                 - Show current system status');
     console.log('  help                   - Show this help message');
@@ -477,6 +478,24 @@ async function main() {
       case 'status':
         await generator.initialize();
         generator.csvManager.generateSummaryReport();
+        break;
+
+      case 'sync-sheets':
+        console.log('📊 Syncing CSV files to Google Sheets...');
+        console.log('');
+        const syncResult = await generator.orchestrator.syncToGoogleSheets();
+        if (syncResult.success && syncResult.syncedSheets) {
+          console.log(`✅ Successfully synced ${syncResult.syncedSheets} sheet(s)`);
+        } else if (syncResult.skipped) {
+          console.log(`⏸️  Sync skipped: ${syncResult.reason}`);
+          console.log('');
+          console.log('💡 To enable Google Sheets sync:');
+          console.log('   1. Set GOOGLE_APPLICATION_CREDENTIALS environment variable');
+          console.log('   2. Point it to your service account JSON key file');
+          console.log('   3. Ensure the service account has edit access to the spreadsheet');
+        } else if (syncResult.error) {
+          console.error(`❌ Sync failed: ${syncResult.error}`);
+        }
         break;
 
       case 'help':
