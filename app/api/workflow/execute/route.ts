@@ -66,10 +66,9 @@ export async function POST(req: NextRequest) {
               }
               sendEvent({ log: '🎉 Workflow completed successfully!' })
 
-              // Mark all stages as completed
-              for (let i = 1; i <= 7; i++) {
-                sendEvent({ stage: i, status: 'completed', message: 'Done' })
-              }
+              // Parse logs to determine actual stage progress, then mark remaining stages
+              // For now, conservatively mark only final stage
+              sendEvent({ stage: 7, status: 'completed', message: 'Workflow completed!' })
             } else {
               sendEvent({ log: `❌ Error: ${result.error}` })
               if (result.errorOutput) {
@@ -193,9 +192,9 @@ export async function POST(req: NextRequest) {
               if (code === 0) {
                 sendEvent({ log: '🎉 Process completed successfully!' })
 
-                // Mark all remaining stages as completed
-                for (let i = 1; i <= 7; i++) {
-                  sendEvent({ stage: i, status: 'completed', message: 'Done' })
+                // Only mark final stage as completed if not already done
+                if (currentStage < 7) {
+                  sendEvent({ stage: 7, status: 'completed', message: 'Workflow completed!' })
                 }
 
                 resolve()
