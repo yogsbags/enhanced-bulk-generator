@@ -119,45 +119,62 @@ export async function POST(req: NextRequest) {
               sendEvent({ log: line })
 
               // Detect stage changes based on output
+              // Only match actual execution markers (🎯, ✅, ❌) not initialization text
               const lowerLine = line.toLowerCase()
 
-              if (lowerLine.includes('stage 1') || lowerLine.includes('research gap')) {
+              // Stage 1: Research Phase
+              if (lowerLine.includes('🎯 executing stage: research') ||
+                  (lowerLine.includes('📍 stage 1:') && lowerLine.includes('research'))) {
                 sendEvent({ stage: 1, status: 'running', message: 'Analyzing competitors...' })
                 currentStage = 1
-              } else if (lowerLine.includes('stage 2') || lowerLine.includes('topic generat')) {
-                if (currentStage === 1) {
-                  sendEvent({ stage: 1, status: 'completed', message: 'Research gaps identified' })
-                }
+              } else if (lowerLine.includes('✅ stage 1 complete') ||
+                         (lowerLine.includes('research gaps:') && lowerLine.includes('saved'))) {
+                sendEvent({ stage: 1, status: 'completed', message: 'Research gaps identified' })
+              }
+
+              // Stage 2: Topic Generation
+              else if (lowerLine.includes('📍 stage 2:') && lowerLine.includes('topic')) {
                 sendEvent({ stage: 2, status: 'running', message: 'Generating strategic topics...' })
                 currentStage = 2
-              } else if (lowerLine.includes('stage 3') || lowerLine.includes('deep research')) {
-                if (currentStage === 2) {
-                  sendEvent({ stage: 2, status: 'completed', message: 'Topics generated' })
-                }
+              } else if (lowerLine.includes('✅ stage 2 complete') ||
+                         (lowerLine.includes('topics generated:') && lowerLine.includes('saved'))) {
+                sendEvent({ stage: 2, status: 'completed', message: 'Topics generated' })
+              }
+
+              // Stage 3: Deep Research
+              else if (lowerLine.includes('📍 stage 3:') || lowerLine.includes('🎯 executing stage: deep-research')) {
                 sendEvent({ stage: 3, status: 'running', message: 'Deep competitor analysis...' })
                 currentStage = 3
-              } else if (lowerLine.includes('stage 4') || lowerLine.includes('content creat')) {
-                if (currentStage === 3) {
-                  sendEvent({ stage: 3, status: 'completed', message: 'Research completed' })
-                }
+              } else if (lowerLine.includes('✅ stage 3 complete')) {
+                sendEvent({ stage: 3, status: 'completed', message: 'Research completed' })
+              }
+
+              // Stage 4: Content Creation
+              else if (lowerLine.includes('📍 stage 4:') || lowerLine.includes('🎯 executing stage: content')) {
                 sendEvent({ stage: 4, status: 'running', message: 'Creating E-E-A-T content...' })
                 currentStage = 4
-              } else if (lowerLine.includes('stage 5') || lowerLine.includes('seo optimiz')) {
-                if (currentStage === 4) {
-                  sendEvent({ stage: 4, status: 'completed', message: 'Content created' })
-                }
+              } else if (lowerLine.includes('✅ stage 4 complete')) {
+                sendEvent({ stage: 4, status: 'completed', message: 'Content created' })
+              }
+
+              // Stage 5: SEO Optimization
+              else if (lowerLine.includes('📍 stage 5:') || lowerLine.includes('🎯 executing stage: seo')) {
                 sendEvent({ stage: 5, status: 'running', message: 'Optimizing SEO metadata...' })
                 currentStage = 5
-              } else if (lowerLine.includes('stage 6') || lowerLine.includes('publicat')) {
-                if (currentStage === 5) {
-                  sendEvent({ stage: 5, status: 'completed', message: 'SEO optimized' })
-                }
+              } else if (lowerLine.includes('✅ stage 5 complete')) {
+                sendEvent({ stage: 5, status: 'completed', message: 'SEO optimized' })
+              }
+
+              // Stage 6: Publication
+              else if (lowerLine.includes('📍 stage 6:') || lowerLine.includes('🎯 executing stage: publication')) {
                 sendEvent({ stage: 6, status: 'running', message: 'Publishing to WordPress + Sanity...' })
                 currentStage = 6
-              } else if (lowerLine.includes('stage 7') || lowerLine.includes('complet')) {
-                if (currentStage === 6) {
-                  sendEvent({ stage: 6, status: 'completed', message: 'Content published' })
-                }
+              } else if (lowerLine.includes('✅ stage 6 complete')) {
+                sendEvent({ stage: 6, status: 'completed', message: 'Content published' })
+              }
+
+              // Stage 7: Completion
+              else if (lowerLine.includes('📍 stage 7:') || lowerLine.includes('workflow loop') || lowerLine.includes('continuous cycle')) {
                 sendEvent({ stage: 7, status: 'running', message: 'Finalizing workflow...' })
                 currentStage = 7
               }
