@@ -24,6 +24,7 @@ type StageData = {
     approved: number
   }
   file: string
+  googleSheetsUrl?: string
 }
 
 export default function Home() {
@@ -456,6 +457,19 @@ export default function Home() {
                           <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                           <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                         </div>
+                      )}
+
+                      {/* Google Sheets Button (available after completion) */}
+                      {stageData[stage.id]?.googleSheetsUrl && stage.status === 'completed' && (
+                        <a
+                          href={stageData[stage.id].googleSheetsUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors flex items-center gap-1"
+                          title="View in Google Sheets"
+                        >
+                          📊 Google Sheets
+                        </a>
                       )}
 
                       {/* View Data Button (available after completion) */}

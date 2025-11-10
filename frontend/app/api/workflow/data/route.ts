@@ -17,6 +17,43 @@ const STAGE_CSV_MAP: Record<number, string> = {
   7: 'workflow-status.csv'
 }
 
+// Map CSV files to Google Sheets sheet names
+const CSV_TO_SHEET_NAME: Record<string, string> = {
+  'research-gaps.csv': 'research-gaps',
+  'generated-topics.csv': 'generated-topics',
+  'topic-research.csv': 'topic-research',
+  'created-content.csv': 'created-content',
+  'published-content.csv': 'published-content',
+  'workflow-status.csv': 'workflow-status'
+}
+
+// Google Sheets configuration
+const SPREADSHEET_ID = '104GA_1AMKFgMEbEaU8oJHiP0hBX0fe8EmmQNt_ZnSC4'
+
+function getGoogleSheetsUrl(csvFile: string): string {
+  const baseUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/edit`
+  const sheetName = CSV_TO_SHEET_NAME[csvFile]
+
+  if (!sheetName) {
+    return baseUrl
+  }
+
+  // Map sheet names to their GIDs (sheet IDs)
+  const sheetGidMap: Record<string, number> = {
+    'research-gaps': 0,
+    'quick-wins': 1,
+    'generated-topics': 2,
+    'topic-research': 3,
+    'created-content': 4,
+    'published-content': 5,
+    'workflow-status': 6,
+    'master-research': 7
+  }
+
+  const gid = sheetGidMap[sheetName] ?? 0
+  return `${baseUrl}#gid=${gid}`
+}
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
@@ -64,10 +101,14 @@ export async function GET(req: NextRequest) {
       ).length
     }
 
+    // Get Google Sheets URL for this CSV
+    const googleSheetsUrl = getGoogleSheetsUrl(csvFile)
+
     return NextResponse.json({
       data: limitedRecords,
       summary,
-      file: csvFile
+      file: csvFile,
+      googleSheetsUrl
     })
 
   } catch (error) {
