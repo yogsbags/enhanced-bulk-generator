@@ -367,15 +367,37 @@ function parseArgs() {
   const command = args[0] || 'help';
 
   const topicLimit = (() => {
-    const limitArg = args.find(arg => arg.startsWith('--topic-limit=')) || args.find(arg => arg.startsWith('--limit='));
-    if (!limitArg) return null;
-    const value = parseInt(limitArg.split('=')[1], 10);
-    return Number.isFinite(value) && value > 0 ? value : null;
+    // Handle both formats: --topic-limit=1 and --topic-limit 1
+    const limitArgWithEquals = args.find(arg => arg.startsWith('--topic-limit=')) || args.find(arg => arg.startsWith('--limit='));
+    if (limitArgWithEquals) {
+      const value = parseInt(limitArgWithEquals.split('=')[1], 10);
+      return Number.isFinite(value) && value > 0 ? value : null;
+    }
+
+    // Handle space-separated format: --topic-limit 1
+    const limitIndex = args.findIndex(arg => arg === '--topic-limit' || arg === '--limit');
+    if (limitIndex !== -1 && args[limitIndex + 1]) {
+      const value = parseInt(args[limitIndex + 1], 10);
+      return Number.isFinite(value) && value > 0 ? value : null;
+    }
+
+    return null;
   })();
 
   const category = (() => {
-    const categoryArg = args.find(arg => arg.startsWith('--category='));
-    return categoryArg ? categoryArg.split('=')[1] : 'derivatives';
+    // Handle both formats: --category=derivatives and --category derivatives
+    const categoryArgWithEquals = args.find(arg => arg.startsWith('--category='));
+    if (categoryArgWithEquals) {
+      return categoryArgWithEquals.split('=')[1];
+    }
+
+    // Handle space-separated format: --category derivatives
+    const categoryIndex = args.findIndex(arg => arg === '--category');
+    if (categoryIndex !== -1 && args[categoryIndex + 1]) {
+      return args[categoryIndex + 1];
+    }
+
+    return 'derivatives';
   })();
 
   const options = {
