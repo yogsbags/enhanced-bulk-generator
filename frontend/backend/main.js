@@ -168,7 +168,9 @@ class EnhancedBulkGenerator {
       await this.orchestrator.executeStage('research');
 
       // Stage 2: Topic Generation
-      await this.orchestrator.executeStage('topics');
+      await this.orchestrator.executeStage('topics', {
+        limit: this.config.topicLimit
+      });
 
       console.log('✅ Research Phase completed successfully!');
       console.log('\n📋 RESEARCH PHASE SUMMARY:');
