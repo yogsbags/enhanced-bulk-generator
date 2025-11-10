@@ -3,13 +3,36 @@ const path = require('path');
 
 /**
  * Get Google Application Credentials
- * On Railway: Decodes base64 env var and writes to /tmp/
+ * On Railway: Supports both GOOGLE_CREDENTIALS_JSON and GOOGLE_APPLICATION_CREDENTIALS_BASE64
  * Locally: Uses file path from GOOGLE_APPLICATION_CREDENTIALS
  *
  * This allows Railway deployments to work without needing file uploads
  */
 function getGoogleCredentials() {
-  // Railway deployment (base64 encoded)
+  // Railway deployment (JSON credentials - used by Google Sheets sync)
+  if (process.env.GOOGLE_CREDENTIALS_JSON && !process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+    try {
+      // Validate it's valid JSON
+      const credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS_JSON);
+
+      // Write to temp file for Google SDKs that expect file paths
+      const tempPath = '/tmp/google-credentials.json';
+      fs.writeFileSync(tempPath, JSON.stringify(credentials, null, 2));
+
+      // Set env var for Google SDKs that expect file paths
+      process.env.GOOGLE_APPLICATION_CREDENTIALS = tempPath;
+
+      console.log('✅ Google credentials from GOOGLE_CREDENTIALS_JSON → /tmp/google-credentials.json');
+      console.log(`   Service account: ${credentials.client_email || 'unknown'}`);
+      return tempPath;
+    } catch (error) {
+      console.warn(`⚠️  Failed to parse GOOGLE_CREDENTIALS_JSON: ${error.message}`);
+      console.warn('   Make sure it contains valid JSON (not base64 encoded)');
+      return null;
+    }
+  }
+
+  // Railway deployment (base64 encoded - legacy support)
   if (process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64) {
     try {
       const credentialsJson = Buffer.from(
