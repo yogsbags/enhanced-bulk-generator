@@ -52,23 +52,36 @@ async function syncToGoogleSheets(options = {}) {
   };
 
   try {
-    // Use env var first, fallback to hardcoded path
-    let credentialPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    let auth;
 
-    if (!credentialPath || !fs.existsSync(credentialPath)) {
-      // Try hardcoded path
-      if (fs.existsSync(HARDCODED_CREDENTIALS_PATH)) {
-        credentialPath = HARDCODED_CREDENTIALS_PATH;
-        log('📝 Using hardcoded credentials path');
-      } else {
-        throw new Error('GOOGLE_APPLICATION_CREDENTIALS is not set or file not found.');
-      }
+    // Try to use GOOGLE_CREDENTIALS_JSON environment variable (for Railway/cloud deployments)
+    if (process.env.GOOGLE_CREDENTIALS_JSON) {
+      log('📝 Using GOOGLE_CREDENTIALS_JSON environment variable');
+      const credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS_JSON);
+      auth = new GoogleAuth({
+        credentials,
+        scopes: SCOPES
+      });
+    }
+    // Try file path from GOOGLE_APPLICATION_CREDENTIALS env var
+    else if (process.env.GOOGLE_APPLICATION_CREDENTIALS && fs.existsSync(process.env.GOOGLE_APPLICATION_CREDENTIALS)) {
+      log('📝 Using GOOGLE_APPLICATION_CREDENTIALS file path');
+      process.env.GOOGLE_APPLICATION_CREDENTIALS = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+      auth = new GoogleAuth({ scopes: SCOPES });
+    }
+    // Try hardcoded local path
+    else if (fs.existsSync(HARDCODED_CREDENTIALS_PATH)) {
+      log('📝 Using hardcoded credentials path (local dev)');
+      process.env.GOOGLE_APPLICATION_CREDENTIALS = HARDCODED_CREDENTIALS_PATH;
+      auth = new GoogleAuth({ scopes: SCOPES });
+    }
+    // No credentials available - fail gracefully
+    else {
+      log('⚠️  No Google credentials found. Sync skipped.');
+      log('💡 Set GOOGLE_CREDENTIALS_JSON or GOOGLE_APPLICATION_CREDENTIALS environment variable');
+      return { success: true, skipped: true, reason: 'No credentials configured' };
     }
 
-    // Set env var for GoogleAuth to use
-    process.env.GOOGLE_APPLICATION_CREDENTIALS = credentialPath;
-
-    const auth = new GoogleAuth({ scopes: SCOPES });
     const client = await auth.getClient();
 
     const spreadsheet = await client.request({
