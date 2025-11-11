@@ -3,14 +3,19 @@
 /**
  * Sync Enhanced Bulk Generator CSVs to a Google Spreadsheet.
  *
- * Usage:
- *   GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json \
+ * Usage (OAuth - Recommended for Railway):
+ *   GOOGLE_CLIENT_ID="your-client-id" \
+ *   GOOGLE_CLIENT_SECRET="your-client-secret" \
+ *   GOOGLE_REFRESH_TOKEN="your-refresh-token" \
+ *   node scripts/sync-google-sheets.js
+ *
+ * Usage (Service Account - Legacy):
+ *   GOOGLE_CREDENTIALS_JSON='{"type":"service_account",...}' \
  *   node scripts/sync-google-sheets.js
  *
  * Requirements:
- *   - A Google Cloud service account with Sheets API access.
- *   - The spreadsheet must be shared with the service account email.
- *   - Environment variable GOOGLE_APPLICATION_CREDENTIALS pointing to the JSON key.
+ *   - OAuth credentials OR service account with Sheets API access
+ *   - The spreadsheet must be shared with your Google account or service account email
  *
  * The script reads every *.csv file under ../data (excluding .bak files)
  * and uploads each as a sheet in the target spreadsheet, using the CSV
@@ -18,8 +23,6 @@
  *
  * Existing sheets with the same name are cleared and replaced in full.
  * Sheets not present in the spreadsheet are created automatically.
- *
- * This script does not modify any existing workflow code.
  */
 
 const fs = require('fs');
@@ -55,12 +58,27 @@ async function syncToGoogleSheets(options = {}) {
     let auth;
 
     log('🔍 Checking for credentials...');
-    log(`   - GOOGLE_CREDENTIALS_JSON env var: ${process.env.GOOGLE_CREDENTIALS_JSON ? 'SET (length: ' + process.env.GOOGLE_CREDENTIALS_JSON.length + ')' : 'NOT SET'}`);
-    log(`   - GOOGLE_APPLICATION_CREDENTIALS: ${process.env.GOOGLE_APPLICATION_CREDENTIALS || 'NOT SET'}`);
+    log(`   - OAuth tokens: ${process.env.GOOGLE_REFRESH_TOKEN ? 'SET' : 'NOT SET'}`);
+    log(`   - Service account JSON: ${process.env.GOOGLE_CREDENTIALS_JSON ? 'SET (length: ' + process.env.GOOGLE_CREDENTIALS_JSON.length + ')' : 'NOT SET'}`);
+    log(`   - Service account file: ${process.env.GOOGLE_APPLICATION_CREDENTIALS || 'NOT SET'}`);
     log(`   - Hardcoded path exists: ${fs.existsSync(HARDCODED_CREDENTIALS_PATH)}`);
 
-    // Try to use GOOGLE_CREDENTIALS_JSON environment variable (for Railway/cloud deployments)
-    if (process.env.GOOGLE_CREDENTIALS_JSON) {
+    // Priority 1: OAuth tokens (Recommended for Railway)
+    if (process.env.GOOGLE_REFRESH_TOKEN && process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+      log('📝 Using OAuth refresh token (recommended for Railway)');
+      auth = new GoogleAuth({
+        credentials: {
+          type: 'authorized_user',
+          client_id: process.env.GOOGLE_CLIENT_ID,
+          client_secret: process.env.GOOGLE_CLIENT_SECRET,
+          refresh_token: process.env.GOOGLE_REFRESH_TOKEN
+        },
+        scopes: SCOPES
+      });
+      log('   ✓ OAuth credentials configured');
+    }
+    // Priority 2: Service account JSON (Legacy Railway support)
+    else if (process.env.GOOGLE_CREDENTIALS_JSON) {
       log('📝 Using GOOGLE_CREDENTIALS_JSON environment variable');
       try {
         const credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS_JSON);
@@ -77,13 +95,12 @@ async function syncToGoogleSheets(options = {}) {
         throw new Error(`Invalid GOOGLE_CREDENTIALS_JSON: ${parseError.message}`);
       }
     }
-    // Try file path from GOOGLE_APPLICATION_CREDENTIALS env var
+    // Priority 3: Service account file path
     else if (process.env.GOOGLE_APPLICATION_CREDENTIALS && fs.existsSync(process.env.GOOGLE_APPLICATION_CREDENTIALS)) {
       log('📝 Using GOOGLE_APPLICATION_CREDENTIALS file path');
-      process.env.GOOGLE_APPLICATION_CREDENTIALS = process.env.GOOGLE_APPLICATION_CREDENTIALS;
       auth = new GoogleAuth({ scopes: SCOPES });
     }
-    // Try hardcoded local path
+    // Priority 4: Hardcoded local path
     else if (fs.existsSync(HARDCODED_CREDENTIALS_PATH)) {
       log('📝 Using hardcoded credentials path (local dev)');
       process.env.GOOGLE_APPLICATION_CREDENTIALS = HARDCODED_CREDENTIALS_PATH;
@@ -92,7 +109,8 @@ async function syncToGoogleSheets(options = {}) {
     // No credentials available - fail gracefully
     else {
       log('⚠️  No Google credentials found. Sync skipped.');
-      log('💡 Set GOOGLE_CREDENTIALS_JSON or GOOGLE_APPLICATION_CREDENTIALS environment variable');
+      log('💡 For Railway: Set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN');
+      log('💡 Or set GOOGLE_CREDENTIALS_JSON for service account');
       return { success: true, skipped: true, reason: 'No credentials configured' };
     }
 
