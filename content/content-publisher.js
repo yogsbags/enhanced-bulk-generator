@@ -520,9 +520,14 @@ class ContentPublisher {
    * Publish to Google Docs with rich text formatting
    */
   async publishToGoogleDocs(content) {
+    console.log('🔍 Starting Google Docs publication...');
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
     const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
+
+    console.log(`   Has Client ID: ${!!clientId}`);
+    console.log(`   Has Client Secret: ${!!clientSecret}`);
+    console.log(`   Has Refresh Token: ${!!refreshToken}`);
 
     if (!clientId || !clientSecret || !refreshToken) {
       console.log('ℹ️  Google Docs credentials missing. Skipping Google Docs publication.');
@@ -532,6 +537,7 @@ class ContentPublisher {
     }
 
     try {
+      console.log('   Requesting OAuth access token...');
       // Get OAuth access token
       const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
@@ -552,8 +558,10 @@ class ContentPublisher {
 
       const tokenData = await tokenResponse.json();
       const accessToken = tokenData.access_token;
+      console.log('   ✓ OAuth token obtained');
 
       // Create a new Google Doc
+      console.log('   Creating Google Doc...');
       const createDocResponse = await fetch('https://docs.googleapis.com/v1/documents', {
         method: 'POST',
         headers: {
@@ -573,12 +581,15 @@ class ContentPublisher {
 
       const docData = await createDocResponse.json();
       const documentId = docData.documentId;
+      console.log(`   ✓ Document created: ${documentId}`);
 
       // Convert markdown to Google Docs rich text requests
       const requests = this.markdownToGoogleDocsRequests(content.articleContent, content.title);
+      console.log(`   Generated ${requests.length} formatting requests`);
 
       // Batch update the document with rich text
       if (requests.length > 0) {
+        console.log('   Applying formatting...');
         const batchUpdateResponse = await fetch(
           `https://docs.googleapis.com/v1/documents/${documentId}:batchUpdate`,
           {
@@ -595,23 +606,29 @@ class ContentPublisher {
           const errorData = await batchUpdateResponse.json().catch(() => ({}));
           console.warn(`⚠️  Google Docs update failed (${batchUpdateResponse.status}): ${JSON.stringify(errorData)}`);
           // Document was created but content update failed
+          const docUrl = `https://docs.google.com/document/d/${documentId}/edit`;
+          console.log(`   📄 Partial success - doc created: ${docUrl}`);
           return {
             success: true,
             status: 'google-docs-partial',
-            url: `https://docs.google.com/document/d/${documentId}/edit`,
+            url: docUrl,
             documentId
           };
         }
+        console.log('   ✓ Formatting applied');
       }
 
+      const docUrl = `https://docs.google.com/document/d/${documentId}/edit`;
+      console.log(`   ✅ Google Docs published: ${docUrl}`);
       return {
         success: true,
         status: 'google-docs',
-        url: `https://docs.google.com/document/d/${documentId}/edit`,
+        url: docUrl,
         documentId
       };
     } catch (error) {
       console.error('⚠️  Google Docs publish error:', error.message);
+      console.error('   Stack trace:', error.stack);
       return this.simulatedResult(content.slug, 'google-docs-error', { url: '' });
     }
   }
