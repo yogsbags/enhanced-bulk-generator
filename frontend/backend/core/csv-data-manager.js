@@ -13,10 +13,12 @@ const { stringify } = require('csv-stringify/sync');
 // Import Google Sheets sync (optional - fails gracefully if not configured)
 let googleSheetsSyncModule;
 try {
-  googleSheetsSyncModule = require('../../scripts/sync-google-sheets');
+  // Path goes up 3 levels: frontend/backend/core -> frontend/backend -> frontend -> root
+  googleSheetsSyncModule = require('../../../scripts/sync-google-sheets');
 } catch (error) {
   // Google Sheets sync module not available (expected in some environments)
   googleSheetsSyncModule = null;
+  console.log('⚠️  Google Sheets sync module not found:', error.message);
 }
 
 class CSVDataManager {

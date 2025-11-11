@@ -761,7 +761,8 @@ class WorkflowOrchestrator {
         // Import the URL helper functions
         let googleSheetsSyncModule;
         try {
-          googleSheetsSyncModule = require('../../scripts/sync-google-sheets');
+          // Path goes up 3 levels: frontend/backend/core -> frontend/backend -> frontend -> root
+          googleSheetsSyncModule = require('../../../scripts/sync-google-sheets');
         } catch (error) {
           // Module not available, skip URL display
           return result;
