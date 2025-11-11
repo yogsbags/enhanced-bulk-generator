@@ -575,7 +575,7 @@ class ContentPublisher {
       const documentId = docData.documentId;
 
       // Convert markdown to Google Docs rich text requests
-      const requests = this.markdownToGoogleDocsRequests(content.articleContent);
+      const requests = this.markdownToGoogleDocsRequests(content.articleContent, content.title);
 
       // Batch update the document with rich text
       if (requests.length > 0) {
@@ -619,11 +619,34 @@ class ContentPublisher {
   /**
    * Convert markdown to Google Docs API requests with rich text formatting
    */
-  markdownToGoogleDocsRequests(markdown) {
+  markdownToGoogleDocsRequests(markdown, title = '') {
     if (!markdown) return [];
 
     const requests = [];
     let currentIndex = 1; // Google Docs index starts at 1
+
+    // Add title as Heading 1 at the top of the document
+    if (title) {
+      requests.push({
+        insertText: {
+          location: { index: currentIndex },
+          text: title + '\n\n'
+        }
+      });
+      requests.push({
+        updateParagraphStyle: {
+          range: {
+            startIndex: currentIndex,
+            endIndex: currentIndex + title.length
+          },
+          paragraphStyle: {
+            namedStyleType: 'HEADING_1'
+          },
+          fields: 'namedStyleType'
+        }
+      });
+      currentIndex += title.length + 2; // +2 for two newlines
+    }
 
     const lines = markdown.split(/\r?\n/);
     let inTable = false;
