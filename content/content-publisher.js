@@ -76,9 +76,10 @@ class ContentPublisher {
       const wordpressResult = await this.publishToWordPress(normalized);
       const uatWordpressResult = await this.publishToUATWordPress(normalized);
       const sanityResult = await this.publishToSanity(normalized);
+      const googleDocsResult = await this.publishToGoogleDocs(normalized);
 
-      const hasSuccess = wordpressResult.success || uatWordpressResult.success || sanityResult.success;
-      const successfulResults = [wordpressResult, uatWordpressResult, sanityResult].filter(result => result.success);
+      const hasSuccess = wordpressResult.success || uatWordpressResult.success || sanityResult.success || googleDocsResult.success;
+      const successfulResults = [wordpressResult, uatWordpressResult, sanityResult, googleDocsResult].filter(result => result.success);
       const simulatedSuccess =
         hasSuccess &&
         successfulResults.length > 0 &&
@@ -92,6 +93,7 @@ class ContentPublisher {
         wordpress_status: wordpressResult.status,
         uat_wordpress_status: uatWordpressResult.status,
         sanity_status: sanityResult.status,
+        google_docs_status: googleDocsResult.status,
         publication_status: publishStatus
       });
 
@@ -107,6 +109,7 @@ class ContentPublisher {
         uat_wordpress_url: uatWordpressResult.url,
         sanity_url: sanityResult.url,
         sanity_desk_url: sanityResult.deskUrl || '',
+        google_docs_url: googleDocsResult.url || '',
         publish_date: new Date().toISOString(),
         status: publishStatus,
         performance_metrics: JSON.stringify({
@@ -119,12 +122,14 @@ class ContentPublisher {
           sanity: sanityResult.status,
           sanity_document_id: sanityResult.documentId || '',
           sanity_desk_url: sanityResult.deskUrl || '',
+          google_docs: googleDocsResult.status,
+          google_docs_id: googleDocsResult.documentId || '',
           simulated: simulatedSuccess
         })
       };
 
       this.csvManager.savePublishedContent(record);
-      publishedRecords.push({ ...record, wordpressResult, uatWordpressResult, sanityResult });
+      publishedRecords.push({ ...record, wordpressResult, uatWordpressResult, sanityResult, googleDocsResult });
 
       console.log(`✅ Publication status: ${publishStatus}`);
       if (wordpressResult.url) {
@@ -139,8 +144,11 @@ class ContentPublisher {
       if (sanityResult.deskUrl) {
         console.log(`   🗂️  Sanity Desk: ${sanityResult.deskUrl}`);
       }
+      if (googleDocsResult.url) {
+        console.log(`   📄 Google Docs: ${googleDocsResult.url}`);
+      }
       if (publishStatus === 'Simulated') {
-        console.log('   🛈 Simulation mode: provide WP_*, UAT_WP_*, and SANITY_* credentials for live publishing.');
+        console.log('   🛈 Simulation mode: provide WP_*, UAT_WP_*, SANITY_*, and GOOGLE_* credentials for live publishing.');
       }
     }
 
@@ -506,6 +514,396 @@ class ContentPublisher {
       console.warn(`⚠️  Category fetch/create error: ${error.message}`);
       return null;
     }
+  }
+
+  /**
+   * Publish to Google Docs with rich text formatting
+   */
+  async publishToGoogleDocs(content) {
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
+
+    if (!clientId || !clientSecret || !refreshToken) {
+      console.log('ℹ️  Google Docs credentials missing. Skipping Google Docs publication.');
+      return this.simulatedResult(content.slug, 'simulated-gdocs-missing', {
+        url: ''
+      });
+    }
+
+    try {
+      // Get OAuth access token
+      const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          client_id: clientId,
+          client_secret: clientSecret,
+          refresh_token: refreshToken,
+          grant_type: 'refresh_token'
+        })
+      });
+
+      if (!tokenResponse.ok) {
+        const errorData = await tokenResponse.json().catch(() => ({}));
+        console.warn(`⚠️  Google OAuth token refresh failed (${tokenResponse.status}): ${JSON.stringify(errorData)}`);
+        return this.simulatedResult(content.slug, 'google-docs-auth-failed', { url: '' });
+      }
+
+      const tokenData = await tokenResponse.json();
+      const accessToken = tokenData.access_token;
+
+      // Create a new Google Doc
+      const createDocResponse = await fetch('https://docs.googleapis.com/v1/documents', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          title: content.title
+        })
+      });
+
+      if (!createDocResponse.ok) {
+        const errorData = await createDocResponse.json().catch(() => ({}));
+        console.warn(`⚠️  Google Docs creation failed (${createDocResponse.status}): ${JSON.stringify(errorData)}`);
+        return this.simulatedResult(content.slug, `google-docs-${createDocResponse.status}`, { url: '' });
+      }
+
+      const docData = await createDocResponse.json();
+      const documentId = docData.documentId;
+
+      // Convert markdown to Google Docs rich text requests
+      const requests = this.markdownToGoogleDocsRequests(content.articleContent);
+
+      // Batch update the document with rich text
+      if (requests.length > 0) {
+        const batchUpdateResponse = await fetch(
+          `https://docs.googleapis.com/v1/documents/${documentId}:batchUpdate`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ requests })
+          }
+        );
+
+        if (!batchUpdateResponse.ok) {
+          const errorData = await batchUpdateResponse.json().catch(() => ({}));
+          console.warn(`⚠️  Google Docs update failed (${batchUpdateResponse.status}): ${JSON.stringify(errorData)}`);
+          // Document was created but content update failed
+          return {
+            success: true,
+            status: 'google-docs-partial',
+            url: `https://docs.google.com/document/d/${documentId}/edit`,
+            documentId
+          };
+        }
+      }
+
+      return {
+        success: true,
+        status: 'google-docs',
+        url: `https://docs.google.com/document/d/${documentId}/edit`,
+        documentId
+      };
+    } catch (error) {
+      console.error('⚠️  Google Docs publish error:', error.message);
+      return this.simulatedResult(content.slug, 'google-docs-error', { url: '' });
+    }
+  }
+
+  /**
+   * Convert markdown to Google Docs API requests with rich text formatting
+   */
+  markdownToGoogleDocsRequests(markdown) {
+    if (!markdown) return [];
+
+    const requests = [];
+    let currentIndex = 1; // Google Docs index starts at 1
+
+    const lines = markdown.split(/\r?\n/);
+    let inTable = false;
+    let tableRows = [];
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+
+      if (!line) {
+        // Flush table if we were in one
+        if (inTable && tableRows.length > 0) {
+          const tableRequest = this.createTableRequest(tableRows, currentIndex);
+          if (tableRequest) {
+            requests.push(tableRequest.insertTable);
+            // Update table cells with content
+            tableRequest.updates.forEach(update => requests.push(update));
+            currentIndex = tableRequest.endIndex;
+          }
+          tableRows = [];
+          inTable = false;
+        }
+        continue;
+      }
+
+      // Detect tables
+      if (line.includes('|') && (line.match(/\|/g) || []).length >= 2) {
+        if (!inTable) {
+          inTable = true;
+        }
+        // Skip separator rows
+        if (!/^\|?[\s:\-|]+\|?$/.test(line)) {
+          tableRows.push(line);
+        }
+        continue;
+      }
+
+      // Flush table before processing non-table content
+      if (inTable && tableRows.length > 0) {
+        const tableRequest = this.createTableRequest(tableRows, currentIndex);
+        if (tableRequest) {
+          requests.push(tableRequest.insertTable);
+          tableRequest.updates.forEach(update => requests.push(update));
+          currentIndex = tableRequest.endIndex;
+        }
+        tableRows = [];
+        inTable = false;
+      }
+
+      // Heading 2 (##)
+      if (line.startsWith('## ')) {
+        const text = line.replace(/^##\s+/, '').replace(/\*\*/g, '');
+        requests.push({
+          insertText: {
+            location: { index: currentIndex },
+            text: text + '\n'
+          }
+        });
+        requests.push({
+          updateParagraphStyle: {
+            range: {
+              startIndex: currentIndex,
+              endIndex: currentIndex + text.length
+            },
+            paragraphStyle: {
+              namedStyleType: 'HEADING_2'
+            },
+            fields: 'namedStyleType'
+          }
+        });
+        currentIndex += text.length + 1;
+        continue;
+      }
+
+      // Heading 3 (###)
+      if (line.startsWith('### ')) {
+        const text = line.replace(/^###\s+/, '').replace(/\*\*/g, '');
+        requests.push({
+          insertText: {
+            location: { index: currentIndex },
+            text: text + '\n'
+          }
+        });
+        requests.push({
+          updateParagraphStyle: {
+            range: {
+              startIndex: currentIndex,
+              endIndex: currentIndex + text.length
+            },
+            paragraphStyle: {
+              namedStyleType: 'HEADING_3'
+            },
+            fields: 'namedStyleType'
+          }
+        });
+        currentIndex += text.length + 1;
+        continue;
+      }
+
+      // Bullet list (-)
+      if (line.startsWith('- ')) {
+        const text = line.replace(/^-\s+/, '');
+        const { plainText, boldRanges } = this.extractBoldMarkdown(text);
+
+        requests.push({
+          insertText: {
+            location: { index: currentIndex },
+            text: plainText + '\n'
+          }
+        });
+
+        // Apply bullet list style
+        requests.push({
+          createParagraphBullets: {
+            range: {
+              startIndex: currentIndex,
+              endIndex: currentIndex + plainText.length + 1
+            },
+            bulletPreset: 'BULLET_DISC_CIRCLE_SQUARE'
+          }
+        });
+
+        // Apply bold formatting
+        boldRanges.forEach(range => {
+          requests.push({
+            updateTextStyle: {
+              range: {
+                startIndex: currentIndex + range.start,
+                endIndex: currentIndex + range.end
+              },
+              textStyle: { bold: true },
+              fields: 'bold'
+            }
+          });
+        });
+
+        currentIndex += plainText.length + 1;
+        continue;
+      }
+
+      // Regular paragraph
+      const { plainText, boldRanges } = this.extractBoldMarkdown(line);
+      requests.push({
+        insertText: {
+          location: { index: currentIndex },
+          text: plainText + '\n'
+        }
+      });
+
+      // Apply bold formatting
+      boldRanges.forEach(range => {
+        requests.push({
+          updateTextStyle: {
+            range: {
+              startIndex: currentIndex + range.start,
+              endIndex: currentIndex + range.end
+            },
+            textStyle: { bold: true },
+            fields: 'bold'
+          }
+        });
+      });
+
+      currentIndex += plainText.length + 1;
+    }
+
+    // Flush any remaining table
+    if (inTable && tableRows.length > 0) {
+      const tableRequest = this.createTableRequest(tableRows, currentIndex);
+      if (tableRequest) {
+        requests.push(tableRequest.insertTable);
+        tableRequest.updates.forEach(update => requests.push(update));
+      }
+    }
+
+    return requests;
+  }
+
+  /**
+   * Extract bold markdown (**text**) and return plain text with bold ranges
+   */
+  extractBoldMarkdown(text) {
+    const boldRanges = [];
+    let plainText = '';
+    let currentPos = 0;
+
+    const boldRegex = /\*\*([^*]+)\*\*/g;
+    let match;
+    let lastIndex = 0;
+
+    while ((match = boldRegex.exec(text)) !== null) {
+      // Add text before the bold match
+      plainText += text.slice(lastIndex, match.index);
+      currentPos = plainText.length;
+
+      // Add the bold text (without markers)
+      const boldText = match[1];
+      plainText += boldText;
+
+      boldRanges.push({
+        start: currentPos,
+        end: currentPos + boldText.length
+      });
+
+      lastIndex = match.index + match[0].length;
+    }
+
+    // Add remaining text
+    plainText += text.slice(lastIndex);
+
+    return { plainText, boldRanges };
+  }
+
+  /**
+   * Create Google Docs table from markdown table rows
+   */
+  createTableRequest(tableRows, startIndex) {
+    if (!tableRows || tableRows.length === 0) return null;
+
+    // Parse table rows
+    const parsedRows = tableRows.map(row => {
+      const trimmed = row.replace(/^\|/, '').replace(/\|$/, '');
+      return trimmed.split('|').map(cell => cell.trim().replace(/\*\*/g, ''));
+    });
+
+    if (parsedRows.length === 0) return null;
+
+    const numRows = parsedRows.length;
+    const numCols = parsedRows[0].length;
+
+    // Create table insertion request
+    const insertTable = {
+      insertTable: {
+        rows: numRows,
+        columns: numCols,
+        location: { index: startIndex }
+      }
+    };
+
+    // Calculate table size in indices (rough estimate: 2 indices per cell + overhead)
+    const tableSize = (numRows * numCols * 2) + 10;
+
+    // Create cell update requests
+    const updates = [];
+    let cellIndex = startIndex + 3; // Start after table structure
+
+    for (let rowIdx = 0; rowIdx < parsedRows.length; rowIdx++) {
+      const row = parsedRows[rowIdx];
+      for (let colIdx = 0; colIdx < row.length; colIdx++) {
+        const cellText = row[colIdx];
+        if (cellText) {
+          updates.push({
+            insertText: {
+              location: { index: cellIndex },
+              text: cellText
+            }
+          });
+
+          // Bold header row
+          if (rowIdx === 0) {
+            updates.push({
+              updateTextStyle: {
+                range: {
+                  startIndex: cellIndex,
+                  endIndex: cellIndex + cellText.length
+                },
+                textStyle: { bold: true },
+                fields: 'bold'
+              }
+            });
+          }
+        }
+        cellIndex += cellText.length + 2; // Account for cell boundaries
+      }
+    }
+
+    return {
+      insertTable,
+      updates,
+      endIndex: startIndex + tableSize
+    };
   }
 
   /**
