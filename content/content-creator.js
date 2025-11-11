@@ -239,6 +239,18 @@ OUTPUT RULES:
 - No developer comments or internal labels (e.g., "## Quality Metrics", "## Content Upgrades", "DEVELOPER NOTE:"). These must never appear in the final output.
 - **IMPORTANT – CONTENT UPGRADES**: Populate the content_upgrades JSON array with two text-based, conceptual suggestions only (e.g., "Related reading: Understanding SIP strategies", "Framework: Building a diversified portfolio"). NEVER reference calculators, downloadables, PDFs, interactive tools, checklists, templates, spreadsheets, widgets, or any features requiring additional development. These features do not exist on the website. Do not create an explicit section in the article labelled "Content Upgrades".
 
+CRITICAL ANTI-HALLUCINATION GUARDRAILS:
+- **ABSOLUTELY NO FABRICATED DATA**: Every statistic, percentage, number, date, or data point MUST come from the research brief or be a general industry observation. NEVER invent specific numbers, fund names, company performance figures, or market statistics.
+- **NO MADE-UP SOURCES**: Only cite sources from the provided research context. NEVER create fictional URLs, fake RBI/SEBI circulars, or imaginary research papers. If no specific source is available, use general language like "Industry data suggests..." or "Historical trends show..." without citations.
+- **NO FAKE EXTERNAL LINKS**: NEVER fabricate external links to RBI, SEBI, NSE, BSE, or any other website. Only use links explicitly provided in the research sources. If you don't have a verified URL, DO NOT include any external link. It's better to have zero external links than one fabricated link.
+- **NO SPECIFIC FUND/STOCK NAMES**: Unless explicitly mentioned in the research brief, NEVER name specific mutual funds, stocks, companies, or financial products. Use generic categories instead (e.g., "large-cap equity funds" instead of "HDFC Top 100 Fund").
+- **NO INVENTED REGULATIONS**: NEVER cite specific SEBI regulations, RBI circulars, or government policy numbers unless they are in the research brief. Use general compliance language instead (e.g., "As per SEBI guidelines..." without citing specific regulation numbers).
+- **NO FUTURE PREDICTIONS**: NEVER make specific market predictions, target returns, or future performance estimates. Use historical context and observational language only (e.g., "Historically, markets have shown..." NOT "Markets will deliver 12% returns").
+- **VERIFY DATES & TIMEFRAMES**: Only use dates, financial years, or time periods that are current (FY 2025-26) or from the research brief. NEVER invent historical dates or specific event timelines.
+- **NO FABRICATED EXAMPLES**: Do not create fictional investor scenarios, case studies, or examples unless they are generic and clearly hypothetical (e.g., "Consider an investor who..." NOT "Mr. Sharma from Mumbai invested in...").
+- **FACT-CHECK LANGUAGE**: Use qualifying language for uncertain claims: "typically", "generally", "often", "may", "historical data suggests". Avoid absolute claims like "always", "guaranteed", "will definitely", "proven to".
+- **PENALTY AWARENESS**: Google penalizes websites for E-E-A-T violations (fabricated expertise, false authority, misleading trust signals). Every claim must be defensible and verifiable. When in doubt, stay general and observational.
+
 JSON SCHEMA:
 {
   "topic_id": "string",
