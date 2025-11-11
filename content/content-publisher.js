@@ -861,6 +861,7 @@ class ContentPublisher {
 
   /**
    * Create Google Docs table from markdown table rows
+   * Note: Google Docs API table insertion is complex. For now, we convert tables to formatted text.
    */
   createTableRequest(tableRows, startIndex) {
     if (!tableRows || tableRows.length === 0) return null;
@@ -873,59 +874,54 @@ class ContentPublisher {
 
     if (parsedRows.length === 0) return null;
 
-    const numRows = parsedRows.length;
-    const numCols = parsedRows[0].length;
+    // Convert table to formatted text instead of actual table
+    // This is more reliable than trying to manage table cell indices
+    let tableText = '\n';
+    let currentIdx = startIndex;
 
-    // Create table insertion request
-    const insertTable = {
-      insertTable: {
-        rows: numRows,
-        columns: numCols,
-        location: { index: startIndex }
-      }
-    };
-
-    // Calculate table size in indices (rough estimate: 2 indices per cell + overhead)
-    const tableSize = (numRows * numCols * 2) + 10;
-
-    // Create cell update requests
+    const requests = [];
     const updates = [];
-    let cellIndex = startIndex + 3; // Start after table structure
 
     for (let rowIdx = 0; rowIdx < parsedRows.length; rowIdx++) {
       const row = parsedRows[rowIdx];
-      for (let colIdx = 0; colIdx < row.length; colIdx++) {
-        const cellText = row[colIdx];
-        if (cellText) {
-          updates.push({
-            insertText: {
-              location: { index: cellIndex },
-              text: cellText
-            }
-          });
+      const rowText = row.join(' | ') + '\n';
 
-          // Bold header row
-          if (rowIdx === 0) {
-            updates.push({
-              updateTextStyle: {
-                range: {
-                  startIndex: cellIndex,
-                  endIndex: cellIndex + cellText.length
-                },
-                textStyle: { bold: true },
-                fields: 'bold'
-              }
-            });
-          }
+      requests.push({
+        insertText: {
+          location: { index: currentIdx },
+          text: rowText
         }
-        cellIndex += cellText.length + 2; // Account for cell boundaries
+      });
+
+      // Bold the header row
+      if (rowIdx === 0) {
+        updates.push({
+          updateTextStyle: {
+            range: {
+              startIndex: currentIdx,
+              endIndex: currentIdx + rowText.length - 1
+            },
+            textStyle: { bold: true },
+            fields: 'bold'
+          }
+        });
       }
+
+      currentIdx += rowText.length;
     }
 
+    // Add spacing after table
+    requests.push({
+      insertText: {
+        location: { index: currentIdx },
+        text: '\n'
+      }
+    });
+
     return {
-      insertTable,
-      updates,
-      endIndex: startIndex + tableSize
+      insertTable: requests[0], // First insert request
+      updates: [...requests.slice(1), ...updates], // Rest of the requests
+      endIndex: currentIdx + 1
     };
   }
 

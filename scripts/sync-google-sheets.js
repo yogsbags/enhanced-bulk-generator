@@ -58,20 +58,22 @@ async function syncToGoogleSheets(options = {}) {
     let auth;
 
     log('🔍 Checking for credentials...');
-    log(`   - OAuth tokens: ${process.env.GOOGLE_REFRESH_TOKEN ? 'SET' : 'NOT SET'}`);
+    // Support both GOOGLE_REFRESH_TOKEN (new, with Docs+Sheets) and GOOGLE_SHEETS_REFRESH_TOKEN (legacy, Sheets-only)
+    const refreshToken = process.env.GOOGLE_REFRESH_TOKEN || process.env.GOOGLE_SHEETS_REFRESH_TOKEN;
+    log(`   - OAuth tokens: ${refreshToken ? 'SET' : 'NOT SET'}`);
     log(`   - Service account JSON: ${process.env.GOOGLE_CREDENTIALS_JSON ? 'SET (length: ' + process.env.GOOGLE_CREDENTIALS_JSON.length + ')' : 'NOT SET'}`);
     log(`   - Service account file: ${process.env.GOOGLE_APPLICATION_CREDENTIALS || 'NOT SET'}`);
     log(`   - Hardcoded path exists: ${fs.existsSync(HARDCODED_CREDENTIALS_PATH)}`);
 
     // Priority 1: OAuth tokens (Recommended for Railway)
-    if (process.env.GOOGLE_REFRESH_TOKEN && process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    if (refreshToken && process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
       log('📝 Using OAuth refresh token (recommended for Railway)');
       auth = new GoogleAuth({
         credentials: {
           type: 'authorized_user',
           client_id: process.env.GOOGLE_CLIENT_ID,
           client_secret: process.env.GOOGLE_CLIENT_SECRET,
-          refresh_token: process.env.GOOGLE_REFRESH_TOKEN
+          refresh_token: refreshToken
         },
         scopes: SCOPES
       });
