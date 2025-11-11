@@ -695,7 +695,7 @@ class ContentPublisher {
         inTable = false;
       }
 
-      // Heading 2 (##)
+      // Heading 2 (##) - Keep as Heading 2
       if (line.startsWith('## ')) {
         const text = line.replace(/^##\s+/, '').replace(/\*\*/g, '');
         requests.push({
@@ -720,25 +720,26 @@ class ContentPublisher {
         continue;
       }
 
-      // Heading 3 (###)
-      if (line.startsWith('### ')) {
-        const text = line.replace(/^###\s+/, '').replace(/\*\*/g, '');
+      // Heading 3 (###) and Heading 4 (####) - Convert to regular paragraphs (no heading style)
+      // Since final content shouldn't have these heading levels
+      if (line.startsWith('#### ')) {
+        const text = line.replace(/^####\s+/, '').replace(/\*\*/g, '');
         requests.push({
           insertText: {
             location: { index: currentIndex },
             text: text + '\n'
           }
         });
+        currentIndex += text.length + 1;
+        continue;
+      }
+
+      if (line.startsWith('### ')) {
+        const text = line.replace(/^###\s+/, '').replace(/\*\*/g, '');
         requests.push({
-          updateParagraphStyle: {
-            range: {
-              startIndex: currentIndex,
-              endIndex: currentIndex + text.length
-            },
-            paragraphStyle: {
-              namedStyleType: 'HEADING_3'
-            },
-            fields: 'namedStyleType'
+          insertText: {
+            location: { index: currentIndex },
+            text: text + '\n'
           }
         });
         currentIndex += text.length + 1;
