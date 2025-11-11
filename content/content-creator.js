@@ -221,19 +221,23 @@ OUTPUT RULES:
 - Respond with a **single valid JSON object** following the schema below. No markdown fences or extra prose.
 - Article audience: mass affluent Indian investors and salaried professionals evaluating wealth options in FY 2025-26.
 - Minimum length: ${wordTarget} words of original copy (exclude tables). Blend data, explanations, frameworks, and examples.
-- Voice & tone: authoritative yet approachable, data-backed, compliance-safe, with PL Capital's advisory expertise shining through.
-- Heading etiquette: never output an H1. Start with \`## Executive Summary\`, then use semantic H2/H3/H4 hierarchy.
+- Voice & tone: Use first/second-person (you/your/our/we) to create engagement. Write as if you're speaking directly to the reader. Example: "When you invest..." instead of "When investors invest...". Balance authority with approachability, keeping it data-backed and compliance-safe.
+- Heading etiquette: never output an H1. Start with \`## Executive Summary\`, then use semantic H2/H3/H4 hierarchy. All headings must include the focus keyphrase or close semantic variations for SEO optimization.
 - Structural must-haves (in order):
-  1. \`## Executive Summary\` — 3 crisp sentences covering context, opportunity, and takeaway.
+  1. \`## Executive Summary\` — 3 crisp sentences covering context, opportunity, and takeaway (using "you/your" tone).
   2. \`### Key Numbers At a Glance\` — Markdown table with Metric / Value / Why it Matters (>=4 rows).
-  3. \`### Key Takeaways\` — bullet list (5 bullets) of one-line insights.
-  4. Core body sections addressing the content gaps, benchmarks vs competitors, tactical guidance, calculators/frameworks, and risk controls.
+  3. \`### Key Takeaways\` — bullet list (5 bullets) of one-line insights (using "you/your" tone).
+  4. Core body sections addressing the content gaps, benchmarks vs competitors, tactical guidance, calculators/frameworks, and risk controls (written in observational, neutral tone – no direct trading suggestions).
   5. At least one section titled \`### Compliance & Risk Checklist\` with bullet points consolidating SEBI/RBI obligations.
-  6. Final H2 titled \`## Talk to a PL Capital Advisor\` containing a persuasive CTA paragraph.
+  6. Final H2 titled \`## Talk to Our Advisors\` containing a persuasive CTA paragraph (using "you/your/our" tone).
 - Every body section must integrate insights from the research brief (content gaps, competitor analysis, related questions, superiority plan) with specific data points, examples, and Indian regulatory references.
-- Internal linking: include at least two inline links to PL Capital resources using relevant blog URLs (from https://www.plindia.com/blogs-sitemap.xml). External references must link to authoritative Indian financial sites and include the anchor text.
+- **IMPORTANT – EXTERNAL LINKS**: Limit external links to a maximum of 3 verified, authoritative sources (RBI, SEBI, NSE, BSE, Ministry of Finance, AMFI official pages only). No competitor websites or blogs. Each external link must be a permanent, official government/regulatory URL (no blog posts or news articles that may become 404). Use proper en dashes (–) with spaces around them for ranges/connections.
+- **IMPORTANT – INTERNAL LINKS**: Include at least two inline links to PL Capital resources using relevant blog URLs (from https://www.plindia.com/blogs-sitemap.xml).
+- **IMPORTANT – TRADING STRATEGIES**: Never provide direct trading suggestions or investment recommendations. Use observational, neutral language like "Some investors consider...", "Historical data shows...", "Market patterns suggest..." instead of "You should invest in..." or "Buy/Sell...".
+- **IMPORTANT – FORMATTING**: Use en dashes (–) consistently for ranges and connections with proper spacing (e.g., "5%–7%" or "stocks – bonds"). Never use hyphens for these purposes.
 - Tables: use valid Markdown tables, never placeholders.
 - No placeholder strings ({{...}}, [TODO], etc.). Provide finished copy.
+- No developer comments or internal labels (e.g., "## Quality Metrics", "## Content Upgrades", "DEVELOPER NOTE:"). These must never appear in the final output.
 - Content upgrades: populate the JSON array with two value-add artefacts (e.g., how-tos, checklist etc.) but **do not** create an explicit section in the article labelled "Content Upgrades".
 - Compliance paragraph must include mandatory SEBI/RBI disclaimers and suitability warnings.
 
@@ -595,6 +599,7 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
     let content = this.sanitizeArticleContent(article || '');
     content = this.normalizeHeadings(content);
     content = this.removeLeadingTitleHeading(content, research, seoMeta);
+    content = this.filterExternalLinks(content); // Remove excessive/invalid external links
     content = this.ensureCallToAction(content, research, seoMeta);
     return this.finalizeArticleContent(content);
   }
@@ -615,9 +620,24 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
       content = content.replace(pattern, '');
     });
 
-    // Normalize bullet markers (convert en/em dashes to standard hyphen)
+    // Remove developer comments and internal labels
+    content = content.replace(/<!--[\s\S]*?-->/g, ''); // Remove HTML comments
+    content = content.replace(/\/\/\s*DEVELOPER NOTE:.*$/gim, ''); // Remove developer notes
+    content = content.replace(/\/\/\s*TODO:.*$/gim, ''); // Remove TODO comments
+    content = content.replace(/\[INTERNAL:[^\]]+\]/gi, ''); // Remove internal labels
+    content = content.replace(/\[CONTENT_LABEL:[^\]]+\]/gi, ''); // Remove content labels
+    content = content.replace(/\[DEV:[^\]]+\]/gi, ''); // Remove dev labels
+
+    // Normalize bullet markers (convert en/em dashes to standard hyphen for lists only)
     content = content.replace(/^[ \t]*[–—]\s+/gm, '- ');
 
+    // Fix dash formatting: Use en dashes (–) for ranges and connections with proper spacing
+    // Replace hyphens in ranges with en dashes (e.g., "5%-7%" -> "5%–7%")
+    content = content.replace(/(\d+%?)\s*-\s*(\d+%?)/g, '$1–$2');
+    // Replace hyphens in connections with en dashes with spacing (e.g., "stocks-bonds" -> "stocks – bonds")
+    content = content.replace(/(\b\w+)\s*-\s*(\w+\b)/g, '$1 – $2');
+
+    // Remove Quality Metrics and Content Upgrades sections
     content = content.replace(/##\s*Quality\s+Metrics[\s\S]*?(?=\n#{2,}\s|$)/gi, '');
     content = content.replace(/##\s*Content\s+Upgrades[\s\S]*?(?=\n#{2,}\s|$)/gi, '');
     content = content.replace(/^\s{0,3}\*\*?\s*Quality\s+Metrics?:[\s\S]*?(?=\n{2,}|\n#+\s|$)/gim, '');
@@ -666,6 +686,51 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
     return content;
   }
 
+  /**
+   * Filter external links to only keep verified, authoritative sources
+   * Remove links that are likely to become 404s or dilute SEO
+   */
+  filterExternalLinks(content) {
+    if (!content) return '';
+
+    // Whitelist of trusted Indian financial authorities (permanent URLs only)
+    const trustedDomains = [
+      'rbi.org.in',
+      'sebi.gov.in',
+      'nseindia.com',
+      'bseindia.com',
+      'finmin.nic.in', // Ministry of Finance
+      'amfiindia.com', // AMFI
+      'irdai.gov.in', // IRDAI
+      'pfrda.org.in', // PFRDA
+    ];
+
+    // Extract all markdown links [text](url)
+    const linkPattern = /\[([^\]]+)\]\(([^)]+)\)/g;
+    let externalLinkCount = 0;
+    const maxExternalLinks = 3;
+
+    return content.replace(linkPattern, (match, text, url) => {
+      // Keep internal PL Capital links
+      if (url.includes('plindia.com')) {
+        return match;
+      }
+
+      // Check if it's a trusted domain
+      const isTrusted = trustedDomains.some(domain => url.includes(domain));
+
+      if (isTrusted) {
+        externalLinkCount++;
+        if (externalLinkCount <= maxExternalLinks) {
+          return match; // Keep the link
+        }
+      }
+
+      // Remove link but keep the text
+      return text;
+    });
+  }
+
   ensureCallToAction(content, research = {}, seoMeta = {}) {
     if (!content) return '';
 
@@ -686,7 +751,7 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
 
     const ctaParagraph = [
       '### Partner with PL Capital',
-      `Ready to strengthen your ${focus.toLowerCase()} strategy? Connect with PL Capital's SEBI-registered advisors for personalised guidance and actionable portfolios.`,
+      `Ready to strengthen your ${focus.toLowerCase()} strategy? Connect with our SEBI-registered advisors for personalised guidance and actionable portfolios.`,
       '[Book a consultation](https://www.plindia.com/contact-us) today.',
     ].join('\n');
 
