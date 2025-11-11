@@ -252,7 +252,7 @@ class MasterSEOResearcher {
             // Convert GSC gaps to our format
             const formattedGSCGaps = gscGaps.map(gap => ({
               gap_id: `GSC-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-              topic_area: this.categorizeKeyword(gap.keyword),
+              topic_area: this.selectedCategory || this.categorizeKeyword(gap.keyword),
               gap_title: this.generateGapTitle(gap.keyword),
               search_volume: gap.impressions,
               keyword_difficulty: Math.round(gap.position * 2), // Rough estimate
@@ -303,13 +303,20 @@ class MasterSEOResearcher {
         }
       }
 
-      // Add AI-generated gaps
+      // Add AI-generated gaps with category override
       if (researchData.content_gaps && researchData.content_gaps.length > 0) {
         researchData.content_gaps.forEach(gap => {
           gap.source = 'AI Analysis';
+          // Override topic_area with selected category if specified
+          if (this.selectedCategory) {
+            gap.topic_area = this.selectedCategory;
+          }
         });
         allGaps.push(...researchData.content_gaps);
         console.log(`✅ [AI] Added ${researchData.content_gaps.length} gaps from AI competitor analysis`);
+        if (this.selectedCategory) {
+          console.log(`   📂 All gaps set to category: ${this.selectedCategory.replace('_', ' ').toUpperCase()}`);
+        }
       }
 
       // 🎯 STEP 3: Enhance gaps with Google Ads MCP keyword data
