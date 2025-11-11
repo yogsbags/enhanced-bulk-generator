@@ -227,9 +227,8 @@ OUTPUT RULES:
   1. \`## Executive Summary\` — 3 crisp sentences covering context, opportunity, and takeaway (using "you/your" tone).
   2. \`### Key Numbers At a Glance\` — Markdown table with Metric / Value / Why it Matters (>=4 rows).
   3. \`### Key Takeaways\` — bullet list (5 bullets) of one-line insights (using "you/your" tone).
-  4. Core body sections addressing the content gaps, benchmarks vs competitors, tactical guidance, calculators/frameworks, and risk controls (written in observational, neutral tone – no direct trading suggestions).
-  5. At least one section titled \`### Compliance & Risk Checklist\` with bullet points consolidating SEBI/RBI obligations.
-  6. Final H2 titled \`## Talk to Our Advisors\` containing a persuasive CTA paragraph (using "you/your/our" tone).
+  4. Core body sections addressing the content gaps, benchmarks vs competitors, tactical guidance, frameworks, and risk controls (written in observational, neutral tone – no direct trading suggestions).
+  5. Final H2 titled \`## Talk to Our Advisors\` containing a persuasive CTA paragraph (using "you/your/our" tone).
 - Every body section must integrate insights from the research brief (content gaps, competitor analysis, related questions, superiority plan) with specific data points, examples, and Indian regulatory references.
 - **IMPORTANT – EXTERNAL LINKS**: Limit external links to a maximum of 3 verified, authoritative sources (RBI, SEBI, NSE, BSE, Ministry of Finance, AMFI official pages only). No competitor websites or blogs. Each external link must be a permanent, official government/regulatory URL (no blog posts or news articles that may become 404). Use proper en dashes (–) with spaces around them for ranges/connections.
 - **IMPORTANT – INTERNAL LINKS**: Include at least two inline links to PL Capital resources using relevant blog URLs (from https://www.plindia.com/blogs-sitemap.xml).
@@ -238,8 +237,7 @@ OUTPUT RULES:
 - Tables: use valid Markdown tables, never placeholders.
 - No placeholder strings ({{...}}, [TODO], etc.). Provide finished copy.
 - No developer comments or internal labels (e.g., "## Quality Metrics", "## Content Upgrades", "DEVELOPER NOTE:"). These must never appear in the final output.
-- Content upgrades: populate the JSON array with two value-add artefacts (e.g., how-tos, checklist etc.) but **do not** create an explicit section in the article labelled "Content Upgrades".
-- Compliance paragraph must include mandatory SEBI/RBI disclaimers and suitability warnings.
+- **IMPORTANT – CONTENT UPGRADES**: Populate the content_upgrades JSON array with two text-based, conceptual suggestions only (e.g., "Related reading: Understanding SIP strategies", "Framework: Building a diversified portfolio"). NEVER reference calculators, downloadables, PDFs, interactive tools, checklists, templates, spreadsheets, widgets, or any features requiring additional development. These features do not exist on the website. Do not create an explicit section in the article labelled "Content Upgrades".
 
 JSON SCHEMA:
 {
@@ -585,7 +583,7 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
     }
 
     if (!Array.isArray(upgrades) || upgrades.length < 2) {
-      issues.push('- Suggest at least two distinct content upgrades (e.g., calculators, PDF guides, worksheets).');
+      issues.push('- Suggest at least two distinct text-based content upgrades (e.g., "Related reading: topic", "Framework: concept"). NO calculators, PDFs, or downloadables.');
     }
 
     if (issues.length === 0) {
@@ -1135,7 +1133,7 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
 
     const focusPhrase = focus || 'mutual fund investments';
     const fallback =
-      `Compare ${focusPhrase} performance, costs, and risks. Discover expert analysis, calculators, and action steps for Indian investors today.`;
+      `Compare ${focusPhrase} performance, costs, and risks. Discover expert analysis, insights, and action steps for Indian investors today.`;
 
     const articleSnippet = (article || '')
       .replace(/[`*#>\[\]]/g, ' ')
@@ -1150,7 +1148,7 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
   clampDescription(text, focusPhrase) {
     if (!text) {
       return this.clampDescription(
-        `Learn how ${focusPhrase} compares on returns, volatility, and costs. Get expert tips and downloadable tools for Indian investors.`,
+        `Learn how ${focusPhrase} compares on returns, volatility, and costs. Get expert tips and actionable insights for Indian investors.`,
         focusPhrase
       );
     }
