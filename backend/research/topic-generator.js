@@ -39,6 +39,9 @@ class TopicGenerator {
     // 🎯 Topic limit for controlled generation
     this.topicLimit = config.topicLimit || null;
 
+    // 🎯 Custom topic for direct generation (bypasses Stage 1 gaps)
+    this.customTopic = config.customTopic || null;
+
     // 🎯 MCP DATA FETCHERS - Store them from config!
     this.gscDataFetcher = config.gscDataFetcher || null;
     this.seoDataFetcher = config.seoDataFetcher || null;
@@ -139,6 +142,32 @@ class TopicGenerator {
     }
 
     try {
+      // 🎯 Custom Topic Mode: Generate topics based on user input (bypass Stage 1)
+      if (this.customTopic) {
+        console.log(`\n✨ CUSTOM TOPIC MODE ACTIVATED`);
+        console.log(`📝 Custom Topic: "${this.customTopic}"`);
+        console.log(`🚀 Bypassing Stage 1 research gaps...`);
+
+        const customTopics = await this.generateCustomTopics(this.customTopic, targetTopics);
+
+        if (!customTopics || !Array.isArray(customTopics) || customTopics.length < 1) {
+          throw new Error(`Failed to generate custom topics`);
+        }
+
+        console.log(`✅ Generated ${customTopics.length} custom topic(s)`);
+
+        // Save custom topics to CSV
+        const saved = this.csvManager.saveGeneratedTopics(customTopics);
+
+        if (saved) {
+          console.log(`\n✅ Custom topic generation completed: ${customTopics.length} topics created`);
+          this.generateTopicSummary(customTopics);
+          return customTopics;
+        } else {
+          throw new Error('Failed to save custom topics to CSV');
+        }
+      }
+
       // Get approved research gaps
       let approvedGaps = this.csvManager.getApprovedResearchGaps();
 
@@ -313,6 +342,247 @@ class TopicGenerator {
     }
 
     return allTopics;
+  }
+
+  /**
+   * Generate custom topics based on user-provided topic title
+   * Bypasses Stage 1 research gaps entirely
+   */
+  async generateCustomTopics(customTopicTitle, targetCount = 1) {
+    console.log(`\n🎯 Generating custom topics for: "${customTopicTitle}"`);
+    console.log(`📊 Target count: ${targetCount}`);
+
+    const prompt = this.buildCustomTopicPrompt(customTopicTitle, targetCount);
+
+    console.log('🤖 Generating custom topics with AI...');
+    console.log(`📊 Using model: ${this.currentModel}`);
+
+    const modelsToTry = [
+      this.currentModel,
+      this.models.compoundMini,
+      this.models.browserSearch20B,
+      this.models.browserSearch120B,
+      this.models.gemini,
+      this.models.fallback
+    ];
+
+    for (const modelToTry of modelsToTry) {
+      console.log(`🔄 Trying model: ${modelToTry}`);
+
+      try {
+        let apiUrl = this.groqApiUrl;
+        let apiKey = this.groqApiKey;
+        let requestBody;
+
+        if (modelToTry.includes('gemini')) {
+          const params = this.modelParams.stages.topics;
+          apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent';
+          apiKey = process.env.GEMINI_API_KEY || 'AIzaSyAcCCA2Kt0TMVF4-uiOW2iRU--WSiGMk8k';
+
+          requestBody = {
+            contents: [{
+              parts: [{
+                text: `You are an Expert Content Strategist specializing in Indian WealthTech. Generate strategic content topics based on user input.\n\n${prompt}`
+              }]
+            }],
+            generationConfig: {
+              temperature: params.temperature,
+              topP: params.top_p,
+              maxOutputTokens: params.max_tokens
+            },
+            tools: [{
+              googleSearch: {}
+            }]
+          };
+        } else {
+          const params = this.modelParams.stages.topics;
+          requestBody = {
+            model: modelToTry,
+            messages: [
+              {
+                role: 'system',
+                content: 'You are an Expert Content Strategist specializing in Indian WealthTech. Generate strategic content topics based on user input.'
+              },
+              {
+                role: 'user',
+                content: prompt
+              }
+            ],
+            temperature: params.temperature,
+            top_p: params.top_p,
+            frequency_penalty: params.frequency_penalty,
+            presence_penalty: params.presence_penalty,
+            max_tokens: params.max_tokens,
+            response_format: params.response_format
+          };
+
+          if (modelToTry.includes('groq/compound')) {
+            requestBody.search_settings = {
+              country: "india",
+              include_domains: ["*.in", "groww.in", "zerodha.com", "etmoney.com"],
+              exclude_domains: ["wikipedia.org"]
+            };
+          }
+
+          if (modelToTry.includes('openai/gpt-oss')) {
+            requestBody.tools = [{ type: "browser_search" }];
+            requestBody.tool_choice = "auto";
+            delete requestBody.response_format;
+          }
+        }
+
+        const headers = modelToTry.includes('gemini')
+          ? { 'Content-Type': 'application/json' }
+          : {
+              'Authorization': `Bearer ${apiKey}`,
+              'Content-Type': 'application/json'
+            };
+
+        const fetchUrl = modelToTry.includes('gemini')
+          ? `${apiUrl}?key=${apiKey}`
+          : apiUrl;
+
+        const response = await fetch(fetchUrl, {
+          method: 'POST',
+          headers: headers,
+          body: JSON.stringify(requestBody)
+        });
+
+        if (!response.ok) {
+          console.log(`⚠️  ${modelToTry} error: ${response.status}, trying next model...`);
+          continue;
+        }
+
+        const data = await response.json();
+
+        let content;
+        if (modelToTry.includes('gemini')) {
+          content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (!content) {
+            console.log(`⚠️  Gemini response missing content, trying next model...`);
+            continue;
+          }
+        } else {
+          const message = data.choices[0]?.message || {};
+          if (message.parsed) {
+            content = typeof message.parsed === 'string'
+              ? message.parsed
+              : JSON.stringify(message.parsed);
+          } else {
+            content = message.content || '';
+          }
+        }
+
+        try {
+          const cleanResponse = this.cleanModelResponse(content, modelToTry);
+          const topics = this.parseTopicsPayload(cleanResponse, modelToTry);
+
+          console.log(`✅ Custom topic generation completed with ${modelToTry}`);
+
+          topics.forEach(topic => {
+            topic.model_used = modelToTry;
+            topic.browser_search_enabled = modelToTry.includes('openai/gpt-oss');
+            topic.custom_topic = true;
+          });
+
+          // Create synthetic research gap for custom topics
+          const syntheticTopics = topics.map(topic => ({
+            ...topic,
+            research_gap_id: 'CUSTOM-GAP',
+            approval_status: 'Pending'
+          }));
+
+          return this.validateAndEnhanceTopics(syntheticTopics, []);
+
+        } catch (parseError) {
+          console.log(`⚠️  JSON parsing failed for ${modelToTry}: ${parseError.message}`);
+          continue;
+        }
+
+      } catch (error) {
+        console.log(`❌ Model ${modelToTry} failed: ${error.message}, trying next model...`);
+        continue;
+      }
+    }
+
+    throw new Error('All models failed to generate custom topics');
+  }
+
+  /**
+   * Build prompt for custom topic generation
+   */
+  buildCustomTopicPrompt(customTopicTitle, topicCount = 1) {
+    const categoryInstruction = this.selectedCategory
+      ? `The topic should be in the "${this.selectedCategory}" category.`
+      : 'Auto-detect the most appropriate category.';
+
+    return `Generate ${topicCount} strategic content topic(s) based on this user-provided topic title: "${customTopicTitle}"
+
+${categoryInstruction}
+
+TOPIC GENERATION REQUIREMENTS:
+
+For EACH of the ${topicCount} topic(s), provide:
+
+1. topic_id: "TOPIC-YYYYMMDD-XXX" (sequential)
+2. research_gap_id: "CUSTOM-GAP" (since this bypasses Stage 1 research)
+3. content_type: [blog|ymyl|listicle|news] (auto-detect based on topic)
+4. topic_title: Use the provided title: "${customTopicTitle}" (or enhance it slightly if needed)
+5. category: [mutual_funds|tax_planning|stock_market|retirement_planning|insurance|personal_finance|investment_strategies|derivatives] (auto-detect)
+6. primary_keyword: Main target keyword extracted from the title
+7. secondary_keywords: 3-5 related keywords (comma-separated string)
+8. search_volume: Estimated monthly search volume
+9. keyword_difficulty: 0-100 score
+10. priority: [High|Medium|Low]
+11. topic_type: [quick_win|authority_builder|competitive_strike] (auto-detect based on topic)
+12. target_competitor: Which competitor we're outranking
+13. our_competitive_advantage: Specific plan to beat competitor
+14. word_count_target: Recommended length (2000-3000 words)
+15. expert_required: [true|false]
+16. estimated_ranking_time: Days to rank
+17. estimated_monthly_traffic: Expected traffic when ranked
+18. internal_linking_opportunities: Related topics for clustering (comma-separated)
+19. content_upgrade_idea: Lead magnet idea
+20. regulatory_requirements: Compliance needs (comma-separated)
+21. approval_status: "Pending"
+
+OUTPUT FORMAT
+- Return a JSON object with a single key "topics" containing the array of topic objects.
+- No markdown, no comments, no explanations.
+
+{
+  "topics": [
+    {
+      "topic_id": "TOPIC-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-001",
+      "research_gap_id": "CUSTOM-GAP",
+      "content_type": "blog",
+      "topic_title": "${customTopicTitle}",
+      "category": "derivatives",
+      "primary_keyword": "extracted keyword",
+      "secondary_keywords": "related,keywords,here",
+      "search_volume": 5000,
+      "keyword_difficulty": 35,
+      "priority": "High",
+      "topic_type": "authority_builder",
+      "target_competitor": "Groww",
+      "our_competitive_advantage": "Comprehensive guide with expert insights",
+      "word_count_target": 2500,
+      "expert_required": "true",
+      "estimated_ranking_time": 60,
+      "estimated_monthly_traffic": 3500,
+      "internal_linking_opportunities": "related-topics,guides,calculators",
+      "content_upgrade_idea": "Interactive calculator or checklist",
+      "regulatory_requirements": "SEBI disclaimer,Risk warning",
+      "approval_status": "Pending"
+    }
+  ]
+}
+
+CRITICAL:
+- Generate exactly ${topicCount} topic(s)
+- Return ONLY the JSON object described above
+- No markdown formatting, no explanations
+- Validate JSON structure before returning`;
   }
 
   /**

@@ -33,6 +33,7 @@ export async function POST(req: NextRequest) {
         const stageId = body.stageId
         const topicLimit = body.topicLimit || 1
         const category = body.category || 'derivatives'
+        const customTopic = body.customTopic || ''
 
         if (!stageId || !STAGE_NAMES[stageId]) {
           throw new Error(`Invalid stage ID: ${stageId}`)
@@ -47,6 +48,9 @@ export async function POST(req: NextRequest) {
         sendEvent({ log: `🔧 Executing Stage ${stageId}: ${stageName}...` })
         sendEvent({ log: `📊 Topic Limit: ${topicLimit}` })
         sendEvent({ log: `📂 Category Focus: ${category}` })
+        if (customTopic) {
+          sendEvent({ log: `✨ Custom Topic: "${customTopic}"` })
+        }
         sendEvent({ stage: stageId, status: 'running', message: `Executing ${stageName}...` })
 
         // Execute stage with NODE_PATH for module resolution
@@ -57,6 +61,9 @@ export async function POST(req: NextRequest) {
         }
 
         const args = [mainJsPath, 'stage', stageName, '--auto-approve', '--topic-limit', topicLimit.toString(), '--category', category]
+        if (customTopic) {
+          args.push('--custom-topic', customTopic)
+        }
         const nodeProcess = spawn('node', args, {
           cwd: workingDir,
           env: nodeEnv,

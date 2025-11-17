@@ -19,10 +19,11 @@ export async function POST(req: NextRequest) {
       let currentStage = 0
 
       try {
-        // Parse request body to get topic limit and category
+        // Parse request body to get topic limit, category, and custom topic
         const body = await req.json()
         const topicLimit = body.topicLimit || 1
         const category = body.category || 'derivatives'
+        const customTopic = body.customTopic || ''
 
         // Check if we're in Netlify environment
         if (process.env.NETLIFY === 'true' || process.env.AWS_LAMBDA_FUNCTION_NAME) {
@@ -30,6 +31,9 @@ export async function POST(req: NextRequest) {
           sendEvent({ log: '🔧 Initializing workflow execution via Netlify Function...' })
           sendEvent({ log: `📊 Topic Limit: ${topicLimit}` })
           sendEvent({ log: `📂 Category Focus: ${category}` })
+          if (customTopic) {
+            sendEvent({ log: `✨ Custom Topic: "${customTopic}"` })
+          }
 
           try {
             // In Netlify, we need to construct the full URL for the function
@@ -44,7 +48,7 @@ export async function POST(req: NextRequest) {
               headers: {
                 'Content-Type': 'application/json',
               },
-              body: JSON.stringify({ topicLimit, category }),
+              body: JSON.stringify({ topicLimit, category, customTopic }),
             })
 
             sendEvent({ log: `📡 Response status: ${response.status} ${response.statusText}` })
@@ -92,9 +96,15 @@ export async function POST(req: NextRequest) {
           sendEvent({ log: `📍 Working Dir: ${workingDir}` })
           sendEvent({ log: `📊 Topic Limit: ${topicLimit}` })
           sendEvent({ log: `📂 Category Focus: ${category}` })
+          if (customTopic) {
+            sendEvent({ log: `✨ Custom Topic: "${customTopic}"` })
+          }
 
-          // Execute main.js with 'full' command, topic limit, and category
+          // Execute main.js with 'full' command, topic limit, category, and custom topic
           const args = [mainJsPath, 'full', '--auto-approve', '--topic-limit', topicLimit.toString(), '--category', category]
+          if (customTopic) {
+            args.push('--custom-topic', customTopic)
+          }
 
           // Add parent node_modules to NODE_PATH for Vercel deployment
           const parentNodeModules = path.join(process.cwd(), 'node_modules')
