@@ -180,6 +180,7 @@ class WorkflowOrchestrator {
 
     try {
       console.log(`🎯 Generating ${this.config.gapsPerRun} content gap opportunities...`);
+      console.log(`📂 Category Filter: ${this.config.category || 'derivatives (default)'}`);
       console.log('');
       console.log('🔄 Data Sources:');
       console.log('   1. Groq Llama 3.3 70B: Competitor analysis + web search');

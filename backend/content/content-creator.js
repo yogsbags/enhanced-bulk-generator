@@ -234,11 +234,10 @@ OUTPUT RULES:
   5. At least one section titled \`### Compliance & Risk Checklist\` with bullet points consolidating SEBI/RBI obligations.
   6. Final H2 titled \`## Talk to a PL Capital Advisor\` containing a persuasive CTA paragraph.
 - Every body section must integrate insights from the research brief (content gaps, competitor analysis, related questions, superiority plan) with specific data points, examples, and Indian regulatory references.
-- Internal linking: include at least two inline links to PL Capital resources using relevant blog URLs (from https://www.plindia.com/blogs-sitemap.xml). External references must link to authoritative Indian financial sites and include the anchor text.
+- External references must link only to authoritative Indian financial site homepages (like SEBI - sebi.gov.in, AMFI - amfiindia.com, NSE - nseindia.com, BSE - bseindia.com, etc.) and include the anchor text.
 - Tables: use valid Markdown tables, never placeholders.
 - No placeholder strings ({{...}}, [TODO], etc.). Provide finished copy.
 - Content upgrades: populate the JSON array with two value-add artefacts (e.g., how-tos, checklist etc.) but **do not** create an explicit section in the article labelled "Content Upgrades".
-- Compliance paragraph must include mandatory SEBI/RBI disclaimers and suitability warnings.
 
 JSON SCHEMA:
 {
