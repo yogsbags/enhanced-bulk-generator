@@ -26,6 +26,7 @@ class ContentCreator {
       ...config,
     };
 
+    this.customTitle = config.customTitle || null;
     this.openaiApiKey = process.env.OPENAI_API_KEY;
     this.groqApiKey = process.env.GROQ_API_KEY;
     this.openaiApiUrl = 'https://api.openai.com/v1/chat/completions';
@@ -85,6 +86,39 @@ class ContentCreator {
     console.log('='.repeat(60));
 
     try {
+      // 🚀 Custom Title Mode: Generate content from custom title (bypass Stages 1-3)
+      if (this.customTitle) {
+        console.log(`\n🚀 CUSTOM TITLE MODE ACTIVATED`);
+        console.log(`📝 Custom Title: "${this.customTitle}"`);
+        console.log(`✨ Bypassing Stages 1-3 (Research, Topics, Deep Research)...`);
+        console.log(`🎯 Creating content directly from custom title...`);
+
+        const customResearch = await this.getCustomTitleResearch();
+
+        if (!customResearch) {
+          throw new Error('Custom title research not found. Deep research must run first.');
+        }
+
+        const content = await this.createArticle(customResearch);
+        if (!content) {
+          throw new Error('Custom title content creation failed');
+        }
+
+        const stored = this.prepareForStorage(content);
+        if (!stored) {
+          throw new Error('Custom title content serialization failed');
+        }
+
+        // Save to CSV
+        const saved = this.csvManager.saveCreatedContent([stored]);
+        if (saved) {
+          console.log(`\n💾 Saved custom title content to created-content.csv`);
+        }
+
+        this.printSummary([stored]);
+        return [stored];
+      }
+
       const pendingResearch = this.getPendingResearchItems();
 
       if (pendingResearch.length === 0) {
@@ -158,6 +192,37 @@ class ContentCreator {
     const limitedByBatch = pending.slice(0, batchSize);
     const limit = this.config.contentLimit ?? this.config.topicLimit ?? null;
     return limit ? limitedByBatch.slice(0, limit) : limitedByBatch;
+  }
+
+  /**
+   * Get custom title research from CSV (created by DeepTopicResearcher)
+   */
+  async getCustomTitleResearch() {
+    console.log(`\n🔍 Looking for custom title research in topic-research.csv...`);
+
+    // Get all research entries
+    const allResearch = this.csvManager.readCSV(this.csvManager.files.topicResearch);
+
+    if (!allResearch || allResearch.length === 0) {
+      console.warn('⚠️  No research entries found in topic-research.csv');
+      return null;
+    }
+
+    // Find the most recent CUSTOM-TITLE entry
+    const customTitleResearch = allResearch
+      .filter(item => item.topic_id && item.topic_id.startsWith('CUSTOM-TITLE-'))
+      .sort((a, b) => {
+        // Sort by topic_id descending (timestamp is in the ID)
+        return b.topic_id.localeCompare(a.topic_id);
+      })[0];
+
+    if (!customTitleResearch) {
+      console.warn('⚠️  No custom title research found. Run deep-research stage first with --custom-title flag.');
+      return null;
+    }
+
+    console.log(`✅ Found custom title research: ${customTitleResearch.topic_id}`);
+    return customTitleResearch;
   }
 
   /**

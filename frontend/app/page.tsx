@@ -48,6 +48,7 @@ export default function Home() {
   const [executingStage, setExecutingStage] = useState<number | null>(null)
   const [selectedCategory, setSelectedCategory] = useState<string>('derivatives')
   const [customTopic, setCustomTopic] = useState<string>('')
+  const [customTitle, setCustomTitle] = useState<string>('')
 
   // Comprehensive broking & wealth categories
   const categories = [
@@ -122,7 +123,7 @@ export default function Home() {
       const response = await fetch('/api/workflow/stage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stageId, topicLimit, category: selectedCategory, customTopic }),
+        body: JSON.stringify({ stageId, topicLimit, category: selectedCategory, customTopic, customTitle }),
       })
 
       if (!response.ok) {
@@ -184,7 +185,7 @@ export default function Home() {
       const response = await fetch('/api/workflow/execute', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topicLimit, category: selectedCategory, customTopic }),
+        body: JSON.stringify({ topicLimit, category: selectedCategory, customTopic, customTitle }),
       })
 
       if (!response.ok) {
@@ -350,11 +351,32 @@ export default function Home() {
                 value={customTopic}
                 onChange={(e) => setCustomTopic(e.target.value)}
                 disabled={isRunning || executingStage !== null}
-                placeholder="e.g., Best Options Strategies for Beginners 2025"
+                placeholder="e.g., option strategies"
                 className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none font-medium text-gray-800 disabled:bg-gray-100 disabled:cursor-not-allowed"
               />
               <p className="text-xs text-gray-500 mt-1">
-                Generate specific topic regardless of Stage 1 gaps
+                🎯 Bypass Stage 1 - Generate topics from custom input (Stage 2)
+              </p>
+            </div>
+          </div>
+
+          {/* Custom Title Row */}
+          <div className="grid grid-cols-1 gap-6 mb-6">
+            {/* Custom Title Input */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Custom Title (Optional):
+              </label>
+              <input
+                type="text"
+                value={customTitle}
+                onChange={(e) => setCustomTitle(e.target.value)}
+                disabled={isRunning || executingStage !== null}
+                placeholder="e.g., Best Options Strategies for Beginners in 2025"
+                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none font-medium text-gray-800 disabled:bg-gray-100 disabled:cursor-not-allowed"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                🚀 Bypass Stages 1-2 - Jump straight to deep research & content creation (Stage 3+)
               </p>
             </div>
           </div>

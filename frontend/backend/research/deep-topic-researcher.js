@@ -16,6 +16,7 @@ class DeepTopicResearcher {
   constructor(config = {}) {
     this.config = config;
     this.topicLimit = config.topicLimit ?? null;
+    this.customTitle = config.customTitle || null;
     this.groqApiKey = process.env.GROQ_API_KEY;
     this.openaiApiKey = process.env.OPENAI_API_KEY;
     this.groqApiUrl = 'https://api.groq.com/openai/v1/chat/completions';
@@ -81,6 +82,26 @@ class DeepTopicResearcher {
     console.log('='.repeat(60));
 
     try {
+      // 🚀 Custom Title Mode: Generate research based on user-provided title (bypass Stages 1-2)
+      if (this.customTitle) {
+        console.log(`\n🚀 CUSTOM TITLE MODE ACTIVATED`);
+        console.log(`📝 Custom Title: "${this.customTitle}"`);
+        console.log(`✨ Bypassing Stages 1-2 (Research & Topic Generation)...`);
+
+        const customResearch = await this.conductCustomTitleResearch(this.customTitle);
+
+        if (customResearch) {
+          // Save research result
+          const saved = this.csvManager.saveTopicResearch([customResearch]);
+          console.log(`\n💾 Saved custom title research to topic-research.csv`);
+
+          this.printSummary([customResearch]);
+          return [customResearch];
+        } else {
+          throw new Error('Custom title research failed');
+        }
+      }
+
       // Get approved topics
       const approvedTopics = this.csvManager.getApprovedTopics();
 
@@ -125,6 +146,56 @@ class DeepTopicResearcher {
       console.error('❌ Deep research failed:', error.message);
       throw error;
     }
+  }
+
+  /**
+   * Conduct research for custom title (bypass approved topics)
+   */
+  async conductCustomTitleResearch(customTitle) {
+    console.log(`\n📋 Conducting deep research for custom title: "${customTitle}"`);
+
+    // Create synthetic topic object from custom title
+    const syntheticTopic = {
+      topic_id: `CUSTOM-TITLE-${Date.now()}`,
+      topic_title: customTitle,
+      content_type: 'blog',
+      category: 'derivatives',
+      primary_keyword: this.extractPrimaryKeyword(customTitle),
+      secondary_keywords: '',
+      search_volume: 'Not specified',
+      keyword_difficulty: 'Not specified',
+      priority: 'High',
+      topic_type: 'Custom Title',
+      target_competitor: 'Top financial websites',
+      our_competitive_advantage: 'Custom title-driven content with deep research',
+      word_count_target: 2000,
+      expert_required: 'Financial expert',
+      estimated_ranking_time: '30-60',
+      estimated_monthly_traffic: 'To be determined',
+      internal_linking_opportunities: 'To be determined',
+      content_upgrade_idea: 'Calculator or downloadable guide',
+      regulatory_requirements: 'SEBI/RBI disclaimers'
+    };
+
+    const research = await this.researchTopic(syntheticTopic);
+    if (research) {
+      console.log(`✅ Research completed for custom title: ${customTitle}`);
+      return research;
+    } else {
+      console.error(`❌ Failed to research custom title: ${customTitle}`);
+      return null;
+    }
+  }
+
+  /**
+   * Extract primary keyword from custom title
+   */
+  extractPrimaryKeyword(title) {
+    // Simple extraction: remove common words and take first meaningful phrase
+    const stopWords = ['the', 'a', 'an', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'best', 'top', 'guide', 'how', 'what', 'why', 'when', 'where'];
+    const words = title.toLowerCase().split(/\s+/);
+    const keywords = words.filter(word => !stopWords.includes(word));
+    return keywords.slice(0, 3).join(' ') || title;
   }
 
   /**
