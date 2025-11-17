@@ -47,6 +47,7 @@ export default function Home() {
   const [executionMode, setExecutionMode] = useState<'full' | 'staged'>('full')
   const [executingStage, setExecutingStage] = useState<number | null>(null)
   const [selectedCategory, setSelectedCategory] = useState<string>('derivatives')
+  const [customTopic, setCustomTopic] = useState<string>('')
 
   // Comprehensive broking & wealth categories
   const categories = [
@@ -121,7 +122,7 @@ export default function Home() {
       const response = await fetch('/api/workflow/stage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stageId, topicLimit, category: selectedCategory }),
+        body: JSON.stringify({ stageId, topicLimit, category: selectedCategory, customTopic }),
       })
 
       if (!response.ok) {
@@ -183,7 +184,7 @@ export default function Home() {
       const response = await fetch('/api/workflow/execute', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topicLimit, category: selectedCategory }),
+        body: JSON.stringify({ topicLimit, category: selectedCategory, customTopic }),
       })
 
       if (!response.ok) {
@@ -339,6 +340,27 @@ export default function Home() {
               </p>
             </div>
 
+            {/* Custom Topic Input */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Custom Topic (Optional):
+              </label>
+              <input
+                type="text"
+                value={customTopic}
+                onChange={(e) => setCustomTopic(e.target.value)}
+                disabled={isRunning || executingStage !== null}
+                placeholder="e.g., Best Options Strategies for Beginners 2025"
+                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none font-medium text-gray-800 disabled:bg-gray-100 disabled:cursor-not-allowed"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Generate specific topic regardless of Stage 1 gaps
+              </p>
+            </div>
+          </div>
+
+          {/* Topic Limit Control Row */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             {/* Topic Limit Control */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
