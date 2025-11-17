@@ -340,7 +340,7 @@ class EnhancedBulkGenerator {
     console.log('  help                   - Show this help message');
     console.log('');
     console.log('STAGE NAMES:');
-    console.log('  research, topics, deep-research, content, seo, publication, completion');
+    console.log('  research, topics, deep-research, content, validation, seo, publication, completion');
     console.log('');
     console.log('OPTIONS:');
     console.log('  --auto-approve         - Auto-approve high-priority items');
