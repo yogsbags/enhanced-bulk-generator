@@ -34,9 +34,10 @@ export default function Home() {
     { id: 2, name: 'Stage 2: Topic Generation', status: 'idle', message: '' },
     { id: 3, name: 'Stage 3: Deep Research', status: 'idle', message: '' },
     { id: 4, name: 'Stage 4: Content Creation', status: 'idle', message: '' },
-    { id: 5, name: 'Stage 5: SEO Optimization', status: 'idle', message: '' },
-    { id: 6, name: 'Stage 6: Publication', status: 'idle', message: '' },
-    { id: 7, name: 'Stage 7: Completion', status: 'idle', message: '' },
+    { id: 5, name: 'Stage 5: Content Validation', status: 'idle', message: '' },
+    { id: 6, name: 'Stage 6: SEO Optimization', status: 'idle', message: '' },
+    { id: 7, name: 'Stage 7: Publication', status: 'idle', message: '' },
+    { id: 8, name: 'Stage 8: Completion', status: 'idle', message: '' },
   ])
   const [logs, setLogs] = useState<string[]>([])
   const [publishedUrls, setPublishedUrls] = useState<PublishedUrls>({})
@@ -294,7 +295,7 @@ export default function Home() {
                   <span>⚡</span>
                   <span>Full Workflow</span>
                 </div>
-                <p className="text-xs mt-1 opacity-80">Execute all 7 stages automatically</p>
+                <p className="text-xs mt-1 opacity-80">Execute all 8 stages automatically</p>
               </button>
               <button
                 onClick={() => setExecutionMode('staged')}

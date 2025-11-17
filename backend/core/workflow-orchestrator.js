@@ -16,6 +16,7 @@ const MasterSEOResearcher = require('../research/master-seo-researcher');
 const TopicGenerator = require('../research/topic-generator');
 const DeepTopicResearcher = require('../research/deep-topic-researcher');
 const ContentCreator = require('../content/content-creator');
+const ContentValidator = require('../content/content-validator');
 const SEOOptimizer = require('../content/seo-optimizer');
 const ContentPublisher = require('../content/content-publisher');
 const SEODataFetcher = require('../research/seo-data-fetcher');
@@ -75,6 +76,7 @@ class WorkflowOrchestrator {
       TOPICS: 'Topic Generation',
       DEEP_RESEARCH: 'Deep Topic Research',
       CONTENT: 'Content Creation',
+      VALIDATION: 'Content Validation',
       SEO: 'SEO Optimization',
       PUBLICATION: 'Publication',
       COMPLETION: 'Completion & Loop'
@@ -506,6 +508,54 @@ class WorkflowOrchestrator {
   }
 
   /**
+   * Stage 4.5: Content Validation
+   * Validates content against 39 critical guidelines with AI-powered auto-correction
+   */
+  async executeStage45Validation(options = {}) {
+    console.log('\n📍 STAGE 4.5: Content Validation');
+    console.log('-'.repeat(40));
+
+    try {
+      const limit = options.limit ?? this.config.validationLimit ?? null;
+      const validator = new ContentValidator({
+        autoApprove: this.config.autoApprove,
+        strictMode: this.config.strictMode !== false,
+        validationLimit: limit,
+        autoCorrect: this.config.autoCorrect !== false
+      });
+
+      const validationResults = await validator.validateContent();
+
+      if (!validationResults || validationResults.length === 0) {
+        console.log('⚠️  No content available for validation.');
+        return false;
+      }
+
+      const passedCount = validationResults.filter(r => r.passed).length;
+      const failedCount = validationResults.filter(r => !r.passed).length;
+
+      console.log(`\n✅ Validation completed: ${passedCount} passed, ${failedCount} failed`);
+
+      if (failedCount > 0) {
+        console.log('⚠️  Failed content requires fixes before SEO optimization');
+        console.log('   • Review validation issues in created-content.csv');
+        console.log('   • Auto-correction was attempted using groq/gpt-oss-120b');
+        console.log('   • Manual review may be needed for remaining issues');
+      }
+
+      // Sync to Google Sheets
+      await this.syncToGoogleSheets('created-content');
+
+      await this.sleep(this.config.delayBetweenStages);
+      return true;
+
+    } catch (error) {
+      console.error('❌ Stage 4.5 failed:', error.message);
+      throw error;
+    }
+  }
+
+  /**
    * Stage 5: SEO Optimization
    * Optimizes metadata, schema markup, and technical SEO
    */
@@ -686,6 +736,8 @@ class WorkflowOrchestrator {
         return await this.executeStage3DeepResearch(options);
       case 'content':
         return await this.executeStage4ContentCreation(options);
+      case 'validation':
+        return await this.executeStage45Validation(options);
       case 'seo':
         return await this.executeStage5SEOOptimization();
       case 'publication':
@@ -833,11 +885,12 @@ if (require.main === module) {
         console.log('Available stages:');
         console.log('  research       - Generate 10 content gap opportunities (append to CSV)');
         console.log('  topics         - Generate strategic topics from approved gaps');
-        console.log('  deep-research  - Analyze competitors (coming soon)');
-        console.log('  content        - Create content (coming soon)');
-        console.log('  seo            - Optimize for SEO (coming soon)');
-        console.log('  publication    - Publish content (coming soon)');
-        console.log('  completion     - Finalize batch (coming soon)');
+        console.log('  deep-research  - Analyze competitors for each topic');
+        console.log('  content        - Create E-E-A-T compliant content');
+        console.log('  validation     - Validate content with AI auto-correction');
+        console.log('  seo            - Optimize for SEO');
+        console.log('  publication    - Publish to WordPress & Sanity');
+        console.log('  completion     - Finalize batch');
         process.exit(1);
       }
 
@@ -883,7 +936,7 @@ if (require.main === module) {
       console.log('  node workflow-orchestrator.js full --gaps=20');
       console.log('');
       console.log('Available stages:');
-      console.log('  research, topics, deep-research, content, seo, publication, completion');
+      console.log('  research, topics, deep-research, content, validation, seo, publication, completion');
       console.log('');
       console.log('💡 Tip: Run "research" stage multiple times to accumulate gaps!');
   }
