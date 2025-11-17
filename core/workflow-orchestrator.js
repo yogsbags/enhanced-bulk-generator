@@ -16,6 +16,7 @@ const MasterSEOResearcher = require('../research/master-seo-researcher');
 const TopicGenerator = require('../research/topic-generator');
 const DeepTopicResearcher = require('../research/deep-topic-researcher');
 const ContentCreator = require('../content/content-creator');
+const ContentValidator = require('../content/content-validator');
 const SEOOptimizer = require('../content/seo-optimizer');
 const ContentPublisher = require('../content/content-publisher');
 const SEODataFetcher = require('../research/seo-data-fetcher');
@@ -66,6 +67,7 @@ class WorkflowOrchestrator {
       siteUrl: config.siteUrl || process.env.SITE_URL || 'https://plindia.com',
       propertyId: config.propertyId || process.env.GA4_PROPERTY_ID || '309159799',
       contentBatchSize: config.contentBatchSize || 1,
+      category: config.category || null, // Category filter for content focus (optional)
       ...config
     };
 
@@ -75,6 +77,7 @@ class WorkflowOrchestrator {
       TOPICS: 'Topic Generation',
       DEEP_RESEARCH: 'Deep Topic Research',
       CONTENT: 'Content Creation',
+      VALIDATION: 'Content Validation',
       SEO: 'SEO Optimization',
       PUBLICATION: 'Publication',
       COMPLETION: 'Completion & Loop'
@@ -149,6 +152,9 @@ class WorkflowOrchestrator {
 
       // Stage 4: Content Creation (placeholder)
       await this.executeStage4ContentCreation();
+
+      // Stage 4.5: Content Validation (NEW)
+      await this.executeStage45ContentValidation();
 
       // Stage 5: SEO Optimization (placeholder)
       await this.executeStage5SEOOptimization();
@@ -237,13 +243,15 @@ class WorkflowOrchestrator {
    * Stage 2: Topic Generation
    * Takes approved research gaps and creates strategic content topics
    */
-  async executeStage2Topics() {
+  async executeStage2Topics(options = {}) {
     console.log('\n📍 STAGE 2: Topic Generation');
     console.log('-'.repeat(40));
 
     try {
-      // Check if we have approved research gaps
-      const approvedGaps = this.csvManager.getApprovedResearchGaps();
+      const limit = options.limit ?? this.config.topicLimit ?? null;
+
+      // Check if we have approved research gaps (with optional category filter)
+      const approvedGaps = this.csvManager.getApprovedResearchGaps(this.config.category);
 
       if (approvedGaps.length === 0) {
         if (this.config.autoApprove) {
@@ -264,11 +272,21 @@ class WorkflowOrchestrator {
       }
 
       console.log(`📊 Found ${approvedGaps.length} approved research gaps`);
+      if (limit) {
+        console.log(`🔍 Topic limit: ${limit}`);
+      }
       console.log('🎯 Generating strategic topics...');
       console.log('');
 
+      // Create TopicGenerator with limit if specified
+      const topicGenerator = new TopicGenerator({
+        ...this.config,
+        topicLimit: limit,
+        seoDataFetcher: this.seoDataFetcher
+      });
+
       // Generate topics
-      const topics = await this.topicGenerator.generateTopics();
+      const topics = await topicGenerator.generateTopics();
 
       // Update workflow status
       this.csvManager.updateWorkflowStatus(
@@ -285,7 +303,7 @@ class WorkflowOrchestrator {
 
       // Auto-approve if enabled
       if (this.config.autoApprove) {
-        const approved = this.topicGenerator.autoApproveAll();
+        const approved = topicGenerator.autoApproveAll();
         console.log(`🤖 Auto-approved ${approved} high-priority topics`);
       } else {
         console.log('⏳ Next Steps:');
@@ -476,6 +494,68 @@ class WorkflowOrchestrator {
   }
 
   /**
+   * Stage 4.5: Content Validation
+   * Validates created content against 39 critical guidelines
+   */
+  async executeStage45ContentValidation() {
+    console.log('\n📍 STAGE 4.5: Content Validation');
+    console.log('-'.repeat(40));
+
+    try {
+      const validator = new ContentValidator({
+        autoApprove: this.config.autoApprove,
+        strictMode: true,
+      });
+
+      const validationResults = await validator.validateContent();
+
+      if (!validationResults || validationResults.length === 0) {
+        console.log('⚠️  No content found requiring validation.');
+        console.log('   • Content must have approval_status = "Needs-SEO"');
+        console.log('   • Run Stage 4 (content creation) first');
+        return false;
+      }
+
+      // Update workflow status for each validated item
+      validationResults.forEach(result => {
+        const statusLabel = result.passed ? 'Validation Passed' : 'Validation Failed';
+        const notes = `Score: ${result.score_percentage}% | Issues: ${result.issues.length} | Warnings: ${result.warnings.length}`;
+
+        this.csvManager.updateWorkflowStatus(
+          result.topic_id,
+          this.stages.VALIDATION,
+          statusLabel,
+          notes,
+          {
+            validation_score: result.score_percentage,
+            validation_status: result.status
+          }
+        );
+      });
+
+      const passed = validationResults.filter(r => r.passed).length;
+      const failed = validationResults.filter(r => !r.passed).length;
+
+      console.log(`\n✅ Validation completed: ${passed} passed, ${failed} failed`);
+
+      if (passed > 0) {
+        console.log('📝 Passed content ready for Stage 5 (SEO Optimization)');
+      }
+
+      if (failed > 0) {
+        console.log('⚠️  Failed content requires fixes before SEO optimization');
+      }
+
+      await this.sleep(this.config.delayBetweenStages);
+      return true;
+
+    } catch (error) {
+      console.error('❌ Stage 4.5 failed:', error.message);
+      throw error;
+    }
+  }
+
+  /**
    * Stage 5: SEO Optimization
    * Optimizes metadata, schema markup, and technical SEO
    */
@@ -642,11 +722,13 @@ class WorkflowOrchestrator {
       case 'research':
         return await this.executeStage1Research();
       case 'topics':
-        return await this.executeStage2Topics();
+        return await this.executeStage2Topics(options);
       case 'deep-research':
         return await this.executeStage3DeepResearch(options);
       case 'content':
-        return await this.executeStage4ContentCreation();
+        return await this.executeStage4ContentCreation(options);
+      case 'validation':
+        return await this.executeStage45ContentValidation();
       case 'seo':
         return await this.executeStage5SEOOptimization();
       case 'publication':
@@ -743,11 +825,12 @@ if (require.main === module) {
         console.log('Available stages:');
         console.log('  research       - Generate 10 content gap opportunities (append to CSV)');
         console.log('  topics         - Generate strategic topics from approved gaps');
-        console.log('  deep-research  - Analyze competitors (coming soon)');
-        console.log('  content        - Create content (coming soon)');
-        console.log('  seo            - Optimize for SEO (coming soon)');
-        console.log('  publication    - Publish content (coming soon)');
-        console.log('  completion     - Finalize batch (coming soon)');
+        console.log('  deep-research  - Analyze competitors for each topic');
+        console.log('  content        - Create E-E-A-T compliant content');
+        console.log('  validation     - Validate content against 39 guidelines (NEW)');
+        console.log('  seo            - Optimize metadata and schema markup');
+        console.log('  publication    - Publish to WordPress + Sanity');
+        console.log('  completion     - Finalize batch and prepare for next cycle');
         process.exit(1);
       }
 
@@ -793,7 +876,7 @@ if (require.main === module) {
       console.log('  node workflow-orchestrator.js full --gaps=20');
       console.log('');
       console.log('Available stages:');
-      console.log('  research, topics, deep-research, content, seo, publication, completion');
+      console.log('  research, topics, deep-research, content, validation, seo, publication, completion');
       console.log('');
       console.log('💡 Tip: Run "research" stage multiple times to accumulate gaps!');
   }

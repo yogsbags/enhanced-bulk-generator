@@ -351,14 +351,21 @@ function parseArgs() {
 
   const topicLimit = (() => {
     const limitArg = args.find(arg => arg.startsWith('--topic-limit=')) || args.find(arg => arg.startsWith('--limit='));
-    if (!limitArg) return null;
-    const value = parseInt(limitArg.split('=')[1], 10);
-    return Number.isFinite(value) && value > 0 ? value : null;
+    if (limitArg) {
+      const value = parseInt(limitArg.split('=')[1], 10);
+      return Number.isFinite(value) && value > 0 ? value : null;
+    }
+    // Check environment variable TOPIC_LIMIT
+    if (process.env.TOPIC_LIMIT) {
+      const value = parseInt(process.env.TOPIC_LIMIT, 10);
+      return Number.isFinite(value) && value > 0 ? value : null;
+    }
+    return null;
   })();
 
   const category = (() => {
     const categoryArg = args.find(arg => arg.startsWith('--category='));
-    return categoryArg ? categoryArg.split('=')[1] : 'derivatives';
+    return categoryArg ? categoryArg.split('=')[1] : null;
   })();
 
   const options = {
@@ -418,7 +425,9 @@ async function main() {
           process.exit(1);
         }
         const stageOptions = {};
-        if (stageName === 'deep-research' && generator.config.deepResearchLimit) {
+        if (stageName === 'topics' && generator.config.topicLimit) {
+          stageOptions.limit = generator.config.topicLimit;
+        } else if (stageName === 'deep-research' && generator.config.deepResearchLimit) {
           stageOptions.limit = generator.config.deepResearchLimit;
         } else if (stageName === 'content' && generator.config.contentLimit) {
           stageOptions.limit = generator.config.contentLimit;

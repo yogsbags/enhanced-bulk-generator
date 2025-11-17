@@ -7,6 +7,8 @@
 
 const fetch = require('node-fetch');
 const CSVDataManager = require('../core/csv-data-manager');
+const { google } = require('googleapis');
+const { GoogleAuth } = require('google-auth-library');
 
 class ContentPublisher {
   constructor(config = {}) {
@@ -20,14 +22,6 @@ class ContentPublisher {
         config.wpPassword ||
         process.env.WP_APPLICATION_PASSWORD ||
         process.env.WP_PASSWORD,
-      // UAT WordPress configuration
-      uatWpBaseUrl: config.uatWpBaseUrl || process.env.UAT_WP_BASE_URL,
-      uatWpUser: config.uatWpUser || process.env.UAT_WP_USERNAME,
-      uatWpPassword:
-        config.uatWpPassword ||
-        process.env.UAT_WP_APPLICATION_PASSWORD ||
-        process.env.UAT_WP_PASSWORD,
-      uatPublishStatus: config.uatPublishStatus || process.env.UAT_PUBLISH_STATUS || 'draft',
       sanityProjectId: config.sanityProjectId || process.env.SANITY_PROJECT_ID,
       sanityDataset: config.sanityDataset || process.env.SANITY_DATASET || 'production',
       sanityToken: config.sanityToken || process.env.SANITY_TOKEN,
@@ -37,6 +31,9 @@ class ContentPublisher {
         process.env.NEXT_PUBLIC_FRONTEND_BASE_URL ||
         process.env.NEXT_PUBLIC_BASE_URL ||
         'http://localhost:3000',
+      googleClientId: config.googleClientId || process.env.GOOGLE_CLIENT_ID,
+      googleClientSecret: config.googleClientSecret || process.env.GOOGLE_CLIENT_SECRET,
+      googleRefreshToken: config.googleRefreshToken || process.env.GOOGLE_REFRESH_TOKEN,
       publicationLimit: config.publicationLimit || config.contentLimit || config.topicLimit || null
     };
   }
@@ -74,16 +71,15 @@ class ContentPublisher {
       console.log(`\n🚀 Publishing content ${normalized.content_id} (${normalized.title})`);
 
       const wordpressResult = await this.publishToWordPress(normalized);
-      const uatWordpressResult = await this.publishToUATWordPress(normalized);
       const sanityResult = await this.publishToSanity(normalized);
       const googleDocsResult = await this.publishToGoogleDocs(normalized);
 
-      const hasSuccess = wordpressResult.success || uatWordpressResult.success || sanityResult.success || googleDocsResult.success;
-      const successfulResults = [wordpressResult, uatWordpressResult, sanityResult, googleDocsResult].filter(result => result.success);
+      const hasSuccess = wordpressResult.success || sanityResult.success || googleDocsResult.success;
+      const successfulResults = [wordpressResult, sanityResult, googleDocsResult].filter(result => result.success);
       const simulatedSuccess =
         hasSuccess &&
         successfulResults.length > 0 &&
-        successfulResults.every(result => result.status === 'simulated' || result.status.startsWith('simulated-'));
+        successfulResults.every(result => result.status === 'simulated');
       const publishStatus = hasSuccess
         ? (simulatedSuccess ? 'Simulated' : 'Published')
         : 'Publishing-Failed';
@@ -91,7 +87,6 @@ class ContentPublisher {
       const qualityMetrics = this.mergeQualityMetrics(normalized.originalQualityMetrics, {
         published_at: new Date().toISOString(),
         wordpress_status: wordpressResult.status,
-        uat_wordpress_status: uatWordpressResult.status,
         sanity_status: sanityResult.status,
         google_docs_status: googleDocsResult.status,
         publication_status: publishStatus
@@ -106,7 +101,6 @@ class ContentPublisher {
         content_id: normalized.content_id,
         topic_id: normalized.topic_id,
         wordpress_url: wordpressResult.url,
-        uat_wordpress_url: uatWordpressResult.url,
         sanity_url: sanityResult.url,
         sanity_desk_url: sanityResult.deskUrl || '',
         google_docs_url: googleDocsResult.url || '',
@@ -116,9 +110,6 @@ class ContentPublisher {
           wordpress: wordpressResult.status,
           wordpress_id: wordpressResult.id || '',
           wordpress_edit_url: wordpressResult.editUrl || '',
-          uat_wordpress: uatWordpressResult.status,
-          uat_wordpress_id: uatWordpressResult.id || '',
-          uat_wordpress_edit_url: uatWordpressResult.editUrl || '',
           sanity: sanityResult.status,
           sanity_document_id: sanityResult.documentId || '',
           sanity_desk_url: sanityResult.deskUrl || '',
@@ -129,14 +120,11 @@ class ContentPublisher {
       };
 
       this.csvManager.savePublishedContent(record);
-      publishedRecords.push({ ...record, wordpressResult, uatWordpressResult, sanityResult, googleDocsResult });
+      publishedRecords.push({ ...record, wordpressResult, sanityResult, googleDocsResult });
 
       console.log(`✅ Publication status: ${publishStatus}`);
       if (wordpressResult.url) {
-        console.log(`   🔗 Local WordPress: ${wordpressResult.url}`);
-      }
-      if (uatWordpressResult.url) {
-        console.log(`   🔗 UAT WordPress: ${uatWordpressResult.url}`);
+        console.log(`   🔗 WordPress: ${wordpressResult.url}`);
       }
       if (sanityResult.url) {
         console.log(`   🔗 Frontend: ${sanityResult.url}`);
@@ -148,7 +136,7 @@ class ContentPublisher {
         console.log(`   📄 Google Docs: ${googleDocsResult.url}`);
       }
       if (publishStatus === 'Simulated') {
-        console.log('   🛈 Simulation mode: provide WP_*, UAT_WP_*, SANITY_*, and GOOGLE_* credentials for live publishing.');
+        console.log('   🛈 Simulation mode: provide WP_*, SANITY_*, and GOOGLE_* credentials for live publishing.');
       }
     }
 
@@ -232,15 +220,13 @@ class ContentPublisher {
         });
       }
 
-      // Build URL using configured base + slug (ignore WordPress's data.link as it may be misconfigured)
-      const wpBase = this.config.wpBaseUrl.replace(/\/$/, '');
       return {
         success: true,
         status: 'wordpress',
-        url: `${wpBase}/${content.slug}`,
+        url: data.link || `${this.config.wpBaseUrl}/?p=${data.id}`,
         id: data.id,
         editUrl: data.id
-          ? `${wpBase}/wp-admin/post.php?post=${data.id}&action=edit`
+          ? `${this.config.wpBaseUrl.replace(/\/$/, '')}/wp-admin/post.php?post=${data.id}&action=edit`
           : ''
       };
     } catch (error) {
@@ -249,697 +235,6 @@ class ContentPublisher {
         url: content.frontendUrl
       });
     }
-  }
-
-  /**
-   * Publish to UAT WordPress (custom post type: blogs) if credentials available
-   */
-  async publishToUATWordPress(content) {
-    if (!this.config.uatWpBaseUrl || !this.config.uatWpUser || !this.config.uatWpPassword) {
-      console.log('ℹ️  UAT WordPress credentials missing. Skipping UAT publication.');
-      return this.simulatedResult(content.slug, 'simulated-uat-missing', {
-        url: ''
-      });
-    }
-
-    const base = this.config.uatWpBaseUrl.replace(/\/$/, '');
-    const endpoint = `${base}/wp-json/wp/v2/blogs`;
-
-    try {
-      // Upload hero image if available
-      let heroImageAttachmentId = null;
-      // Priority: imgbb hosted_url > DALL-E url > local_path
-      const heroImageUrl = content.heroImage?.hosted_url || content.heroImage?.url || content.heroImage?.local_path;
-      if (heroImageUrl) {
-        heroImageAttachmentId = await this.uploadImageToWordPress(
-          heroImageUrl,
-          this.config.uatWpBaseUrl,
-          this.config.uatWpUser,
-          this.config.uatWpPassword,
-          {
-            alt: content.heroImage?.alt || content.title,
-            title: content.title,
-            caption: content.heroImage?.prompt || ''
-          }
-        );
-      }
-
-      // Prepare ACF fields
-      const acfFields = {
-        inpost_banner_link: 'https://www.plindia.com/open-demat-account/',
-        inpost_banner_alt: 'Open your Demat account with PL India today',
-        banner_cta: 'Start Your Investment Journey Today',
-        cta_anchor: 'Open Free Demat Account',
-        cta_target_url: 'https://www.plindia.com/open-demat-account/'
-      };
-
-      // Add hero image if uploaded successfully
-      if (heroImageAttachmentId) {
-        acfFields.detailed_blog_banner_image = heroImageAttachmentId;
-      }
-
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: 'Basic ' + Buffer.from(`${this.config.uatWpUser}:${this.config.uatWpPassword}`).toString('base64')
-        },
-        body: JSON.stringify({
-          title: content.title,
-          content: content.articleHtml,
-          excerpt: content.excerpt,
-          status: this.config.uatPublishStatus,
-          slug: content.slug,
-          // Note: blogs_category taxonomy is not REST-enabled, so we skip it
-          acf: acfFields,
-          meta: {
-            _yoast_wpseo_title: content.title,
-            _yoast_wpseo_metadesc: content.description,
-            _yoast_wpseo_focuskw: content.focusKeyphrase
-          }
-        })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        console.warn(`⚠️  UAT WordPress publish failed (${response.status}): ${JSON.stringify(data)}`);
-        console.warn('   → Continuing with other platforms.');
-        return this.simulatedResult(content.slug, `uat-wordpress-${response.status}`, {
-          url: ''
-        });
-      }
-
-      // Build URL using configured base + slug (ignore WordPress's data.link as it may be misconfigured)
-      const uatBase = this.config.uatWpBaseUrl.replace(/\/$/, '');
-      return {
-        success: true,
-        status: 'uat-wordpress',
-        url: `${uatBase}/blogs/${content.slug}`,
-        id: data.id,
-        editUrl: data.id
-          ? `${uatBase}/wp-admin/post.php?post=${data.id}&action=edit`
-          : ''
-      };
-    } catch (error) {
-      console.error('⚠️  UAT WordPress publish error:', error.message);
-      return this.simulatedResult(content.slug, 'uat-wordpress-error', {
-        url: ''
-      });
-    }
-  }
-
-  /**
-   * Upload image to WordPress and get attachment ID
-   * Supports both URLs and local file paths
-   */
-  async uploadImageToWordPress(imageSource, wpBaseUrl, wpUser, wpPassword, metadata = {}) {
-    console.log('🔍 uploadImageToWordPress called');
-    console.log('   Image source:', imageSource);
-    console.log('   WP URL:', wpBaseUrl);
-    console.log('   WP User:', wpUser);
-    console.log('   Has password:', !!wpPassword);
-
-    if (!imageSource || !wpBaseUrl || !wpUser || !wpPassword) {
-      console.log('❌ Missing required parameters for image upload');
-      return null;
-    }
-
-    const fs = require('fs');
-    const path = require('path');
-    const FormData = require('form-data');
-
-    try {
-      let imageBuffer;
-      let filename;
-      let contentType;
-
-      // Check if it's a URL or local file path
-      if (imageSource.startsWith('http://') || imageSource.startsWith('https://')) {
-        console.log('📥 Fetching image from URL...');
-        // Fetch from URL
-        const imageResponse = await fetch(imageSource);
-        if (!imageResponse.ok) {
-          throw new Error(`Failed to fetch image: ${imageResponse.status}`);
-        }
-        imageBuffer = await imageResponse.buffer();
-        contentType = imageResponse.headers.get('content-type') || 'image/png';
-
-        // Extract filename from URL or generate one
-        const urlPath = new URL(imageSource).pathname;
-        filename = path.basename(urlPath) || `image-${Date.now()}.png`;
-        console.log('   ✓ Image fetched:', filename, `(${imageBuffer.length} bytes)`);
-      } else {
-        console.log('📂 Reading image from local filesystem...');
-        // Read from local filesystem
-        if (!fs.existsSync(imageSource)) {
-          throw new Error(`Local image file not found: ${imageSource}`);
-        }
-
-        imageBuffer = fs.readFileSync(imageSource);
-        filename = path.basename(imageSource);
-        const ext = path.extname(imageSource).toLowerCase();
-        contentType = ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' :
-                     ext === '.webp' ? 'image/webp' : 'image/png';
-        console.log('   ✓ Image loaded:', filename, `(${imageBuffer.length} bytes, ${contentType})`);
-      }
-
-      // Create form data
-      console.log('📦 Creating FormData...');
-      const form = new FormData();
-      form.append('file', imageBuffer, {
-        filename,
-        contentType
-      });
-
-      // Add metadata if provided
-      if (metadata.alt) {
-        form.append('alt_text', metadata.alt);
-        console.log('   ✓ Alt text added');
-      }
-      if (metadata.title) {
-        form.append('title', metadata.title);
-        console.log('   ✓ Title added');
-      }
-      if (metadata.caption) {
-        form.append('caption', metadata.caption);
-        console.log('   ✓ Caption added');
-      }
-
-      // Upload to WordPress media library
-      const base = wpBaseUrl.replace(/\/$/, '');
-      const endpoint = `${base}/wp-json/wp/v2/media`;
-      const auth = 'Basic ' + Buffer.from(`${wpUser}:${wpPassword}`).toString('base64');
-
-      console.log('🚀 Uploading to WordPress media library...');
-      console.log('   Endpoint:', endpoint);
-
-      const uploadResponse = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          ...form.getHeaders(),
-          'Authorization': auth
-        },
-        body: form
-      });
-
-      console.log('📨 Response received:', uploadResponse.status, uploadResponse.statusText);
-
-      if (!uploadResponse.ok) {
-        const errorData = await uploadResponse.json().catch(() => ({}));
-        console.error('❌ WordPress media upload failed:');
-        console.error('   Status:', uploadResponse.status);
-        console.error('   Error data:', JSON.stringify(errorData, null, 2));
-        throw new Error(`WordPress media upload failed (${uploadResponse.status}): ${JSON.stringify(errorData)}`);
-      }
-
-      const uploadData = await uploadResponse.json();
-      console.log('✅ Image uploaded successfully!');
-      console.log('   Attachment ID:', uploadData.id);
-      console.log('   Media URL:', uploadData.source_url);
-      return uploadData.id; // Return attachment ID
-    } catch (error) {
-      console.error('❌ Image upload error:', error.message);
-      console.error('   Stack:', error.stack);
-      return null;
-    }
-  }
-
-  /**
-   * Get or create category ID for UAT WordPress blogs_category taxonomy
-   */
-  async getUATCategoryId(categoryName) {
-    if (!this.config.uatWpBaseUrl || !this.config.uatWpUser || !this.config.uatWpPassword) {
-      return null;
-    }
-
-    const base = this.config.uatWpBaseUrl.replace(/\/$/, '');
-    const endpoint = `${base}/wp-json/wp/v2/blogs_category`;
-    const auth = 'Basic ' + Buffer.from(`${this.config.uatWpUser}:${this.config.uatWpPassword}`).toString('base64');
-
-    try {
-      // Search for existing category
-      const searchResponse = await fetch(`${endpoint}?search=${encodeURIComponent(categoryName)}`, {
-        headers: { Authorization: auth }
-      });
-
-      if (searchResponse.ok) {
-        const categories = await searchResponse.json();
-        if (categories && categories.length > 0) {
-          return categories[0].id;
-        }
-      }
-
-      // Create new category if not found
-      const createResponse = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: auth
-        },
-        body: JSON.stringify({
-          name: categoryName,
-          slug: this.slugify(categoryName)
-        })
-      });
-
-      if (createResponse.ok) {
-        const newCategory = await createResponse.json();
-        return newCategory.id;
-      }
-
-      console.warn(`⚠️  Could not create category "${categoryName}". Using no category.`);
-      return null;
-    } catch (error) {
-      console.warn(`⚠️  Category fetch/create error: ${error.message}`);
-      return null;
-    }
-  }
-
-  /**
-   * Publish to Google Docs with rich text formatting
-   */
-  async publishToGoogleDocs(content) {
-    console.log('🔍 Starting Google Docs publication...');
-    const clientId = process.env.GOOGLE_CLIENT_ID;
-    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-    const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
-
-    console.log(`   Has Client ID: ${!!clientId}`);
-    console.log(`   Has Client Secret: ${!!clientSecret}`);
-    console.log(`   Has Refresh Token: ${!!refreshToken}`);
-
-    if (!clientId || !clientSecret || !refreshToken) {
-      console.log('ℹ️  Google Docs credentials missing. Skipping Google Docs publication.');
-      return this.simulatedResult(content.slug, 'simulated-gdocs-missing', {
-        url: ''
-      });
-    }
-
-    try {
-      console.log('   Requesting OAuth access token...');
-      // Get OAuth access token
-      const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          client_id: clientId,
-          client_secret: clientSecret,
-          refresh_token: refreshToken,
-          grant_type: 'refresh_token'
-        })
-      });
-
-      if (!tokenResponse.ok) {
-        const errorData = await tokenResponse.json().catch(() => ({}));
-        console.warn(`⚠️  Google OAuth token refresh failed (${tokenResponse.status}): ${JSON.stringify(errorData)}`);
-        return this.simulatedResult(content.slug, 'google-docs-auth-failed', { url: '' });
-      }
-
-      const tokenData = await tokenResponse.json();
-      const accessToken = tokenData.access_token;
-      console.log('   ✓ OAuth token obtained');
-
-      // Create a new Google Doc
-      console.log('   Creating Google Doc...');
-      const createDocResponse = await fetch('https://docs.googleapis.com/v1/documents', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          title: content.title
-        })
-      });
-
-      if (!createDocResponse.ok) {
-        const errorData = await createDocResponse.json().catch(() => ({}));
-        console.warn(`⚠️  Google Docs creation failed (${createDocResponse.status}): ${JSON.stringify(errorData)}`);
-        return this.simulatedResult(content.slug, `google-docs-${createDocResponse.status}`, { url: '' });
-      }
-
-      const docData = await createDocResponse.json();
-      const documentId = docData.documentId;
-      console.log(`   ✓ Document created: ${documentId}`);
-
-      // Convert markdown to Google Docs rich text requests
-      const requests = this.markdownToGoogleDocsRequests(content.articleContent, content.title);
-      console.log(`   Generated ${requests.length} formatting requests`);
-
-      // Batch update the document with rich text
-      if (requests.length > 0) {
-        console.log('   Applying formatting...');
-        const batchUpdateResponse = await fetch(
-          `https://docs.googleapis.com/v1/documents/${documentId}:batchUpdate`,
-          {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ requests })
-          }
-        );
-
-        if (!batchUpdateResponse.ok) {
-          const errorData = await batchUpdateResponse.json().catch(() => ({}));
-          console.warn(`⚠️  Google Docs update failed (${batchUpdateResponse.status}): ${JSON.stringify(errorData)}`);
-          // Document was created but content update failed
-          const docUrl = `https://docs.google.com/document/d/${documentId}/edit`;
-          console.log(`   📄 Partial success - doc created: ${docUrl}`);
-          return {
-            success: true,
-            status: 'google-docs-partial',
-            url: docUrl,
-            documentId
-          };
-        }
-        console.log('   ✓ Formatting applied');
-      }
-
-      const docUrl = `https://docs.google.com/document/d/${documentId}/edit`;
-      console.log(`   ✅ Google Docs published: ${docUrl}`);
-      return {
-        success: true,
-        status: 'google-docs',
-        url: docUrl,
-        documentId
-      };
-    } catch (error) {
-      console.error('⚠️  Google Docs publish error:', error.message);
-      console.error('   Stack trace:', error.stack);
-      return this.simulatedResult(content.slug, 'google-docs-error', { url: '' });
-    }
-  }
-
-  /**
-   * Convert markdown to Google Docs API requests with rich text formatting
-   */
-  markdownToGoogleDocsRequests(markdown, title = '') {
-    if (!markdown) return [];
-
-    const requests = [];
-    let currentIndex = 1; // Google Docs index starts at 1
-
-    // Add title as Heading 1 at the top of the document
-    if (title) {
-      requests.push({
-        insertText: {
-          location: { index: currentIndex },
-          text: title + '\n\n'
-        }
-      });
-      requests.push({
-        updateParagraphStyle: {
-          range: {
-            startIndex: currentIndex,
-            endIndex: currentIndex + title.length
-          },
-          paragraphStyle: {
-            namedStyleType: 'HEADING_1'
-          },
-          fields: 'namedStyleType'
-        }
-      });
-      currentIndex += title.length + 2; // +2 for two newlines
-    }
-
-    const lines = markdown.split(/\r?\n/);
-    let inTable = false;
-    let tableRows = [];
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-
-      if (!line) {
-        // Flush table if we were in one
-        if (inTable && tableRows.length > 0) {
-          const tableRequest = this.createTableRequest(tableRows, currentIndex);
-          if (tableRequest) {
-            requests.push(tableRequest.insertTable);
-            // Update table cells with content
-            tableRequest.updates.forEach(update => requests.push(update));
-            currentIndex = tableRequest.endIndex;
-          }
-          tableRows = [];
-          inTable = false;
-        }
-        continue;
-      }
-
-      // Detect tables
-      if (line.includes('|') && (line.match(/\|/g) || []).length >= 2) {
-        if (!inTable) {
-          inTable = true;
-        }
-        // Skip separator rows
-        if (!/^\|?[\s:\-|]+\|?$/.test(line)) {
-          tableRows.push(line);
-        }
-        continue;
-      }
-
-      // Flush table before processing non-table content
-      if (inTable && tableRows.length > 0) {
-        const tableRequest = this.createTableRequest(tableRows, currentIndex);
-        if (tableRequest) {
-          requests.push(tableRequest.insertTable);
-          tableRequest.updates.forEach(update => requests.push(update));
-          currentIndex = tableRequest.endIndex;
-        }
-        tableRows = [];
-        inTable = false;
-      }
-
-      // Heading 2 (##)
-      if (line.startsWith('## ')) {
-        const text = line.replace(/^##\s+/, '').replace(/\*\*/g, '');
-        requests.push({
-          insertText: {
-            location: { index: currentIndex },
-            text: text + '\n'
-          }
-        });
-        requests.push({
-          updateParagraphStyle: {
-            range: {
-              startIndex: currentIndex,
-              endIndex: currentIndex + text.length
-            },
-            paragraphStyle: {
-              namedStyleType: 'HEADING_2'
-            },
-            fields: 'namedStyleType'
-          }
-        });
-        currentIndex += text.length + 1;
-        continue;
-      }
-
-      // Heading 3 (###)
-      if (line.startsWith('### ')) {
-        const text = line.replace(/^###\s+/, '').replace(/\*\*/g, '');
-        requests.push({
-          insertText: {
-            location: { index: currentIndex },
-            text: text + '\n'
-          }
-        });
-        requests.push({
-          updateParagraphStyle: {
-            range: {
-              startIndex: currentIndex,
-              endIndex: currentIndex + text.length
-            },
-            paragraphStyle: {
-              namedStyleType: 'HEADING_3'
-            },
-            fields: 'namedStyleType'
-          }
-        });
-        currentIndex += text.length + 1;
-        continue;
-      }
-
-      // Bullet list (-)
-      if (line.startsWith('- ')) {
-        const text = line.replace(/^-\s+/, '');
-        const { plainText, boldRanges } = this.extractBoldMarkdown(text);
-
-        requests.push({
-          insertText: {
-            location: { index: currentIndex },
-            text: plainText + '\n'
-          }
-        });
-
-        // Apply bullet list style
-        requests.push({
-          createParagraphBullets: {
-            range: {
-              startIndex: currentIndex,
-              endIndex: currentIndex + plainText.length + 1
-            },
-            bulletPreset: 'BULLET_DISC_CIRCLE_SQUARE'
-          }
-        });
-
-        // Apply bold formatting
-        boldRanges.forEach(range => {
-          requests.push({
-            updateTextStyle: {
-              range: {
-                startIndex: currentIndex + range.start,
-                endIndex: currentIndex + range.end
-              },
-              textStyle: { bold: true },
-              fields: 'bold'
-            }
-          });
-        });
-
-        currentIndex += plainText.length + 1;
-        continue;
-      }
-
-      // Regular paragraph
-      const { plainText, boldRanges } = this.extractBoldMarkdown(line);
-      requests.push({
-        insertText: {
-          location: { index: currentIndex },
-          text: plainText + '\n'
-        }
-      });
-
-      // Apply bold formatting
-      boldRanges.forEach(range => {
-        requests.push({
-          updateTextStyle: {
-            range: {
-              startIndex: currentIndex + range.start,
-              endIndex: currentIndex + range.end
-            },
-            textStyle: { bold: true },
-            fields: 'bold'
-          }
-        });
-      });
-
-      currentIndex += plainText.length + 1;
-    }
-
-    // Flush any remaining table
-    if (inTable && tableRows.length > 0) {
-      const tableRequest = this.createTableRequest(tableRows, currentIndex);
-      if (tableRequest) {
-        requests.push(tableRequest.insertTable);
-        tableRequest.updates.forEach(update => requests.push(update));
-      }
-    }
-
-    return requests;
-  }
-
-  /**
-   * Extract bold markdown (**text**) and return plain text with bold ranges
-   */
-  extractBoldMarkdown(text) {
-    const boldRanges = [];
-    let plainText = '';
-    let currentPos = 0;
-
-    const boldRegex = /\*\*([^*]+)\*\*/g;
-    let match;
-    let lastIndex = 0;
-
-    while ((match = boldRegex.exec(text)) !== null) {
-      // Add text before the bold match
-      plainText += text.slice(lastIndex, match.index);
-      currentPos = plainText.length;
-
-      // Add the bold text (without markers)
-      const boldText = match[1];
-      plainText += boldText;
-
-      boldRanges.push({
-        start: currentPos,
-        end: currentPos + boldText.length
-      });
-
-      lastIndex = match.index + match[0].length;
-    }
-
-    // Add remaining text
-    plainText += text.slice(lastIndex);
-
-    return { plainText, boldRanges };
-  }
-
-  /**
-   * Create Google Docs table from markdown table rows
-   * Note: Google Docs API table insertion is complex. For now, we convert tables to formatted text.
-   */
-  createTableRequest(tableRows, startIndex) {
-    if (!tableRows || tableRows.length === 0) return null;
-
-    // Parse table rows
-    const parsedRows = tableRows.map(row => {
-      const trimmed = row.replace(/^\|/, '').replace(/\|$/, '');
-      return trimmed.split('|').map(cell => cell.trim().replace(/\*\*/g, ''));
-    });
-
-    if (parsedRows.length === 0) return null;
-
-    // Convert table to formatted text instead of actual table
-    // This is more reliable than trying to manage table cell indices
-    let tableText = '\n';
-    let currentIdx = startIndex;
-
-    const requests = [];
-    const updates = [];
-
-    for (let rowIdx = 0; rowIdx < parsedRows.length; rowIdx++) {
-      const row = parsedRows[rowIdx];
-      const rowText = row.join(' | ') + '\n';
-
-      requests.push({
-        insertText: {
-          location: { index: currentIdx },
-          text: rowText
-        }
-      });
-
-      // Bold the header row
-      if (rowIdx === 0) {
-        updates.push({
-          updateTextStyle: {
-            range: {
-              startIndex: currentIdx,
-              endIndex: currentIdx + rowText.length - 1
-            },
-            textStyle: { bold: true },
-            fields: 'bold'
-          }
-        });
-      }
-
-      currentIdx += rowText.length;
-    }
-
-    // Add spacing after table
-    requests.push({
-      insertText: {
-        location: { index: currentIdx },
-        text: '\n'
-      }
-    });
-
-    return {
-      insertTable: requests[0], // First insert request
-      updates: [...requests.slice(1), ...updates], // Rest of the requests
-      endIndex: currentIdx + 1
-    };
   }
 
   /**
@@ -958,8 +253,7 @@ class ContentPublisher {
 
     // Upload hero image to Sanity assets if present
     let imageAssetRef = null;
-    // Priority: imgbb hosted_url > DALL-E url > local_path
-    const heroImageUrl = content.heroImage?.hosted_url || content.heroImage?.url || content.heroImage?.local_path;
+    const heroImageUrl = content.heroImage?.url || content.heroImage?.local_path;
     if (heroImageUrl) {
       try {
         imageAssetRef = await this.uploadImageToSanity(heroImageUrl, {
@@ -1030,6 +324,205 @@ class ContentPublisher {
         deskUrl: this.buildSanityDeskUrl(`post-${content.content_id}`)
       });
     }
+  }
+
+  /**
+   * Publish to Google Docs if credentials available
+   */
+  async publishToGoogleDocs(content) {
+    if (!this.config.googleClientId || !this.config.googleClientSecret || !this.config.googleRefreshToken) {
+      console.log('ℹ️  Google Docs credentials missing. Skipping Google Docs publication.');
+      return this.simulatedResult(content.slug, 'simulated', {
+        url: ''
+      });
+    }
+
+    try {
+      // Initialize OAuth2 client
+      const auth = new google.auth.OAuth2(
+        this.config.googleClientId,
+        this.config.googleClientSecret,
+        'http://localhost:3000/oauth2callback'
+      );
+
+      auth.setCredentials({
+        refresh_token: this.config.googleRefreshToken
+      });
+
+      const docs = google.docs({ version: 'v1', auth });
+
+      // Create a new Google Doc
+      const createResponse = await docs.documents.create({
+        requestBody: {
+          title: content.title
+        }
+      });
+
+      const documentId = createResponse.data.documentId;
+      const documentUrl = `https://docs.google.com/document/d/${documentId}/edit`;
+
+      // Convert markdown content to Google Docs format
+      const requests = this.markdownToGoogleDocsRequests(content.articleContent);
+
+      // Batch update the document with all content
+      if (requests.length > 0) {
+        await docs.documents.batchUpdate({
+          documentId,
+          requestBody: {
+            requests
+          }
+        });
+      }
+
+      return {
+        success: true,
+        status: 'google-docs',
+        url: documentUrl,
+        documentId
+      };
+    } catch (error) {
+      console.error('⚠️  Google Docs publish error:', error.message);
+      if (error.message.includes('insufficient authentication scopes')) {
+        console.error('   → Run: node scripts/generate-google-oauth-token.js');
+        console.error('   → See: GOOGLE-DOCS-SETUP.md for instructions');
+      }
+      return this.simulatedResult(content.slug, 'google-docs-error', {
+        url: ''
+      });
+    }
+  }
+
+  /**
+   * Convert markdown to Google Docs API requests
+   */
+  markdownToGoogleDocsRequests(markdown) {
+    if (!markdown) return [];
+
+    const requests = [];
+    const lines = markdown.split(/\r?\n/);
+    let currentIndex = 1; // Start at index 1 (after title)
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+
+      // Heading 2 (##)
+      if (trimmed.startsWith('## ')) {
+        const text = trimmed.replace(/^##\s+/, '') + '\n';
+        requests.push({
+          insertText: {
+            location: { index: currentIndex },
+            text
+          }
+        });
+        requests.push({
+          updateParagraphStyle: {
+            range: {
+              startIndex: currentIndex,
+              endIndex: currentIndex + text.length - 1
+            },
+            paragraphStyle: {
+              namedStyleType: 'HEADING_2'
+            },
+            fields: 'namedStyleType'
+          }
+        });
+        currentIndex += text.length;
+        continue;
+      }
+
+      // Heading 3 (###)
+      if (trimmed.startsWith('### ')) {
+        const text = trimmed.replace(/^###\s+/, '') + '\n';
+        requests.push({
+          insertText: {
+            location: { index: currentIndex },
+            text
+          }
+        });
+        requests.push({
+          updateParagraphStyle: {
+            range: {
+              startIndex: currentIndex,
+              endIndex: currentIndex + text.length - 1
+            },
+            paragraphStyle: {
+              namedStyleType: 'HEADING_3'
+            },
+            fields: 'namedStyleType'
+          }
+        });
+        currentIndex += text.length;
+        continue;
+      }
+
+      // Bullet list (-)
+      if (trimmed.startsWith('- ')) {
+        const text = trimmed.replace(/^-\s+/, '') + '\n';
+        requests.push({
+          insertText: {
+            location: { index: currentIndex },
+            text
+          }
+        });
+        requests.push({
+          createParagraphBullets: {
+            range: {
+              startIndex: currentIndex,
+              endIndex: currentIndex + text.length - 1
+            },
+            bulletPreset: 'BULLET_DISC_CIRCLE_SQUARE'
+          }
+        });
+        currentIndex += text.length;
+        continue;
+      }
+
+      // Table (|)
+      if (this.isTableLine(trimmed)) {
+        // Skip separator rows
+        if (/^\|?[\s:\-|]+\|?$/.test(trimmed)) continue;
+
+        const cells = trimmed
+          .replace(/^\|/, '')
+          .replace(/\|$/, '')
+          .split('|')
+          .map(cell => cell.trim());
+
+        const rowText = cells.join('\t') + '\n';
+        requests.push({
+          insertText: {
+            location: { index: currentIndex },
+            text: rowText
+          }
+        });
+        currentIndex += rowText.length;
+        continue;
+      }
+
+      // Regular paragraph
+      const text = this.stripMarkdownFormatting(trimmed) + '\n\n';
+      requests.push({
+        insertText: {
+          location: { index: currentIndex },
+          text
+        }
+      });
+      currentIndex += text.length;
+    }
+
+    return requests;
+  }
+
+  /**
+   * Strip markdown formatting for plain text
+   */
+  stripMarkdownFormatting(text) {
+    return text
+      .replace(/\*\*([^*]+)\*\*/g, '$1') // Bold
+      .replace(/\*([^*]+)\*/g, '$1')     // Italic
+      .replace(/`([^`]+)`/g, '$1')       // Code
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1'); // Links
   }
 
   /**
@@ -1161,18 +654,20 @@ class ContentPublisher {
     if (!hero || typeof hero !== 'object') {
       return '';
     }
-    // Priority: imgbb hosted_url > DALL-E url > local_path
-    const url = hero.hosted_url || hero.url || hero.local_path || '';
+    const url = hero.url || hero.local_path || '';
     if (!url) {
       return '';
     }
     const alt = hero.alt || 'Hero image';
-    // Don't display the generation prompt as caption - it's too technical
-    // Only use caption if there's a user-friendly caption field (not the AI prompt)
-    const caption = hero.caption && hero.caption !== hero.prompt ? this.escapeHtml(hero.caption) : '';
+    const attribution = hero.provider ? this.escapeHtml(hero.provider) : '';
+    const caption = hero.prompt ? this.escapeHtml(hero.prompt) : '';
     const img = `<img src="${url}" alt="${this.escapeHtml(alt)}" loading="lazy" decoding="async" />`;
-    // No caption for now - just display the image
-    return `<figure class="hero-image">${img}</figure>`;
+    const captionHtml = caption
+      ? `<figcaption>${caption}${attribution ? ` • ${attribution}` : ''}</figcaption>`
+      : attribution
+        ? `<figcaption>${attribution}</figcaption>`
+        : '';
+    return `<figure class="hero-image">${img}${captionHtml}</figure>`;
   }
 
   buildArticleHtml(markdown, heroHtml = '') {
@@ -1408,13 +903,11 @@ class ContentPublisher {
         paragraphBuffer = [];
         return;
       }
-      // Strip markdown bold syntax (**text** → text)
-      const cleanText = paragraphText.replace(/\*\*([^*]+)\*\*/g, '$1');
       blocks.push({
         _type: 'block',
         style: 'normal',
         children: [
-          { _type: 'span', text: cleanText, marks: [] }
+          { _type: 'span', text: paragraphText, marks: [] }
         ]
       });
       paragraphBuffer = [];
@@ -1440,10 +933,7 @@ class ContentPublisher {
           .replace(/^\|/, '')
           .replace(/\|$/, '')
           .split('|')
-          .map(cell => {
-            // Strip markdown bold syntax (**text** → text)
-            return cell.trim().replace(/\*\*([^*]+)\*\*/g, '$1');
-          });
+          .map(cell => cell.trim());
 
         return {
           _type: 'tableRow',
@@ -1482,12 +972,10 @@ class ContentPublisher {
       if (trimmed.startsWith('### ')) {
         pushTable();
         pushParagraph();
-        // Strip markdown bold syntax from headings
-        const h3Text = trimmed.replace(/^###\s+/, '').replace(/\*\*([^*]+)\*\*/g, '$1');
         blocks.push({
           _type: 'block',
           style: 'h3',
-          children: [{ _type: 'span', text: h3Text, marks: [] }]
+          children: [{ _type: 'span', text: trimmed.replace(/^###\s+/, ''), marks: [] }]
         });
         continue;
       }
@@ -1495,12 +983,10 @@ class ContentPublisher {
       if (trimmed.startsWith('## ')) {
         pushTable();
         pushParagraph();
-        // Strip markdown bold syntax from headings
-        const h2Text = trimmed.replace(/^##\s+/, '').replace(/\*\*([^*]+)\*\*/g, '$1');
         blocks.push({
           _type: 'block',
           style: 'h2',
-          children: [{ _type: 'span', text: h2Text, marks: [] }]
+          children: [{ _type: 'span', text: trimmed.replace(/^##\s+/, ''), marks: [] }]
         });
         continue;
       }
@@ -1508,13 +994,11 @@ class ContentPublisher {
       if (trimmed.startsWith('- ')) {
         pushTable();
         pushParagraph();
-        // Strip markdown bold syntax from list items
-        const listText = trimmed.slice(2).trim().replace(/\*\*([^*]+)\*\*/g, '$1');
         blocks.push({
           _type: 'block',
           style: 'normal',
           listItem: 'bullet',
-          children: [{ _type: 'span', text: listText, marks: [] }]
+          children: [{ _type: 'span', text: trimmed.slice(2).trim(), marks: [] }]
         });
         continue;
       }

@@ -39,25 +39,21 @@ class MasterSEOResearcher {
     this.gscDataFetcher = config.gscDataFetcher || null;
     this.seoDataFetcher = config.seoDataFetcher || null;
 
-    // Default competitors for Indian WealthTech & private wealth
+    // Top 10 competitors from competitor analysis (Jan 2025)
     this.competitors = config.competitors || [
-      // Wealthtech platforms
-      'Groww.in',
-      'Zerodha.com/varsity',
-      'ETMoney.com',
-      'PaytmMoney.com',
-      'INDmoney.com',
-      'Kuvera.in',
-      'Smallcase.com',
-      'Upstox.com',
-      'Angelone.in/',
-      // Private wealth/advisory
-      'hdfcsec.com',
-      'icicidirect.com/wealth',
-      'kotak.com/en/personal-banking/investments',
-      'motilaloswal.com',
-      'edelweiss.in',
-      'scripbox.com'
+      // Discount brokers (Top 4 - 72% market share)
+      'Groww.in',                    // #1 - 22% share (13M clients)
+      'Zerodha.com/varsity',         // #2 - 20% share (12M clients)
+      'Angelone.in',                 // #3 - 17% share (10M clients)
+      'Upstox.com',                  // #4 - 13% share (8M clients)
+
+      // Full-service brokers (Top 6 - 28% market share)
+      'icicidirect.com',             // #5 - 10% share (6M clients)
+      'hdfcsec.com',                 // #6 - 8% share (5M clients)
+      'kotaksecurities.com',         // #7 - 6% share (4M clients)
+      '5paisa.com',                  // #8 - 5% share (3M clients)
+      'motilaloswal.com',            // #9 - 4% share (2.5M clients)
+      'sharekhan.com'                // #10 - 3% share (2M clients)
     ];
 
     this.contentCategories = this.loadContentCategories(config.categoriesPath);

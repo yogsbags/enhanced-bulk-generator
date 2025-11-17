@@ -30,6 +30,12 @@ class TopicGenerator {
     this.currentModel = config.model || this.models.primary;
     this.csvManager = new CSVDataManager();
 
+    // Store category filter from config (optional)
+    this.category = config.category || null;
+
+    // Store topic limit from config (optional)
+    this.topicLimit = config.topicLimit || null;
+
     // Load optimized model parameters
     this.modelParams = this.loadModelParameters();
 
@@ -68,6 +74,12 @@ class TopicGenerator {
     console.log('✅ Topic Generator initialized');
     console.log(`🤖 Primary Model: ${this.currentModel} (native web search)`);
     console.log(`🔄 Backup Models: ${this.models.compoundMini} (web search), ${this.models.browserSearch20B}, ${this.models.browserSearch120B}, ${this.models.gemini}, ${this.models.fallback}`);
+    if (this.category) {
+      console.log(`📂 Category Focus: ${this.category.toUpperCase()}`);
+    }
+    if (this.topicLimit) {
+      console.log(`📊 Topic Limit: ${this.topicLimit}`);
+    }
     return true;
   }
 
@@ -112,12 +124,12 @@ class TopicGenerator {
   async generateTopics() {
     console.log('\n🎯 TOPIC GENERATION STARTED');
     console.log('='.repeat(50));
-    console.log(`🤖 AI Model: ${this.groqModel}`);
-    console.log(`📊 Target: 50 strategic topics`);
+    console.log(`🤖 AI Model: ${this.currentModel}`);
+    console.log(`📊 Target: ${this.topicLimit || 50} strategic topics`);
 
     try {
-      // Get approved research gaps
-      const approvedGaps = this.csvManager.getApprovedResearchGaps();
+      // Get approved research gaps (with optional category filter)
+      const approvedGaps = this.csvManager.getApprovedResearchGaps(this.category);
 
       if (approvedGaps.length === 0) {
         throw new Error('No approved research gaps found. Run master-seo-researcher.js first and approve some gaps.');
@@ -218,10 +230,10 @@ class TopicGenerator {
 
   /**
    * Generate topics in batches for reliability
-   * Generates 50 topics by calling AI 2 times (25 topics each)
+   * Generates N topics based on topicLimit (defaults to 50)
    */
   async generateTopicsInBatches(approvedGaps) {
-    const targetTotal = 50;
+    const targetTotal = this.topicLimit || 50;
     const batchSize = 25;  // Generate 25 topics per batch
     const batches = Math.ceil(targetTotal / batchSize);
 
@@ -233,7 +245,9 @@ class TopicGenerator {
       console.log(`\n📦 Generating Batch ${batchNum}/${batches}...`);
 
       try {
-        const batchTopics = await this.generateTopicsWithAI(approvedGaps, batchSize);
+        // Calculate actual topics needed for this batch (respects targetTotal limit)
+        const topicsNeeded = Math.min(batchSize, targetTotal - allTopics.length);
+        const batchTopics = await this.generateTopicsWithAI(approvedGaps, topicsNeeded);
 
         if (batchTopics && Array.isArray(batchTopics) && batchTopics.length > 0) {
           console.log(`   ✅ Batch ${batchNum}: Generated ${batchTopics.length} topics`);
@@ -241,8 +255,9 @@ class TopicGenerator {
         } else {
           console.warn(`   ⚠️  Batch ${batchNum}: No topics generated, retrying...`);
 
-          // Retry once with fallback
-          const retryTopics = await this.generateTopicsWithAI(approvedGaps, batchSize);
+          // Retry once with fallback (use same topicsNeeded calculation)
+          const retryTopicsNeeded = Math.min(batchSize, targetTotal - allTopics.length);
+          const retryTopics = await this.generateTopicsWithAI(approvedGaps, retryTopicsNeeded);
           if (retryTopics && Array.isArray(retryTopics) && retryTopics.length > 0) {
             console.log(`   ✅ Batch ${batchNum} (retry): Generated ${retryTopics.length} topics`);
             allTopics = allTopics.concat(retryTopics);
@@ -672,7 +687,7 @@ For EACH of the ${topicCount} topics, provide:
 2. research_gap_id: Link to specific gap from research (e.g., "GAP-001")
 3. content_type: [blog|ymyl|listicle|news]
 4. topic_title: Compelling, click-worthy, SEO-optimized (<60 chars)
-5. category: [mutual_funds|tax_planning|stock_market|retirement_planning|insurance|personal_finance|investment_strategies]
+5. category: ${this.category ? `"${this.category}" (MUST use this exact value)` : `[mutual_funds|tax_planning|stock_market|retirement_planning|insurance|personal_finance|investment_strategies|derivatives]`}
 6. primary_keyword: Main target keyword
 7. secondary_keywords: Array of 3-5 related keywords (comma-separated string)
 8. search_volume: Monthly search volume

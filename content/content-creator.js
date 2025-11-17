@@ -205,8 +205,80 @@ class ContentCreator {
   /**
    * Build the content prompt with strict schema and optional feedback
    */
+  /**
+   * Dynamic word count based on topic type
+   */
+  getOptimalWordCount(research) {
+    const intent = this.normalizeTextField(research.search_intent);
+    const title = this.normalizeTextField(research.topic_title || research.topic_id);
+
+    // Informational topics (What is, How does it work)
+    if (intent.includes('informational') || title.includes('what is') || title.includes('how does')) {
+      return 1350; // Round 3 optimization: 1300-1350 words
+    }
+
+    // Guide/How-to/Buying Guide topics (Round 6 #43: 1000-1200 words)
+    if (title.includes('guide') || title.includes('buying guide') || title.includes('complete guide') ||
+        title.includes('how to guide') || title.includes('step-by-step guide') ||
+        intent.includes('guide') || intent.includes('how-to')) {
+      return 1200; // Round 6 #43: Guide topics target 1000-1200 words
+    }
+
+    // Strategy topics (Best time, How to, Step-by-step)
+    if (title.includes('best time') || title.includes('how to') || title.includes('step by step') ||
+        intent.includes('strategy')) {
+      return 1600; // Sweet spot for retention (15-20% less than default)
+    }
+
+    // Comparison/Analysis topics
+    if (title.includes('vs') || title.includes('comparison') || intent.includes('comparison')) {
+      return 1900; // Round 3 optimization: 1800-2000 words
+    }
+
+    // Default for pillar/ultimate guides
+    return 2000;
+  }
+
+  /**
+   * Normalize free-form fields that may arrive as strings, arrays, or objects
+   */
+  normalizeTextField(value) {
+    if (value === null || value === undefined) {
+      return '';
+    }
+
+    if (typeof value === 'string') {
+      return value.toLowerCase();
+    }
+
+    if (Array.isArray(value)) {
+      return value
+        .filter((item) => item !== null && item !== undefined)
+        .map((item) => String(item).toLowerCase())
+        .join(' ');
+    }
+
+    if (typeof value === 'object') {
+      const parts = Object.values(value).map((item) => {
+        if (item === null || item === undefined) {
+          return '';
+        }
+        if (Array.isArray(item)) {
+          return item
+            .filter((sub) => sub !== null && sub !== undefined)
+            .map((sub) => String(sub).toLowerCase())
+            .join(' ');
+        }
+        return String(item).toLowerCase();
+      });
+      return parts.join(' ').trim();
+    }
+
+    return String(value).toLowerCase();
+  }
+
   buildContentPrompt(research, options = {}) {
-    const wordTarget = options.minWordCount || this.config.minWordCount;
+    const wordTarget = 2400; // Fixed target of ~2,400 words as per guidelines
     const attempt = options.attempt || 1;
     const feedback = options.feedback ? `\nREVISION FEEDBACK:\n${options.feedback}\n` : '';
     const sources = this.getResearchSources(research);
@@ -217,50 +289,137 @@ class ContentCreator {
     return `You are an award-winning Indian financial strategist, senior editor, and compliance reviewer.
 Using the approved research brief, craft an SEO ready article that reads like it was written by PL Capital's in-house experts.
 
-OUTPUT RULES:
-- Respond with a **single valid JSON object** following the schema below. No markdown fences or extra prose.
-- Article audience: mass affluent Indian investors and salaried professionals evaluating wealth options in FY 2025-26.
-- Minimum length: ${wordTarget} words of original copy (exclude tables). Blend data, explanations, frameworks, and examples.
-- Voice & tone: Use first/second-person (you/your/our/we) to create engagement. Write as if you're speaking directly to the reader. Example: "When you invest..." instead of "When investors invest...". Balance authority with approachability, keeping it data-backed and compliance-safe.
-- Heading etiquette: never output an H1. Start with \`## Executive Summary\`, then use semantic H2/H3/H4 hierarchy. All headings must include the focus keyphrase or close semantic variations for SEO optimization.
-- Structural must-haves (in order):
-  1. \`## Executive Summary\` — 3 crisp sentences covering context, opportunity, and takeaway (using "you/your" tone).
-  2. \`### Key Numbers At a Glance\` — Markdown table with Metric / Value / Why it Matters (>=4 rows).
-  3. \`### Key Takeaways\` — bullet list (5 bullets) of one-line insights (using "you/your" tone).
-  4. Core body sections addressing the content gaps, benchmarks vs competitors, tactical guidance, frameworks, and risk controls (written in observational, neutral tone – no direct trading suggestions).
-  5. Final H2 titled \`## Talk to Our Advisors\` containing a persuasive CTA paragraph (using "you/your/our" tone).
-- Every body section must integrate insights from the research brief (content gaps, competitor analysis, related questions, superiority plan) with specific data points, examples, and Indian regulatory references.
-- **IMPORTANT – EXTERNAL LINKS**: Limit external links to a maximum of 3 verified, authoritative sources (RBI, SEBI, NSE, BSE, Ministry of Finance, AMFI official pages only). No competitor websites or blogs. Each external link must be a permanent, official government/regulatory URL (no blog posts or news articles that may become 404). Use proper en dashes (–) with spaces around them for ranges/connections.
-- **IMPORTANT – INTERNAL LINKS**: Include at least two inline links to PL Capital resources using relevant blog URLs (from https://www.plindia.com/blogs-sitemap.xml).
-- **IMPORTANT – TRADING STRATEGIES**: Never provide direct trading suggestions or investment recommendations. Use observational, neutral language like "Some investors consider...", "Historical data shows...", "Market patterns suggest..." instead of "You should invest in..." or "Buy/Sell...".
-- **IMPORTANT – FORMATTING**: Use en dashes (–) consistently for ranges and connections with proper spacing (e.g., "5%–7%" or "stocks – bonds"). Never use hyphens for these purposes.
-- Tables: use valid Markdown tables, never placeholders.
-- No placeholder strings ({{...}}, [TODO], etc.). Provide finished copy.
-- No developer comments or internal labels (e.g., "## Quality Metrics", "## Content Upgrades", "DEVELOPER NOTE:"). These must never appear in the final output.
-- **IMPORTANT – CONTENT UPGRADES**: Populate the content_upgrades JSON array with two text-based, conceptual suggestions only (e.g., "Related reading: Understanding SIP strategies", "Framework: Building a diversified portfolio"). NEVER reference calculators, downloadables, PDFs, interactive tools, checklists, templates, spreadsheets, widgets, or any features requiring additional development. These features do not exist on the website. Do not create an explicit section in the article labelled "Content Upgrades".
+**CRITICAL: FOLLOW THESE 39 GUIDELINES STRICTLY**
 
-CRITICAL ANTI-HALLUCINATION GUARDRAILS:
-- **ABSOLUTELY NO FABRICATED DATA**: Every statistic, percentage, number, date, or data point MUST come from the research brief or be a general industry observation. NEVER invent specific numbers, fund names, company performance figures, or market statistics.
-- **NO MADE-UP SOURCES**: Only cite sources from the provided research context. NEVER create fictional URLs, fake RBI/SEBI circulars, or imaginary research papers. If no specific source is available, use general language like "Industry data suggests..." or "Historical trends show..." without citations.
-- **NO FAKE EXTERNAL LINKS**: NEVER fabricate external links to RBI, SEBI, NSE, BSE, or any other website. Only use links explicitly provided in the research sources. If you don't have a verified URL, DO NOT include any external link. It's better to have zero external links than one fabricated link.
-- **NO SPECIFIC FUND/STOCK NAMES**: Unless explicitly mentioned in the research brief, NEVER name specific mutual funds, stocks, companies, or financial products. Use generic categories instead (e.g., "large-cap equity funds" instead of "HDFC Top 100 Fund").
-- **NO INVENTED REGULATIONS**: NEVER cite specific SEBI regulations, RBI circulars, or government policy numbers unless they are in the research brief. Use general compliance language instead (e.g., "As per SEBI guidelines..." without citing specific regulation numbers).
-- **NO FUTURE PREDICTIONS**: NEVER make specific market predictions, target returns, or future performance estimates. Use historical context and observational language only (e.g., "Historically, markets have shown..." NOT "Markets will deliver 12% returns").
-- **VERIFY DATES & TIMEFRAMES**: Only use dates, financial years, or time periods that are current (FY 2025-26) or from the research brief. NEVER invent historical dates or specific event timelines.
-- **NO FABRICATED EXAMPLES**: Do not create fictional investor scenarios, case studies, or examples unless they are generic and clearly hypothetical (e.g., "Consider an investor who..." NOT "Mr. Sharma from Mumbai invested in...").
-- **FACT-CHECK LANGUAGE**: Use qualifying language for uncertain claims: "typically", "generally", "often", "may", "historical data suggests". Avoid absolute claims like "always", "guaranteed", "will definitely", "proven to".
-- **PENALTY AWARENESS**: Google penalizes websites for E-E-A-T violations (fabricated expertise, false authority, misleading trust signals). Every claim must be defensible and verifiable. When in doubt, stay general and observational.
+1. ✅ NEVER mention competitor names: Zerodha, Upstox, Angel One, ICICI Direct, Groww
+2. ✅ START DIRECTLY WITH "## Executive Summary" - NO introductory paragraphs before this H2
+3. ✅ NO H2 for "Introduction" - plain text paragraphs after Executive Summary (no heading)
+4. ✅ ADD "## Key Takeaways" section BEFORE "## Conclusion" (5-7 action-oriented bullets)
+5. ✅ ADD "## Action Plan" section BEFORE "## Conclusion" (step-by-step monthly roadmap)
+6. ✅ MOVE "## FAQ Section" or "## FAQs on [Topic]" AFTER "## Conclusion" (never before)
+7. ✅ Use MIXED formatting throughout - paragraphs, tables, bullets, numbered lists (NOT all bullets)
+8. ✅ EEAT COMPLIANCE: Human-readable, high-quality, original content with expertise, experience, authority, trust
+9. ✅ CTA in Conclusion: MUST include link to https://instakyc.plindia.com/ with text "Open your PL Capital account"
+10. ✅ NATURAL keyword flow - NO keyword stuffing, use semantic variations naturally
+11. ✅ 8th GRADE ENGLISH - Simple language, simplified H2s (avoid jargon, explain technical terms)
+12. ✅ H2s and H3s structure - Semantic hierarchy with focus keyword variations in headings
+13. ✅ WORD COUNT: Under 2500 words (~2,400 words target) - concise and focused
+14. ✅ ELABORATE examples with REAL data - NO hallucination, NO fake statistics, NO invented fund names
+15. ✅ SENTENCES: Under 15 words average - short, punchy, clear sentences
+16. ✅ CONCISE throughout - Every paragraph must earn its place, cut ruthlessly
+17. ✅ ENHANCED GREEKS section (if applicable): Flowing explanations with real examples, NOT just definitions
+18. ✅ 5 FAQs ONLY - No more, no less (H3 format with complete questions)
+19. ✅ 100-WORD Conclusion - Brief, actionable, with PL Capital CTA
+20. ✅ DATE CONTEXT: November 2025 (NOT January 2025) - use "FY 2025-26" for current financial year, "AY 2026-27" for assessment year
+21. ✅ FAQ ANSWERS: 30-40 words each with COMPLETE questions in H3 format (e.g., "### What is...")
+22. ✅ FAQ PLACEMENT: MUST be AFTER "## Conclusion" section (never before, never mid-article)
+23. ✅ WEB RESEARCH: Use factual accuracy, proper content structure, real data from research brief
 
-JSON SCHEMA:
+**FACTUAL ACCURACY & COMPLIANCE RULES (24-39) - Apply ONLY when these topics are mentioned:**
+
+24. ✅ IF mentioning TRADER PARTICIPATION: Use general qualifiers - "Lakhs of traders", "Thousands of traders", "Many traders" - NEVER specific unverifiable numbers like "12 lakh traders" (add asterisk*)
+25. ✅ IF mentioning TRADING VOLUMES: Always prefix with "Approximately" or "Around" - e.g., "Approximately 5-7 crore contracts" (add asterisk*)
+26. ✅ IF mentioning LOT SIZES: Always add qualifier "subject to NSE revisions" - NEVER use "as of Nov 2025" for current date (add asterisk*)
+27. ✅ IF mentioning STRIKE INTERVALS: Use "Typically" or "Generally" prefix - e.g., "Typically 50 points", "Generally 100 points" (add asterisk*)
+28. ✅ IF mentioning INCOME/ELIGIBILITY REQUIREMENTS: Present as broker-specific NOT regulatory - "Most brokers require minimum annual income (typically ₹2-3 lakh)" NOT "SEBI requires ₹2 lakh income" (add asterisk*)
+29. ✅ IF mentioning CIRCUIT LIMITS: Clarify "No individual strike circuits; market-wide breakers apply" NOT just "No circuit limits" (add asterisk*)
+30. ✅ IF mentioning TAX RULES: Always specify assessment year - "for Assessment Year 2026-27" and note rules are subject to change (add asterisk*)
+31. ✅ IF mentioning EXPIRY SCHEDULES: Add qualifier noting NSE's right to change - "Every Tuesday (subject to NSE notifications)" (add asterisk*)
+32. ✅ PROBABILITY & SUCCESS RATES: NEVER state as facts - "65% probability of profit" is PROHIBITED. Instead: "Your profit chances improve when [conditions]... exact probability varies by market conditions"
+33. ✅ RETURNS & ROI: Always frame as examples - "Example Return: 233% if price reaches upper strike" NOT "Return on Investment: 233% gain"
+34. ✅ PERCENTAGE CLAIMS: Qualify cost savings/reductions - "Example shows: 67% cost reduction" or "significantly reduces cost" NOT absolute "40-70% reduction" without context
+35. ✅ AVOID REPETITION: Each key concept should be explained ONCE in detail. Don't repeat cost advantages, volatility warnings, or expiry risks across multiple sections. Consolidate.
+36. ✅ GREEKS/TECHNICAL SECTIONS: Keep practical and accessible. Focus on "Understanding Risk Factors" with real impact, not heavy Greek formulas. Example: "Time decay (Theta)" with practical effect, not "Bought Call Theta: -₹8, Sold Call Theta: +₹6, Net Theta: -₹2"
+37. ✅ UNSOURCED HISTORICAL DATA: NEVER claim "Historical data shows..." or "Studies indicate..." without sources. Use: "Nifty typically shows weekly movements" NOT "Historical data shows Nifty moves 0.5-1% weekly on average"
+38. ✅ IMPORTANT NOTES SECTION: IF any asterisks (*) are used in article, add "**Important Notes:**" section at end explaining all asterisked items. IF no asterisks used, standard risk disclaimer is sufficient.
+39. ✅ ASTERISK USAGE: Mark claims requiring qualifiers with asterisk (*) in body text, then explain in "Important Notes" section. Only include explanations for asterisk-marked items actually used in the article.
+
+**ARTICLE STRUCTURE (MANDATORY ORDER):**
+
+1. ## Executive Summary (3-4 sentences, context + opportunity + takeaway)
+2. Plain text introduction paragraphs (NO H2 heading, 2-3 paragraphs explaining topic)
+3. ## [Main Topic] sections (5-8 H2 sections with H3 subsections)
+4. ## Key Takeaways (5-7 action-oriented bullets BEFORE Conclusion)
+5. ## Action Plan (Monthly roadmap: Month 1-2, Month 3-4, etc.)
+6. ## Conclusion (100 words max, must include CTA with https://instakyc.plindia.com/)
+7. ## FAQ Section or ## FAQs on [Topic] (EXACTLY 5 FAQs with H3 questions, 30-40 word answers)
+
+**CRITICAL FORMATTING RULES:**
+
+- **Executive Summary**: Must be FIRST H2, no content before it
+- **No Introduction H2**: After Executive Summary, start with plain text paragraphs (no heading)
+- **Key Takeaways**: BEFORE Conclusion, bullet list with "You can...", "Consider...", "Start with..."
+- **Action Plan**: BEFORE Conclusion, monthly timeline (Month 1-2: ..., Month 3-4: ...)
+- **Conclusion**: 100 words, 2-3 paragraphs, MUST include: "Ready to [action]? [Open your PL Capital account](https://instakyc.plindia.com/) and..."
+- **FAQs**: AFTER Conclusion, H3 format: "### What is [topic]?", "### How does [topic] work?", etc.
+- **FAQ Answers**: 30-40 words each, complete sentences, specific data (amounts, percentages, timelines)
+
+**WRITING STYLE:**
+
+- Short sentences (under 15 words average)
+- 8th grade reading level (simple, clear language)
+- Active voice: "You can invest..." NOT "Investors can invest..."
+- Mixed formatting: paragraphs + tables + bullets + numbered lists
+- Natural keyword flow (no stuffing)
+- Conversational tone with "you/your" language
+- Specific examples with INR amounts (₹10,000, ₹1 lakh, ₹50,000)
+- Real data only (NO hallucination, NO fake statistics)
+
+**GREEKS/RISK FACTORS SECTION (if applicable for options/derivatives topics):**
+
+- Title section "Understanding Risk Factors" NOT "Greeks Analysis" for better accessibility
+- Explain concepts in plain language: "Price Movement (Delta)", "Time Decay (Theta)", "Volatility Impact (Vega)"
+- Focus on practical impact: "If Nifty moves 100 points, your spread gains value gradually"
+- Use simple examples with real ₹ amounts, NOT complex formulas like "Net Theta: -₹2 = (Bought -₹8) + (Sold +₹6)"
+- Skip Gamma entirely unless absolutely critical - it's too technical for most readers
+- Keep it conversational: "Time works against all options buyers. Bull call spread reduces this impact significantly."
+
+**PROHIBITED:**
+
+- ❌ Competitor names: Zerodha, Upstox, Angel One, ICICI Direct, Groww
+- ❌ "## Introduction" heading (use plain text after Executive Summary)
+- ❌ FAQs before Conclusion
+- ❌ More than 5 FAQs
+- ❌ Conclusions longer than 100 words
+- ❌ Keyword stuffing or repetitive explanations
+- ❌ Fake statistics or invented data
+- ❌ Generic CTA links (must use https://instakyc.plindia.com/)
+- ❌ January 2025 references (use November 2025 or FY 2025-26)
+- ❌ Sentences longer than 20 words (aim for under 15 words)
+- ❌ Specific unverifiable trader numbers ("12 lakh traders", "5 lakh users")
+- ❌ Absolute statements about lot sizes, volumes, or intervals without qualifiers
+- ❌ Presenting broker requirements as SEBI/regulatory mandates
+- ❌ "Disclaimer" heading (use "Important Notes" instead)
+- ❌ Unqualified tax rules (always add "for AY 2026-27")
+- ❌ Probability/success rates stated as facts ("65% probability", "60-65% success rate")
+- ❌ Unsourced historical claims ("Historical data shows...", "Studies indicate...")
+- ❌ Absolute ROI claims (frame as "Example Return" not "Return on Investment")
+- ❌ Future-date references like "as of Nov 2025" (just use "subject to NSE revisions")
+- ❌ Heavy Greek formulas (use practical "Understanding Risk Factors" approach)
+
+**WORD COUNT DISTRIBUTION (~2,400 words total):**
+
+- Executive Summary: 50-80 words
+- Introduction paragraphs (no heading): 150-200 words
+- Main H2 sections (5-8 sections): 1,800-2,000 words (250-300 words each)
+- Key Takeaways: 100-150 words
+- Action Plan: 150-200 words
+- Conclusion: 100 words
+- FAQs (5 questions): 200-250 words (40-50 words per FAQ)
+
+**JSON SCHEMA (REQUIRED OUTPUT FORMAT):**
+
+Respond with a single valid JSON object (no markdown fences) following this schema:
+
 {
   "topic_id": "string",
   "seo_metadata": {
-    "title": "string <= 60 characters containing the focus keyphrase",
-    "meta_description": "string 140-160 characters with a CTA and focus keyphrase",
+    "title": "string <= 60 characters, keyword-focused. Format: '[Topic]: Complete Guide' or 'What is [Topic]?'",
+    "meta_description": "string 140-160 characters with CTA and focus keyphrase",
     "focus_keyphrase": "string",
     "secondary_keywords": ["string", "string", "string"]
   },
-  "article_content": "markdown string >= ${wordTarget} words with deep analysis, data, recommendations, CTAs, and inline links",
+  "article_content": "markdown string ~2,400 words following 23 guidelines above",
   "content_upgrades": ["string", "string"],
   "compliance": "string including SEBI/RBI disclaimers and investor risk warnings",
   "quality_metrics": {
@@ -273,7 +432,7 @@ JSON SCHEMA:
 ${feedback}
 ATTEMPT: ${attempt}
 
-RESEARCH CONTEXT:
+**RESEARCH CONTEXT:**
 - Topic ID: ${research.topic_id}
 - Primary Keyword: ${research.primary_keyword}
 - Search Intent: ${research.search_intent}
@@ -285,8 +444,45 @@ RESEARCH CONTEXT:
 - Regulatory Compliance: ${research.regulatory_compliance}
 - Estimated Impact: ${research.estimated_impact}
 
+**SOURCES FOR REFERENCE:**
+${sourcesList}
 
-Focus on outperforming top competitors in depth, freshness, and authority while maintaining compliance.
+**FINAL REMINDERS:**
+- Target: ~2,400 words (under 2,500 words)
+- Structure: Executive Summary → Plain intro → Main sections → Key Takeaways → Action Plan → Conclusion → FAQs → [Important Notes - only if asterisks used]
+- FAQs: EXACTLY 5 questions AFTER Conclusion
+- CTA: Must include https://instakyc.plindia.com/ in Conclusion
+- Date: November 2025, FY 2025-26 (current), AY 2026-27 (for tax rules)
+- Sentences: Under 15 words average
+- NO competitor names, NO hallucinated data, NO keyword stuffing, NO repetition
+- NEVER state probabilities/success rates as facts - always qualify
+- NEVER claim unsourced historical data - use "typically" instead of "historical data shows"
+- Frame ALL returns/ROI as examples, not guarantees
+- Qualify percentage claims (cost reductions, etc.) as examples or use "significantly"
+- Keep Greeks/technical content practical - focus on real impact, not heavy formulas
+- NO future-date references ("as of Nov 2025") - use "subject to NSE revisions"
+- IF mentioning volumes, lot sizes, trader numbers, tax rules, expiry schedules, requirements → add asterisks (*) and explain in "Important Notes"
+- IF no such facts mentioned → end with standard risk disclaimer after FAQs (no separate "Important Notes" needed)
+
+**ASTERISK REFERENCE FORMAT (USE ONLY IF ASTERISKS PRESENT IN ARTICLE):**
+
+IF you used asterisks (*) in the article, add after FAQ section:
+
+---
+
+**Important Notes:**
+\*[List only the qualifications for asterisk-marked items actually used in your article. Examples:]
+- IF volumes mentioned: Trading volumes are approximate based on recent market activity and subject to change.
+- IF lot sizes mentioned: Lot sizes and contract specifications subject to NSE circulars.
+- IF trader numbers mentioned: Participation figures are estimates.
+- IF tax rules mentioned: Tax rules applicable for Assessment Year 2025-26; consult a tax professional.
+- IF broker requirements mentioned: Requirements vary by institution.
+- IF expiry schedules mentioned: Expiry schedules subject to NSE/SEBI notifications.
+[Then add:] Options trading involves substantial risk. This guide is for educational purposes only. Consult a SEBI-registered advisor before trading.
+
+IF no asterisks used in article, just end with standard risk disclaimer after FAQs (no separate "Important Notes" section needed).
+
+Focus on outperforming top competitors in depth, freshness, and authority while maintaining factual accuracy and compliance.
 `;
   }
 
@@ -295,8 +491,8 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
    */
   async callAI(prompt) {
     const groqModels = [
-      { name: 'groq/compound', label: 'Groq Compound (primary)', temperature: 0.55 },
-      { name: 'openai/gpt-oss-120b', label: 'Groq GPT-OSS 120B (secondary)', temperature: 0.6 }
+      { name: 'openai/gpt-oss-120b', label: 'Groq GPT-OSS 120B (primary)', temperature: 0.6 },
+      { name: 'groq/compound', label: 'Groq Compound (secondary)', temperature: 0.55 }
     ];
 
     if (this.groqApiKey) {
@@ -609,6 +805,9 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
     let content = this.sanitizeArticleContent(article || '');
     content = this.normalizeHeadings(content);
     content = this.removeLeadingTitleHeading(content, research, seoMeta);
+    content = this.removeIntroHeadingBeforeExecutiveSummary(content, research, seoMeta);
+    content = this.standardizeExecutiveSummarySection(content);
+    content = this.removeTrailingYearsFromHeadings(content);
     content = this.filterExternalLinks(content); // Remove excessive/invalid external links
     content = this.ensureCallToAction(content, research, seoMeta);
     return this.finalizeArticleContent(content);
@@ -653,6 +852,27 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
     content = content.replace(/^\s{0,3}\*\*?\s*Quality\s+Metrics?:[\s\S]*?(?=\n{2,}|\n#+\s|$)/gim, '');
     content = content.replace(/^\s{0,3}\*\*?\s*Content\s+Upgrades?:[\s\S]*?(?=\n{2,}|\n#+\s|$)/gim, '');
 
+    // Remove Comparative Benchmark and related sections
+    content = content.replace(/##\s*Comparative\s+Benchmark[\s\S]*?(?=\n#{2,}\s|$)/gi, '');
+    content = content.replace(/###\s*Content\s+Gap\s+Analysis[\s\S]*?(?=\n#{2,3}\s|$)/gi, '');
+    content = content.replace(/###\s*Our\s+Superiority\s+Plan[\s\S]*?(?=\n#{2,3}\s|$)/gi, '');
+
+    // Remove External References section
+    content = content.replace(/\*\*External\s+References\*\*[\s\S]*?(?=\n{2,}|\n#+\s|$)/gi, '');
+    content = content.replace(/##\s*External\s+References[\s\S]*?(?=\n#{2,}\s|$)/gi, '');
+
+    // Remove Compliance Disclaimer section
+    content = content.replace(/\*\*Compliance\s+Disclaimer\*\*[\s\S]*?(?=\n{2,}|\n#+\s|$)/gi, '');
+    content = content.replace(/##\s*Compliance\s+Disclaimer[\s\S]*?(?=\n#{2,}\s|$)/gi, '');
+
+    // Remove disclaimer footer (usually starts with "---" followed by "*All data reflects...")
+    content = content.replace(/\n---\s*\n\*All data reflects[\s\S]*$/gi, '');
+    content = content.replace(/\n\*All data reflects[\s\S]*$/gi, '');
+
+    // Remove any trailing disclaimer that starts with "*All" or "*This article"
+    content = content.replace(/\n\*All (data|information|content)[\s\S]*$/gi, '');
+    content = content.replace(/\n\*This (article|information|content)[\s\S]*$/gi, '');
+
     return content;
   }
 
@@ -666,11 +886,12 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
     if (!content) return '';
 
     const lines = content.split('\n');
-    if (lines.length === 0) {
+    let firstIndex = lines.findIndex((line) => line.trim() !== '');
+    if (firstIndex === -1) {
       return content;
     }
 
-    const firstLine = lines[0].trim();
+    const firstLine = lines[firstIndex].trim();
     if (!/^##\s+/i.test(firstLine)) {
       return content;
     }
@@ -686,9 +907,9 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
       .map((value) => String(value).trim().toLowerCase());
 
     if (candidates.includes(headingText)) {
-      lines.shift();
-      while (lines[0] !== undefined && lines[0].trim() === '') {
-        lines.shift();
+      lines.splice(firstIndex, 1);
+      while (lines[firstIndex] !== undefined && lines[firstIndex].trim() === '') {
+        lines.splice(firstIndex, 1);
       }
       return lines.join('\n');
     }
@@ -696,47 +917,193 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
     return content;
   }
 
+  removeIntroHeadingBeforeExecutiveSummary(content, research = {}, seoMeta = {}) {
+    if (!content) return '';
+
+    const lines = content.split('\n');
+    let firstIndex = lines.findIndex((line) => line.trim() !== '');
+    if (firstIndex === -1) return content;
+
+    const firstLine = lines[firstIndex].trim();
+    if (!/^##\s+/i.test(firstLine)) return content;
+    if (/^##\s*Executive\s+Summary/i.test(firstLine)) return content;
+
+    const headingText = firstLine.replace(/^##\s+/i, '').trim();
+    if (!headingText) return content;
+
+    if (
+      this.isGenericIntroHeading(headingText) ||
+      this.looksLikeTopicHeading(headingText, research, seoMeta)
+    ) {
+      lines.splice(firstIndex, 1);
+      while (lines[firstIndex] !== undefined && lines[firstIndex].trim() === '') {
+        lines.splice(firstIndex, 1);
+      }
+      return lines.join('\n');
+    }
+
+    return content;
+  }
+
+  standardizeExecutiveSummarySection(content) {
+    if (!content) return '';
+
+    const lines = content.split('\n');
+    const execIndex = lines.findIndex((line) => /^##\s*Executive\s+Summary/i.test(line.trim()));
+    if (execIndex === -1) {
+      return content;
+    }
+
+    const headingLine = lines[execIndex];
+    const remainder = headingLine.replace(/^##\s*Executive\s+Summary/i, '').replace(/^[\s–—:\-]+/, '').trim();
+    lines[execIndex] = '## Executive Summary';
+
+    let sectionStart = execIndex + 1;
+    let sectionEnd = sectionStart;
+    while (sectionEnd < lines.length && !/^##\s+/i.test(lines[sectionEnd].trim())) {
+      sectionEnd++;
+    }
+
+    const originalSection = lines.slice(sectionStart, sectionEnd);
+    const sectionLines = remainder ? [remainder, ...originalSection] : originalSection.slice();
+    const normalizedSection = this.normalizeExecutiveSummaryContent(sectionLines);
+
+    lines.splice(sectionStart, sectionEnd - sectionStart, ...normalizedSection);
+    return lines.join('\n');
+  }
+
+  normalizeExecutiveSummaryContent(lines) {
+    const normalized = [];
+
+    lines.forEach((line) => {
+      const trimmed = line.trim();
+      if (!trimmed) {
+        return;
+      }
+
+      if (/^[-*]\s+/.test(trimmed)) {
+        normalized.push(this.ensureSentenceEnding(trimmed.replace(/^[-*]\s+/, '').trim()));
+      } else {
+        normalized.push(trimmed);
+      }
+    });
+
+    if (normalized.length === 0) {
+      return [];
+    }
+
+    if (normalized[normalized.length - 1] !== '') {
+      normalized.push('');
+    }
+
+    return normalized;
+  }
+
+  looksLikeTopicHeading(heading, research = {}, seoMeta = {}) {
+    const headingTokens = this.tokenizeComparableValue(heading);
+    if (headingTokens.length === 0) return false;
+
+    const candidateValues = [
+      seoMeta?.title,
+      seoMeta?.focus_keyphrase,
+      research?.topic_title,
+      research?.primary_keyword,
+      research?.topic_id,
+    ];
+
+    return candidateValues.some((value) => {
+      const candidateTokens = this.tokenizeComparableValue(value);
+      if (candidateTokens.length === 0) return false;
+      const overlap = headingTokens.filter((token) => candidateTokens.includes(token));
+      return overlap.length >= 2 && overlap.length >= Math.min(headingTokens.length, 3);
+    });
+  }
+
+  tokenizeComparableValue(value) {
+    if (!value) return [];
+    const normalized = this.normalizeComparableValue(value);
+    if (!normalized) return [];
+    const ignore = new Set(['guide', 'complete', 'india', 'indian', 'investors', 'introduction', 'overview', 'updated']);
+    return normalized
+      .split(' ')
+      .map((token) => token.trim())
+      .filter((token) => token.length > 2 && !ignore.has(token));
+  }
+
+  normalizeComparableValue(value) {
+    if (!value) return '';
+    return String(value).toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+
+  isGenericIntroHeading(text) {
+    if (!text) return false;
+    const normalized = text.trim().toLowerCase();
+    return (
+      normalized === 'introduction' ||
+      normalized === 'overview' ||
+      normalized === 'about this topic' ||
+      /^introduction\b/i.test(text) ||
+      /^overview\b/i.test(text)
+    );
+  }
+
+  ensureSentenceEnding(sentence) {
+    if (!sentence) return '';
+    return /[.!?]"?$/.test(sentence) ? sentence : `${sentence}.`;
+  }
+
+  removeTrailingYearsFromHeadings(content) {
+    if (!content) return '';
+
+    const headingPattern = /^(#{2,6}\s+)(.+)$/gm;
+    return content.replace(headingPattern, (full, hashes, text) => {
+      const trimmed = (text || '').trimEnd();
+      const cleaned = trimmed.replace(/(\s*[–—\-:|]\s*)?\b(20\d{2})\b\s*$/i, (match, separator = '', year = '') => {
+        if (!year) {
+          return match;
+        }
+        if (this.shouldPreserveHeadingYear(trimmed, year)) {
+          return match;
+        }
+        return '';
+      });
+
+      const normalized = cleaned.replace(/\s{2,}/g, ' ').trim();
+      return normalized ? `${hashes}${normalized}` : full;
+    });
+  }
+
+  shouldPreserveHeadingYear(text, year) {
+    if (!text || !year) return false;
+    const trimmed = text.trim();
+
+    if (/\bFY\s*20\d{2}$/i.test(trimmed)) {
+      return true;
+    }
+
+    if (/\b20\d{2}\s*[–—-]\s*20\d{2}$/i.test(trimmed)) {
+      return true;
+    }
+
+    return false;
+  }
+
   /**
-   * Filter external links to only keep verified, authoritative sources
-   * Remove links that are likely to become 404s or dilute SEO
+   * Filter external links - remove ALL external links, keep only internal PL Capital links
    */
   filterExternalLinks(content) {
     if (!content) return '';
 
-    // Whitelist of trusted Indian financial authorities (permanent URLs only)
-    const trustedDomains = [
-      'rbi.org.in',
-      'sebi.gov.in',
-      'nseindia.com',
-      'bseindia.com',
-      'finmin.nic.in', // Ministry of Finance
-      'amfiindia.com', // AMFI
-      'irdai.gov.in', // IRDAI
-      'pfrda.org.in', // PFRDA
-    ];
-
     // Extract all markdown links [text](url)
     const linkPattern = /\[([^\]]+)\]\(([^)]+)\)/g;
-    let externalLinkCount = 0;
-    const maxExternalLinks = 3;
 
     return content.replace(linkPattern, (match, text, url) => {
-      // Keep internal PL Capital links
+      // Keep internal PL Capital links only
       if (url.includes('plindia.com')) {
         return match;
       }
 
-      // Check if it's a trusted domain
-      const isTrusted = trustedDomains.some(domain => url.includes(domain));
-
-      if (isTrusted) {
-        externalLinkCount++;
-        if (externalLinkCount <= maxExternalLinks) {
-          return match; // Keep the link
-        }
-      }
-
-      // Remove link but keep the text
+      // Remove all external links but keep the text
       return text;
     });
   }

@@ -82,7 +82,7 @@ class CSVDataManager {
       ],
       publishedContent: [
         'publish_id', 'content_id', 'topic_id', 'wordpress_url', 'uat_wordpress_url', 'sanity_url', 'sanity_desk_url',
-        'publish_date', 'status', 'performance_metrics', 'created_at'
+        'google_docs_url', 'publish_date', 'status', 'performance_metrics', 'created_at'
       ],
       workflowStatus: [
         'topic_id', 'current_stage', 'overall_status', 'research_approval',
@@ -327,10 +327,18 @@ class CSVDataManager {
 
   /**
    * Get approved research gaps
+   * @param {string} category - Optional category filter (e.g., 'derivatives', 'mutual_funds')
    */
-  getApprovedResearchGaps() {
+  getApprovedResearchGaps(category = null) {
     const gaps = this.readCSV(this.files.researchGaps);
-    return gaps.filter(gap => gap.approval_status === 'Yes');
+    let approved = gaps.filter(gap => gap.approval_status === 'Yes');
+
+    // Apply category filter if specified
+    if (category) {
+      approved = approved.filter(gap => gap.topic_area === category);
+    }
+
+    return approved;
   }
 
   /**
@@ -507,14 +515,22 @@ class CSVDataManager {
       const nextId = maxId + index + 1;
       const paddedId = String(nextId).padStart(3, '0');
 
-      return {
+      // Properly serialize all JSON/object fields to prevent CSV corruption
+      const serializedItem = {
         ...item,
         content_id: item.content_id || `CONTENT-${paddedId}`,
         hero_image: item.hero_image || '',
         sources: Array.isArray(item.sources) ? JSON.stringify(item.sources) : (item.sources || '[]'),
+        seo_metadata: typeof item.seo_metadata === 'object' ? JSON.stringify(item.seo_metadata) : (item.seo_metadata || ''),
+        article_content: item.article_content || '',
+        content_upgrades: typeof item.content_upgrades === 'object' ? JSON.stringify(item.content_upgrades) : (item.content_upgrades || ''),
+        compliance: typeof item.compliance === 'object' ? JSON.stringify(item.compliance) : (item.compliance || ''),
+        quality_metrics: typeof item.quality_metrics === 'object' ? JSON.stringify(item.quality_metrics) : (item.quality_metrics || ''),
         approval_status: item.approval_status || 'Pending',
         created_at: timestamp
       };
+
+      return serializedItem;
     });
 
     this.appendCSV(this.files.createdContent, dataWithIds);

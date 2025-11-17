@@ -11,9 +11,10 @@ const STAGE_NAMES: Record<number, string> = {
   2: 'topics',
   3: 'deep-research',
   4: 'content',
-  5: 'seo',
-  6: 'publication',
-  7: 'completion'
+  5: 'validation',
+  6: 'seo',
+  7: 'publication',
+  8: 'completion'
 }
 
 export async function POST(req: NextRequest) {

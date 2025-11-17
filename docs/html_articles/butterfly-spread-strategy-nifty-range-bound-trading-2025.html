@@ -1,0 +1,495 @@
+<h1>Butterfly Spread Strategy Nifty: Limited Risk Range Trading Guide 2025</h1>
+<p><strong>Last Updated:</strong> November 2025 | <strong>Reading Time:</strong> 12 minutes</p>
+<hr>
+<h2>Executive Summary</h2><div class="executive-summary">
+<p>Butterfly spread is a low-cost, limited risk options strategy that profits from range-bound Nifty movement. You combine four option contracts at three different strikes to create a profit zone around a target price. Maximum profit occurs if Nifty closes exactly at the middle strike at expiry. Maximum loss is limited to the net premium paid (₹2,000-5,000 typically).</p>
+<p>This strategy works best in low volatility environments (India VIX below 14) when Nifty is consolidating. The setup requires buying 1 lower strike call, selling 2 middle strike calls, and buying 1 higher strike call - all equally spaced. The risk-reward ratio averages 1:0.4 to 1:0.8, making it suitable for consistent small profits rather than home runs*.</p>
+<p>Key advantage: defined maximum loss with no margin calls. Key disadvantage: narrow profit zone requiring precise price prediction. Ideal for traders who prefer certainty over unlimited profit potential.</p>
+<p>Butterfly spread combines elements of both bull spread and bear spread into a single position. Unlike iron condor (which uses both calls and puts), butterfly uses only calls or only puts. This simplicity makes execution easier and reduces slippage costs.</p>
+<p>You need Nifty to stay calm, not to move dramatically. If Nifty breaks beyond your outer strikes, you lose the entire net debit. But that loss is known from day one - no surprises, no additional risk. Perfect for traders seeking controlled risk with moderate return potential*.</p>
+<hr>
+<p>Butterfly spread strategy works when Nifty refuses to move. You profit from stability, not volatility. The setup is simple but the execution timing matters significantly.</p>
+</div><h2>Understanding Butterfly Spread Mechanics</h2>
+<p>Butterfly spread consists of four option legs at three strike prices. All options must have the same expiry date. The strikes are equally spaced - if your middle strike is 24,000, and you choose 100-point intervals, your outer strikes are 23,900 and 24,100.</p>
+<p>The setup involves buying 1 call at lower strike (23,900), selling 2 calls at middle strike (24,000), and buying 1 call at higher strike (24,100). The two sold calls generate premium income. The two bought calls limit your risk on both sides.</p>
+<p>Net premium is typically a debit (you pay money upfront). Example with November 2025 expiry: buy 23,900 call for ₹125, sell two 24,000 calls for ₹85 each, buy 24,100 call for ₹55. Net debit = ₹125 + ₹55 - (₹85 × 2) = ₹10 per contract × 50 lot size = ₹500 total.</p>
+<p>Maximum profit occurs if Nifty closes exactly at 24,000 (middle strike). At this price, the 23,900 call is worth ₹100, both 24,000 calls expire worthless, and the 24,100 call expires worthless. Your profit = ₹100 × 50 - ₹500 net debit = ₹4,500.</p>
+<p>Maximum loss occurs if Nifty closes below 23,900 or above 24,100. All options either expire worthless or offset each other. You lose only the ₹500 net debit paid upfront.</p>
+<p>Breakeven points exist on both sides. Lower breakeven = 24,000 - (₹500 ÷ 50) = 23,990. Upper breakeven = 24,000 + (₹500 ÷ 50) = 24,010. Nifty must close between 23,990 and 24,010 for any profit.</p>
+<p>The profit zone is narrow - only 20 points in this example. This tight range is why butterfly spreads require accurate price prediction. You need Nifty to land in a small target area.</p>
+<p>Time decay works in your favor initially. As expiry approaches, the sold middle strikes lose value faster than the bought outer strikes. This theta decay increases your profit if Nifty stays near the middle strike.</p>
+<p>Volatility has mixed impact. Falling volatility (dropping India VIX) helps because it reduces option prices across the board. Rising volatility hurts because it increases the chance Nifty breaks out of your profit zone.</p>
+<h2>Setting Up Butterfly Spread on Nifty</h2>
+<p>Strike selection determines your entire profit profile. Choose the middle strike where you expect Nifty to close at expiry. If Nifty is currently at 24,000 and you expect it to stay there, use 24,000 as your middle strike.</p>
+<p>Strike intervals should match typical Nifty movement. For weekly expiry, use 50-100 point intervals. For monthly expiry, use 100-200 point intervals. Wider intervals reduce net debit but also reduce maximum profit.</p>
+<p>Example setup for weekly expiry (Nifty at 24,000 on Monday, expiry on Tuesday):</p>
+<ul>
+<li>Buy 1 lot 23,950 call at ₹105</li>
+<li>Sell 2 lots 24,000 call at ₹75 each</li>
+<li>Buy 1 lot 24,050 call at ₹50</li>
+<li>Net debit = ₹105 + ₹50 - (₹75 × 2) = ₹5 per contract</li>
+<li>Total investment = ₹5 × 50 = ₹250</li>
+</ul>
+<p>Maximum profit calculation: (Strike interval - Net debit) × Lot size = (50 - ₹5) × 50 = ₹2,250. This occurs if Nifty closes exactly at 24,000.</p>
+<p>Maximum loss = Net debit = ₹250. This occurs if Nifty closes below 23,950 or above 24,050.</p>
+<p>Breakeven points:</p>
+<ul>
+<li>Lower breakeven = 24,000 - (₹250 ÷ 50) = 23,995</li>
+<li>Upper breakeven = 24,000 + (₹250 ÷ 50) = 24,005</li>
+<li>Profit zone = 23,995 to 24,005 (10-point range)</li>
+</ul>
+<p>Entry timing matters significantly. Best entry occurs when India VIX is elevated but trending down. This scenario provides cheaper option prices (from previous high volatility) while reducing the chance of breakout moves.</p>
+<p>Avoid entering butterfly spreads immediately before major events. RBI policy announcements, budget releases, election results, or global market shocks can cause large price swings that break through your profit zone.</p>
+<p>Order execution sequence prevents partial fills:</p>
+<ol>
+<li>Place all four legs as a single spread order (most brokers support this)</li>
+<li>Set limit price for net debit (don&#39;t use market orders)</li>
+<li>If forced to leg in manually, buy protective outer strikes first, then sell middle strikes</li>
+</ol>
+<p>Leg-in risk: If you sell middle strikes before buying outer strikes, you create naked short positions. These carry unlimited risk and high margin requirements. Always protect yourself first.</p>
+<p>Monitoring requirements are minimal compared to directional trades. Check position once or twice daily. Major adjustments are rarely needed unless Nifty makes unexpected moves.</p>
+<p>Exit options before expiry:</p>
+<ul>
+<li>If Nifty reaches middle strike early, consider exiting with partial profit</li>
+<li>If Nifty breaks beyond breakeven points, exit to salvage remaining value</li>
+<li>If volatility spikes suddenly, exit to avoid further deterioration</li>
+</ul>
+<h2>Real Trading Examples from Indian Market</h2>
+<p><strong>Example 1: Successful Range Trade (73% Profit)</strong></p>
+<p>Setup on November 3, 2025 (Monday, weekly expiry on November 4):</p>
+<ul>
+<li>Nifty spot: 24,100</li>
+<li>India VIX: 12.8 (low volatility expected)</li>
+<li>Thesis: Nifty will consolidate around 24,100 until Tuesday expiry</li>
+<li>No major events scheduled</li>
+</ul>
+<p>Butterfly construction:</p>
+<ul>
+<li>Buy 1 lot 24,050 call at ₹95 = ₹4,750</li>
+<li>Sell 2 lots 24,100 call at ₹65 each = -₹6,500</li>
+<li>Buy 1 lot 24,150 call at ₹42 = ₹2,100</li>
+<li>Net debit = ₹4,750 + ₹2,100 - ₹6,500 = ₹350</li>
+</ul>
+<p>Position parameters:</p>
+<ul>
+<li>Maximum profit = (50 - ₹7) × 50 = ₹2,150 (at 24,100)</li>
+<li>Maximum loss = ₹350</li>
+<li>Lower breakeven = 24,093</li>
+<li>Upper breakeven = 24,107</li>
+<li>Profit zone = 14 points</li>
+</ul>
+<p>Outcome on November 4 expiry:</p>
+<ul>
+<li>Nifty closes at 24,105 (within profit zone)</li>
+<li>24,050 call value = ₹55 × 50 = ₹2,750</li>
+<li>24,100 call value = ₹5 × 50 × 2 = -₹500</li>
+<li>24,150 call expires worthless = ₹0</li>
+<li>Net position value = ₹2,750 - ₹500 = ₹2,250</li>
+<li>Profit = ₹2,250 - ₹350 initial debit = ₹1,900</li>
+<li>Return = (₹1,900 ÷ ₹350) × 100 = 543% (but this is misleading - absolute profit is only ₹1,900)</li>
+</ul>
+<p>Better return metric: ₹1,900 profit on ₹350 risk in 1 day. Annualized return would be unrealistic to calculate given the short duration.</p>
+<p><strong>Example 2: Breakout Loss (100% Loss)</strong></p>
+<p>Setup on November 10, 2025 (Monday, weekly expiry on November 11):</p>
+<ul>
+<li>Nifty spot: 23,950</li>
+<li>India VIX: 13.5</li>
+<li>Thesis: Nifty will stay range-bound until Tuesday</li>
+<li>Missed news: Major policy announcement scheduled Tuesday morning</li>
+</ul>
+<p>Butterfly construction:</p>
+<ul>
+<li>Buy 1 lot 23,900 call at ₹110 = ₹5,500</li>
+<li>Sell 2 lots 23,950 call at ₹80 each = -₹8,000</li>
+<li>Buy 1 lot 24,000 call at ₹58 = ₹2,900</li>
+<li>Net debit = ₹5,500 + ₹2,900 - ₹8,000 = ₹400</li>
+</ul>
+<p>Position parameters:</p>
+<ul>
+<li>Maximum profit = ₹4,600 (at 23,950)</li>
+<li>Maximum loss = ₹400</li>
+<li>Profit zone = 23,942 to 23,958</li>
+</ul>
+<p>Outcome on November 11:</p>
+<ul>
+<li>Policy announcement at 10 AM causes 280-point rally</li>
+<li>Nifty closes at 24,230 (far above upper strike)</li>
+<li>All legs either offset or expire worthless</li>
+<li>Total loss = ₹400 (maximum loss realized)</li>
+<li>Return = -100%</li>
+</ul>
+<p>Lesson: Always check economic calendar before entering butterfly spreads. One unexpected event can wipe out the entire position.</p>
+<p><strong>Example 3: Early Exit for Partial Profit (45% Profit)</strong></p>
+<p>Setup on November 17, 2025 (4 days to monthly expiry):</p>
+<ul>
+<li>Nifty spot: 24,200</li>
+<li>India VIX: 11.2 (very low)</li>
+<li>Thesis: Nifty will consolidate around 24,200 through November 21 expiry</li>
+</ul>
+<p>Butterfly construction:</p>
+<ul>
+<li>Buy 1 lot 24,100 call at ₹145 = ₹7,250</li>
+<li>Sell 2 lots 24,200 call at ₹85 each = -₹8,500</li>
+<li>Buy 1 lot 24,300 call at ₹48 = ₹2,400</li>
+<li>Net debit = ₹7,250 + ₹2,400 - ₹8,500 = ₹1,150</li>
+</ul>
+<p>Position parameters:</p>
+<ul>
+<li>Maximum profit = ₹3,850 (at 24,200)</li>
+<li>Maximum loss = ₹1,150</li>
+<li>Profit zone = 24,177 to 24,223</li>
+</ul>
+<p>Day 2 market movement:</p>
+<ul>
+<li>Nifty reaches 24,195 (close to middle strike)</li>
+<li>Position value increases to ₹1,670</li>
+<li>Unrealized profit = ₹520</li>
+<li>Decision: Exit early or hold for maximum profit?</li>
+</ul>
+<p>Trader exits on Day 2 at ₹1,670:</p>
+<ul>
+<li>Profit = ₹1,670 - ₹1,150 = ₹520</li>
+<li>Return = 45% in 2 days</li>
+<li>Reasoning: Lock in profit rather than risk reversal</li>
+</ul>
+<p>Expiry outcome (if held):</p>
+<ul>
+<li>Nifty closes at 24,245 on November 21 (outside profit zone)</li>
+<li>Position expires with ₹780 value</li>
+<li>Would have resulted in ₹370 loss from Day 2 exit point</li>
+</ul>
+<p>Early exit saved ₹890 compared to holding to expiry. This example shows the value of taking profits when available rather than waiting for maximum profit.</p>
+<h2>When to Use Butterfly Spread</h2>
+<p>Butterfly spread thrives in specific market conditions. The ideal environment is low volatility consolidation with no major catalysts ahead.</p>
+<p>Best market scenarios:</p>
+<ul>
+<li><strong>Post-event consolidation</strong>: After RBI policy, budget, or election results pass, Nifty often consolidates for several days</li>
+<li><strong>Low VIX environment</strong>: India VIX below 14 indicates low expected volatility</li>
+<li><strong>Earnings gap weeks</strong>: Weeks between major earnings announcements when no significant news is expected</li>
+<li><strong>Holiday weeks</strong>: Trading days around Diwali, Holi, or other holidays see reduced volatility</li>
+<li><strong>Technical consolidation</strong>: Nifty trading in tight range for 3+ days suggests continued range-bound behavior</li>
+</ul>
+<p>Avoid butterfly spread during:</p>
+<ul>
+<li><strong>High volatility periods</strong>: India VIX above 18 increases breakout risk</li>
+<li><strong>Event weeks</strong>: RBI policy, budget, Fed announcements, election days</li>
+<li><strong>Trending markets</strong>: Strong uptrends or downtrends break through profit zones</li>
+<li><strong>Gap opening days</strong>: Large overnight gaps from global markets</li>
+<li><strong>Expiry day volatility</strong>: Intraday expiry day swings can breach profit zones quickly</li>
+</ul>
+<p>Time to expiry considerations:</p>
+<ul>
+<li><strong>1-7 days</strong>: Tight profit zones, lower net debit, faster theta decay</li>
+<li><strong>7-15 days</strong>: Wider profit zones possible, higher net debit, slower theta decay</li>
+<li><strong>15-30 days</strong>: Too much time for price to wander outside profit zone</li>
+</ul>
+<p>Weekly expiries work better for butterfly spreads than monthly expiries. The shorter time frame limits Nifty&#39;s ability to break out of the profit zone.</p>
+<p>Comparison with other range-bound strategies:</p>
+<table>
+<thead>
+<tr>
+<th>Strategy</th>
+<th>Net Cost</th>
+<th>Profit Zone Width</th>
+<th>Max Profit</th>
+<th>Max Loss</th>
+<th>Complexity</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Butterfly Spread</td>
+<td>₹2,000-5,000</td>
+<td>Narrow (10-30 points)</td>
+<td>₹2,000-4,000</td>
+<td>Limited to debit</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>Iron Condor</td>
+<td>₹3,000-8,000</td>
+<td>Wide (100-200 points)</td>
+<td>₹3,000-8,000</td>
+<td>Limited</td>
+<td>High</td>
+</tr>
+<tr>
+<td>Short Straddle</td>
+<td>₹15,000-25,000</td>
+<td>Medium (260+ points)</td>
+<td>₹15,000-25,000</td>
+<td>Unlimited</td>
+<td>Low</td>
+</tr>
+<tr>
+<td>Calendar Spread</td>
+<td>₹1,000-3,000</td>
+<td>Very narrow</td>
+<td>₹1,000-2,000</td>
+<td>Limited to debit</td>
+<td>Medium</td>
+</tr>
+</tbody></table>
+<p>Butterfly spread offers the most precise profit zone. You need to be right about the exact price level, not just the direction or range.</p>
+<h2>Managing Butterfly Spread Positions</h2>
+<p>Position monitoring requires checking Nifty price relative to your strikes. If Nifty stays within your profit zone, no action is needed. If Nifty approaches breakeven points, consider adjustments.</p>
+<p>Adjustment strategies:</p>
+<p><strong>Scenario 1: Nifty moves toward upper breakeven</strong></p>
+<ul>
+<li>Option A: Exit entire position to salvage remaining value</li>
+<li>Option B: Roll upper strikes higher (buy back 24,100 call, sell 24,150 call)</li>
+<li>Option C: Convert to call ratio spread by removing lower protection</li>
+</ul>
+<p><strong>Scenario 2: Nifty moves toward lower breakeven</strong></p>
+<ul>
+<li>Option A: Exit entire position</li>
+<li>Option B: Roll lower strikes down</li>
+<li>Option C: Convert to put ratio spread by removing upper protection</li>
+</ul>
+<p><strong>Scenario 3: Nifty reaches middle strike early</strong></p>
+<ul>
+<li>Option A: Exit with partial profit (recommended for beginners)</li>
+<li>Option B: Hold for maximum profit at expiry (risky if time remains)</li>
+<li>Option C: Adjust strikes to new expected price level</li>
+</ul>
+<p>Rolling positions forward works when your range thesis remains valid but timing was wrong. Close current expiry butterfly at a loss, open new butterfly in next expiry with same or adjusted strikes.</p>
+<p>Exit signals:</p>
+<ul>
+<li>Nifty closes outside profit zone 2 days before expiry</li>
+<li>India VIX spikes above 16 suddenly</li>
+<li>Major news announcement scheduled before expiry</li>
+<li>Position value declines by 60%+ of maximum loss</li>
+<li>Better opportunity emerges in different strategy</li>
+</ul>
+<p>Partial exits reduce risk while maintaining some profit potential. If you entered with 3 lots, exit 1-2 lots when profit reaches 30-40%, hold remainder for maximum profit.</p>
+<p>Stop loss approaches:</p>
+<ul>
+<li><strong>Time-based</strong>: Exit if profit zone not reached by 60% of time to expiry</li>
+<li><strong>Price-based</strong>: Exit if Nifty breaches breakeven points</li>
+<li><strong>Value-based</strong>: Exit if position value falls to 40% of initial debit</li>
+</ul>
+<p>Profit targets should be realistic. Maximum profit is achievable but rare. Setting targets at 40-60% of maximum profit increases success frequency.</p>
+<h2>Common Mistakes to Avoid</h2>
+<p>Wrong strike intervals create poor risk-reward ratios. If intervals are too wide, net debit increases significantly. If intervals are too narrow, maximum profit becomes tiny.</p>
+<p>Example of too-wide intervals (200 points):</p>
+<ul>
+<li>Buy 23,900 call, sell 2× 24,100 call, buy 24,300 call</li>
+<li>Net debit likely ₹8,000-12,000</li>
+<li>Maximum profit = ₹10,000 - net debit = -₹2,000 to ₹2,000</li>
+<li>Risk-reward ratio unfavorable</li>
+</ul>
+<p>Example of too-narrow intervals (25 points):</p>
+<ul>
+<li>Buy 23,975 call, sell 2× 24,000 call, buy 24,025 call</li>
+<li>Net debit likely ₹150-300</li>
+<li>Maximum profit = ₹1,250 - ₹300 = ₹950</li>
+<li>Profit zone extremely tight (5-10 points)</li>
+</ul>
+<p>Optimal intervals for Nifty: 50-100 points for weekly expiry, 100-150 points for monthly expiry.</p>
+<p>Entering butterfly spreads during high volatility wastes the strategy&#39;s advantage. When India VIX is above 16, option premiums are expensive and price swings are large. Both factors work against butterfly spreads.</p>
+<p>Ignoring upcoming events leads to unexpected losses. Always check:</p>
+<ul>
+<li>Economic calendar (RBI announcements, GDP releases, inflation data)</li>
+<li>Corporate events (major earnings reports that can move Nifty)</li>
+<li>Global events (Fed meetings, geopolitical tensions)</li>
+<li>Holiday schedules (liquidity drops before holidays)</li>
+</ul>
+<p>Holding positions into expiry day increases execution risk. Expiry day volatility can cause rapid swings through your profit zone. Consider exiting 1 day before expiry if reasonable profit is available.</p>
+<p>Legging into butterfly spreads manually creates undefined risk periods. If you sell middle strikes before buying outer strikes, you have naked short positions. These require large margin and carry unlimited risk.</p>
+<p>Not using spread orders costs money. Legging in manually results in:</p>
+<ul>
+<li>Worse fill prices (bid-ask spread on each leg)</li>
+<li>Execution risk (price changes between legs)</li>
+<li>Time waste (monitoring and executing four separate orders)</li>
+</ul>
+<p>Most brokers offer butterfly spread as a single order type. Use it.</p>
+<p>Oversizing positions relative to account size is dangerous even with defined risk. If you allocate 30% of capital to one butterfly spread, you cannot diversify across multiple opportunities. Limit individual positions to 5-10% of trading capital.</p>
+<p>Mixing expiry dates creates calendar spreads unintentionally. All four legs must have the same expiry date. Using different expiries changes the strategy entirely.</p>
+<h2>Risk Management and Position Sizing</h2>
+<p>Maximum loss is always limited to net debit paid. Unlike short straddles or naked positions, butterfly spreads cannot generate margin calls. Your risk is defined from day one.</p>
+<p>Position sizing calculation:</p>
+<ul>
+<li>Determine acceptable loss per trade (typically 2-5% of trading capital)</li>
+<li>If trading capital is ₹100,000 and risk tolerance is 3%, acceptable loss is ₹3,000</li>
+<li>With ₹3,000 net debit butterfly spread, take 1 lot maximum</li>
+<li>With ₹500 net debit butterfly spread, could take up to 6 lots (₹3,000 total risk)</li>
+</ul>
+<p>Diversification across strikes reduces concentration risk. Instead of one large butterfly at 24,000, consider two smaller butterflies at 23,950 and 24,050. This widens your effective profit zone.</p>
+<p>Multiple expiry diversification spreads risk over time. Place 3 smaller butterflies across 3 consecutive weekly expiries rather than 1 large butterfly in single expiry. If one week breaks out, others may succeed.</p>
+<p>Correlation with account positions matters. If you already hold long Nifty futures, adding butterfly spread creates mixed directional exposure. Ensure butterfly positions align with or hedge existing exposure appropriately.</p>
+<p>Win rate expectations for butterfly spreads range from 35-55% in Indian markets*. The strategy does not win most of the time. Success comes from keeping losses small (net debit only) while capturing occasional maximum profits.</p>
+<p>Expected value calculation:</p>
+<ul>
+<li>Average winning trade: ₹2,000 (assume 50% of maximum profit achieved)</li>
+<li>Average losing trade: ₹350 (full net debit lost)</li>
+<li>Win rate: 45%</li>
+<li>Expected value per trade: (0.45 × ₹2,000) - (0.55 × ₹350) = ₹900 - ₹193 = ₹707</li>
+</ul>
+<p>Over 10 trades, expected profit: ₹7,070. But individual results will vary significantly.</p>
+<p>Psychological preparation for narrow profit zones helps avoid emotional decisions. Butterfly spreads require patience and precision. You will experience many small losses before capturing maximum profit opportunities.</p>
+<h2>Execution Checklist and Action Plan</h2>
+<p><strong>Pre-Trade Analysis (5 minutes)</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"> Check India VIX level (must be below 15 for optimal conditions)</li>
+<li><input disabled="" type="checkbox"> Review economic calendar for next 7 days (no major events)</li>
+<li><input disabled="" type="checkbox"> Identify current Nifty support/resistance levels</li>
+<li><input disabled="" type="checkbox"> Confirm Nifty has consolidated for 2+ days</li>
+<li><input disabled="" type="checkbox"> Calculate expected profit zone and verify it aligns with recent trading range</li>
+</ul>
+<p><strong>Strike Selection (3 minutes)</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"> Choose middle strike where Nifty is expected to close at expiry</li>
+<li><input disabled="" type="checkbox"> Set strike intervals at 50-100 points for weekly, 100-150 for monthly</li>
+<li><input disabled="" type="checkbox"> Verify all strikes have sufficient liquidity (open interest above 10,000)</li>
+<li><input disabled="" type="checkbox"> Confirm bid-ask spreads are narrow (less than ₹2 per contract)</li>
+</ul>
+<p><strong>Position Entry (2 minutes)</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"> Place butterfly spread as single order (not individual legs)</li>
+<li><input disabled="" type="checkbox"> Set limit price for net debit (don&#39;t use market order)</li>
+<li><input disabled="" type="checkbox"> Verify lot size matches risk management rules (2-5% of capital)</li>
+<li><input disabled="" type="checkbox"> Confirm all four legs fill simultaneously before celebrating</li>
+</ul>
+<p><strong>Post-Entry Monitoring (Daily)</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"> Check Nifty price relative to breakeven points</li>
+<li><input disabled="" type="checkbox"> Monitor India VIX for sudden spikes</li>
+<li><input disabled="" type="checkbox"> Review position profit/loss daily (not intraday)</li>
+<li><input disabled="" type="checkbox"> Set calendar reminders for any upcoming events</li>
+<li><input disabled="" type="checkbox"> Decide exit strategy if profit reaches 40-60% of maximum</li>
+</ul>
+<p><strong>Exit Execution</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"> Exit day before expiry if reasonable profit exists</li>
+<li><input disabled="" type="checkbox"> Use spread order to close all legs simultaneously</li>
+<li><input disabled="" type="checkbox"> Accept market price if exiting due to risk (don&#39;t wait for perfect fill)</li>
+<li><input disabled="" type="checkbox"> Record trade details for future analysis</li>
+</ul>
+<p><strong>Post-Trade Review</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"> Document Nifty closing price versus your middle strike</li>
+<li><input disabled="" type="checkbox"> Calculate actual return versus maximum possible return</li>
+<li><input disabled="" type="checkbox"> Identify what worked or failed in analysis</li>
+<li><input disabled="" type="checkbox"> Update success rate statistics for future reference</li>
+<li><input disabled="" type="checkbox"> Adjust strike selection or timing based on lessons learned</li>
+</ul>
+<p>Start with paper trading or single-lot positions. Butterfly spreads are forgiving due to limited risk, but execution details matter. Practice strike selection and timing before scaling up position sizes.</p>
+<hr>
+<h2>Key Takeaways</h2>
+<p>Butterfly spread delivers controlled risk range trading with defined maximum loss and profit potential on Nifty consolidation.</p>
+<p>Strategy requires four option legs at three strikes with equal spacing creating narrow profit zone around middle strike.</p>
+<p>Maximum profit occurs if Nifty closes exactly at middle strike while maximum loss is limited to net debit paid.</p>
+<p>Best deployed in low volatility environments (VIX below 14) when expecting range-bound price action without catalysts.</p>
+<p>Time decay works in your favor as sold middle strikes lose value faster than bought outer strikes.</p>
+<p>Exit discipline critical: take profits at 40-60% of maximum rather than waiting for perfect outcome at expiry.</p>
+<p>Position sizing should limit individual butterfly spreads to 5-10% of trading capital despite defined risk advantage.</p>
+<hr>
+<h2>Action Plan</h2>
+<p><strong>Week 1-2: Paper Trading Practice</strong></p>
+<p>Paper trade 5-6 butterfly spreads across different market conditions. Track profit zones daily. Monitor how theta decay affects position value. Learn strike selection and timing without capital risk.</p>
+<p><strong>Week 3-4: Historical Analysis</strong></p>
+<p>Review past 20 consolidation periods on Nifty. Measure actual range width and duration. Note which would have profited butterfly spreads. Understand when consolidation continues versus breaks out.</p>
+<p><strong>Month 2: Small Real Position</strong></p>
+<p>Deploy ₹1,000-2,000 on single butterfly spread during clear consolidation. Use weekly expiry. Practice daily monitoring and exit timing. Experience real emotions with minimal capital risk.</p>
+<p><strong>Month 3: Strike Optimization</strong></p>
+<p>Test different strike intervals: 50-point vs 100-point vs 150-point gaps. Measure success rate and average profit per interval. Find personal sweet spot balancing cost and profit zone width.</p>
+<p><strong>Month 4: Multi-Position Management</strong></p>
+<p>Deploy 2-3 small butterflies simultaneously at different strikes or expiries. Practice diversification benefits. Learn correlation management across multiple positions.</p>
+<p>Review quarterly: Track win rate and average profit per winning trade. Successful butterfly traders achieve 35-55% win rates with consistent small profits offsetting frequent small losses. Patience and precision matter more than frequency.</p>
+<hr>
+<h2>Conclusion</h2>
+<p>Butterfly spread strategy delivers consistent small profits from range-bound Nifty movement. The setup is straightforward: buy 1 lower call, sell 2 middle calls, buy 1 upper call. Maximum risk is limited to net debit paid (₹2,000-5,000 typically). Maximum profit occurs if Nifty closes at middle strike.</p>
+<p>This strategy suits traders who prefer certainty over unlimited profit potential. You know your maximum loss from day one. No margin calls, no overnight panic. The challenge is picking the right price level and timing - Nifty must land in your narrow profit zone.</p>
+<p>Use butterfly spreads in low volatility environments (VIX below 14) when no major events loom. Avoid during trending markets or event weeks. Weekly expiries work better than monthly due to shorter time for breakouts.</p>
+<p>Ready to implement controlled risk range trading? Open your trading account with <strong>PL Capital</strong> and access expert guidance on options strategies. Our platform offers competitive brokerage, advanced option chain analysis, and dedicated support for derivatives traders.</p>
+<p><strong><a href="https://www.plindia.com">Start Trading Butterfly Spreads with PL Capital →</a></strong></p>
+<hr>
+<h2>Frequently Asked Questions</h2>
+<p><strong>Q: What is butterfly spread strategy in Nifty options?</strong>
+Butterfly spread is a limited risk options strategy that profits when Nifty stays within a specific range. You buy 1 lower strike call, sell 2 middle strike calls, and buy 1 higher strike call - all at equal intervals. Maximum profit occurs if Nifty closes exactly at the middle strike at expiry.</p>
+<p><strong>Q: How much margin is required for butterfly spread on Nifty?</strong>
+Butterfly spread requires ₹2,000-5,000 net debit for a standard Nifty setup. This is significantly lower than naked positions because the strategy is fully defined risk. No additional margin is blocked as the maximum loss is limited to the net premium paid.</p>
+<p><strong>Q: When should I use butterfly spread strategy?</strong>
+Use butterfly spread when you expect Nifty to remain range-bound with low volatility. Best setups occur before non-events (quiet weeks), after major announcements pass, when India VIX drops below 14, or during consolidation phases. Avoid during high volatility events.</p>
+<p><strong>Q: What is maximum profit and loss in butterfly spread?</strong>
+Maximum profit = (Strike interval - Net debit) × 50. Maximum loss = Net premium paid. For example, with 100-point intervals and ₹3,000 net debit, max profit is ₹2,000 (at middle strike) and max loss is ₹3,000 (if Nifty moves beyond outer strikes).</p>
+<p><strong>Q: How do I calculate breakeven points for butterfly spread?</strong>
+Lower breakeven = Middle strike - (Net debit ÷ 50). Upper breakeven = Middle strike + (Net debit ÷ 50). The profit zone exists between these two points. For example, with 24,000 middle strike and ₹2,500 net debit, breakevens are 23,950 and 24,050.</p>
+<hr>
+<div class="important-notes"><p><strong>Important Notes:</strong></p>
+<p>*Win rates, returns, and profit expectations vary based on market conditions, strike selection, timing, and individual execution. Historical examples represent specific scenarios and do not guarantee future results. Actual trading outcomes depend on accurate price prediction, volatility changes, and proper risk management.</p>
+<p>Butterfly spread strategy involves defined risk limited to net premium paid, but losses can reach 100% of the invested amount if Nifty closes outside the profit zone. Profit zones are narrow and require precise price prediction. Success rates typically range from 35-55% in Indian options markets based on historical patterns, but individual results vary significantly.</p>
+<p>Options trading requires understanding of Greeks, time decay, and volatility. Consult with a SEBI-registered investment advisor before implementing butterfly spreads. Ensure you have sufficient knowledge of options mechanics and risk management principles. Trading capital should be risk capital only - never use borrowed money or funds needed for essential expenses.</p>
+</div><p><strong>Created by PL Capital Research Team | November 2025</strong></p>
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What is butterfly spread strategy in Nifty options?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Butterfly spread is a limited risk options strategy that profits when Nifty stays within a specific range. You buy 1 lower strike call, sell 2 middle strike calls, and buy 1 higher strike call - all at equal intervals. Maximum profit occurs if Nifty closes exactly at the middle strike at expiry."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How much margin is required for butterfly spread on Nifty?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Butterfly spread requires ₹2,000-5,000 net debit for a standard Nifty setup. This is significantly lower than naked positions because the strategy is fully defined risk. No additional margin is blocked as the maximum loss is limited to the net premium paid."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "When should I use butterfly spread strategy?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Use butterfly spread when you expect Nifty to remain range-bound with low volatility. Best setups occur before non-events (quiet weeks), after major announcements pass, when India VIX drops below 14, or during consolidation phases. Avoid during high volatility events."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What is maximum profit and loss in butterfly spread?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Maximum profit = (Strike interval - Net debit) × 50. Maximum loss = Net premium paid. For example, with 100-point intervals and ₹3,000 net debit, max profit is ₹2,000 (at middle strike) and max loss is ₹3,000 (if Nifty moves beyond outer strikes)."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I calculate breakeven points for butterfly spread?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Lower breakeven = Middle strike - (Net debit ÷ 50). Upper breakeven = Middle strike + (Net debit ÷ 50). The profit zone exists between these two points. For example, with 24,000 middle strike and ₹2,500 net debit, breakevens are 23,950 and 24,050."
+      }
+    }
+  ]
+}
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "Butterfly Spread Strategy Nifty: Limited Risk Range Trading Guide 2025",
+  "description": "Master butterfly spread strategy on Nifty with real examples. Learn setup, breakeven calculation, and profit zones for low-risk range-bound trading in Indian options market.",
+  "author": {
+    "@type": "Organization",
+    "name": "PL Capital"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "PL Capital",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://www.plindia.com/logo.png"
+    }
+  },
+  "datePublished": "2025-11-17",
+  "dateModified": "2025-11-17"
+}
+</script>

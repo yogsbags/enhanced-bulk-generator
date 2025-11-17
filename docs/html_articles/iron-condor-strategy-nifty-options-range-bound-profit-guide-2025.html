@@ -1,0 +1,452 @@
+<h1>Iron Condor Strategy for Nifty Options: Range-Bound Profit Guide</h1>
+<p><strong>Last Updated:</strong> November 2025 | <strong>Reading Time:</strong> 11 minutes</p>
+<hr>
+<h2>Executive Summary</h2><div class="executive-summary">
+<p>Iron condor is a neutral options strategy profiting from range-bound markets. Over 1 lakh Indian traders use this strategy monthly. This guide covers complete iron condor implementation for Nifty options.</p>
+<p>You&#39;ll learn construction, risk management, adjustment techniques, and profit maximization. The focus is practical execution for traders with 6+ months options experience.</p>
+<p><strong>Key Statistics:</strong></p>
+<ul>
+<li>Win rate in true range-bound markets: 65-75%</li>
+<li>Capital required: ₹7,500-12,000 per position</li>
+<li>Maximum profit: Premium collected</li>
+<li>Risk-reward ratio: Typically 1:1 to 1:1.5</li>
+<li>Best success: VIX below 13</li>
+<li>Ideal holding period: 5-10 days</li>
+<li>Nifty lot size: 75 units (as of Nov 2025, subject to NSE revisions)*</li>
+</ul>
+<hr>
+<p>Iron condor combines two credit spreads simultaneously. You sell OTM call spread and OTM put spread. This creates a profit zone in the middle.</p>
+<p>Most markets trade sideways 60-70% of the time. Directional moves are rare. Iron condor profits from this reality.</p>
+<p>The strategy benefits from theta decay and low volatility. Time is your friend here, unlike directional trades. Premium collected decays to zero if Nifty stays in range.</p>
+<p><strong>Why Iron Condor Works:</strong></p>
+<p>Markets consolidate after big moves. Traders wait for direction. This creates perfect range-bound conditions.</p>
+<p>Theta decay works on four options simultaneously. Your profit accumulates daily. No need for Nifty to move favorably.</p>
+<p>Defined risk on both sides reduces stress. You know maximum loss upfront. No unlimited risk like naked option selling.</p>
+<p><strong>Who Should Trade Iron Condor:</strong></p>
+<p>Traders with 6+ months options experience. You need to understand spreads first. Master bull call and bear put spreads before attempting this.</p>
+<p>Those comfortable managing multiple positions. Four legs require attention. Not suitable for set-and-forget traders.</p>
+<p>Traders with patience for sideways markets. If you need daily action, this isn&#39;t for you. Iron condor needs market to do nothing.</p>
+<hr>
+</div><h2>Understanding Iron Condor Structure</h2>
+<h3>What is an Iron Condor</h3>
+<p>An iron condor has four legs spread across two credit spreads. It looks complex but follows simple logic.</p>
+<p><strong>Upper Spread (Bear Call Spread):</strong></p>
+<ul>
+<li>Sell OTM call (resistance)</li>
+<li>Buy further OTM call (protection)</li>
+</ul>
+<p><strong>Lower Spread (Bull Put Spread):</strong></p>
+<ul>
+<li>Sell OTM put (support)</li>
+<li>Buy further OTM put (protection)</li>
+</ul>
+<p>Between the two sold strikes, you have a profit zone. Nifty must stay within this range.</p>
+<h3>Example Setup: Complete Iron Condor</h3>
+<p>Nifty at 21,400</p>
+<p><strong>Upper Spread:</strong></p>
+<ul>
+<li>Sell 21,600 CE at ₹60</li>
+<li>Buy 21,700 CE at ₹30</li>
+<li>Net credit: ₹30</li>
+</ul>
+<p><strong>Lower Spread:</strong></p>
+<ul>
+<li>Sell 21,200 PE at ₹55</li>
+<li>Buy 21,100 PE at ₹25</li>
+<li>Net credit: ₹30</li>
+</ul>
+<p><strong>Total Credit:</strong> ₹60 × 75 = ₹4,500 (maximum profit)</p>
+<p><strong>Profit Zone:</strong> 21,200 to 21,600 (400-point range)</p>
+<h3>Why Four Legs Instead of Two</h3>
+<p>Selling naked options has unlimited risk. One side can blow up your account.</p>
+<p>Buying protection (the outer strikes) caps your maximum loss. You sleep better at night.</p>
+<p>The cost is reduced profit. Protection isn&#39;t free. But defined risk is worth it.</p>
+<hr>
+<h2>When to Use Iron Condor</h2>
+<h3>Ideal Market Conditions</h3>
+<p><strong>Consolidation Phase:</strong> Nifty trading in 300-400 point range for 3+ days. No breakout attempts.</p>
+<p><strong>Low Volatility:</strong> India VIX below 13. High VIX makes premiums expensive. Iron condor needs cheap premiums.</p>
+<p><strong>No Major Events:</strong> No RBI policy, budget, or global events within 7-10 days. Events break ranges.</p>
+<p><strong>Technical Setup:</strong> Nifty between strong support and resistance. Clear boundaries established.</p>
+<h3>When to Avoid Iron Condor</h3>
+<p><strong>Trending Markets:</strong> Strong uptrend or downtrend. Nifty making higher highs or lower lows. Don&#39;t fight trends.</p>
+<p><strong>High Volatility:</strong> VIX above 16. Premiums too expensive. Risk-reward becomes unfavorable.</p>
+<p><strong>Event Week:</strong> Budget week, RBI policy, Fed announcement. Gaps destroy iron condors overnight.</p>
+<p><strong>Weak Support/Resistance:</strong> No clear range boundaries. Nifty could break either direction easily.</p>
+<h3>VIX Considerations</h3>
+<p>VIX below 12: Excellent for iron condor. Premiums low. Theta works beautifully.</p>
+<p>VIX 12-14: Good conditions. Slight risk but manageable. Monitor closely.</p>
+<p>VIX 14-16: Borderline. Consider skipping or using wider spreads. Risk increasing.</p>
+<p>VIX above 16: Avoid iron condor. Too risky. High probability of range breaks.</p>
+<hr>
+<h2>Step-by-Step Iron Condor Construction</h2>
+<h3>Step 1: Identify the Range</h3>
+<p>Look at last 5-7 days. Note Nifty&#39;s high and low. This establishes range boundaries.</p>
+<p><strong>Example:</strong> Nifty last 7 days: High 21,480, Low 21,320. Range is 160 points.</p>
+<p>For iron condor, you want 300-400 point range minimum. Tighter ranges risk getting tested.</p>
+<h3>Step 2: Determine Strike Prices</h3>
+<p><strong>Current Nifty:</strong> 21,400 (assumed ATM)</p>
+<p><strong>Upper Spread Strikes:</strong></p>
+<ul>
+<li>Sell strike: 200-250 points above current (21,600 or 21,650)</li>
+<li>Buy strike: 100 points above sell strike (21,700 or 21,750)</li>
+</ul>
+<p><strong>Lower Spread Strikes:</strong></p>
+<ul>
+<li>Sell strike: 200-250 points below current (21,150 or 21,200)</li>
+<li>Buy strike: 100 points below sell strike (21,050 or 21,100)</li>
+</ul>
+<p><strong>Rule:</strong> Keep 200-300 points buffer from current price to sold strikes. This increases win rate.</p>
+<h3>Step 3: Check Premium Values</h3>
+<p>Look at option chain. Note premiums for your selected strikes.</p>
+<p><strong>Upper Spread:</strong></p>
+<ul>
+<li>21,600 CE: ₹60 (sell)</li>
+<li>21,700 CE: ₹30 (buy)</li>
+<li>Net credit: ₹30</li>
+</ul>
+<p><strong>Lower Spread:</strong></p>
+<ul>
+<li>21,200 PE: ₹55 (sell)</li>
+<li>21,100 PE: ₹25 (buy)</li>
+<li>Net credit: ₹30</li>
+</ul>
+<p><strong>Total credit:</strong> ₹60 per contract × 75 lot size = ₹4,500</p>
+<p>Target minimum ₹50-70 total credit per contract. Below ₹50 isn&#39;t worth the risk.</p>
+<h3>Step 4: Calculate Risk-Reward</h3>
+<p><strong>Maximum Profit:</strong> Total premium collected = ₹4,500</p>
+<p><strong>Maximum Loss per side:</strong> (Spread width - Net credit) × Lot size</p>
+<p>Upper side max loss: (100 - 60) × 75 = ₹3,000
+Lower side max loss: (100 - 60) × 75 = ₹3,000</p>
+<p><strong>Overall max loss:</strong> ₹3,000 (one side only gets tested)</p>
+<p><strong>Risk-Reward:</strong> ₹3,000 risk for ₹4,500 reward = 1:1.5</p>
+<h3>Step 5: Execute the Trade</h3>
+<p>Place all four orders simultaneously. Use &quot;Order Window&quot; feature in your trading platform.</p>
+<p><strong>Order 1:</strong> Sell 21,600 CE (1 lot)
+<strong>Order 2:</strong> Buy 21,700 CE (1 lot)
+<strong>Order 3:</strong> Sell 21,200 PE (1 lot)
+<strong>Order 4:</strong> Buy 21,100 PE (1 lot)</p>
+<p>Execute as limit orders, not market orders. This ensures you get desired credits.</p>
+<p>If all four don&#39;t fill together, cancel and retry. Don&#39;t create partial iron condor.</p>
+<hr>
+<h2>Profit and Loss Scenarios</h2>
+<h3>Maximum Profit Scenario</h3>
+<p><strong>Condition:</strong> Nifty expires between 21,200 and 21,600</p>
+<p>All four options expire worthless. You keep entire ₹4,500 premium collected.</p>
+<p>This happens 65-75% of the time in genuine range-bound conditions.</p>
+<p><strong>Example:</strong> Entry at Nifty 21,400. Expiry at Nifty 21,450. All OTM. Full profit.</p>
+<h3>Breakeven Points</h3>
+<p><strong>Upper Breakeven:</strong> Sell call strike + Total credit collected</p>
+<p>21,600 + 60 = 21,660</p>
+<p><strong>Lower Breakeven:</strong> Sell put strike - Total credit collected</p>
+<p>21,200 - 60 = 21,140</p>
+<p>As long as Nifty between 21,140 and 21,660, you profit. That&#39;s 520-point range.</p>
+<h3>Maximum Loss Scenarios</h3>
+<p><strong>Upper Side Breach:</strong> Nifty expires above 21,700</p>
+<p>Upper spread maxes out at ₹100 difference.
+Lower spread expires worthless.</p>
+<p>Calculation:</p>
+<ul>
+<li>Premium collected: ₹4,500</li>
+<li>Upper spread loss: (21,700 - 21,600) × 75 = ₹7,500</li>
+<li>Net loss: ₹7,500 - ₹4,500 = ₹3,000</li>
+</ul>
+<p><strong>Lower Side Breach:</strong> Nifty expires below 21,100</p>
+<p>Lower spread maxes out. Loss = ₹3,000
+Upper spread expires worthless.
+Net loss: ₹3,000</p>
+<h3>Partial Profit Scenarios</h3>
+<p><strong>Scenario 1:</strong> Nifty at 21,550 at expiry (near upper sold strike)</p>
+<p>Upper spread has small value (₹50 intrinsic). Lower spread worthless.</p>
+<p>Loss on upper spread: ₹50 × 75 = ₹3,750
+Premium collected: ₹4,500
+Net profit: ₹750</p>
+<p><strong>Scenario 2:</strong> Nifty at 21,250 at expiry (near lower sold strike)</p>
+<p>Lower spread has small value. Upper spread worthless.</p>
+<p>Similar calculation: Small profit or breakeven.</p>
+<hr>
+<h2>Managing the Iron Condor</h2>
+<h3>Daily Monitoring</h3>
+<p>Check position twice daily minimum. Morning at 10 AM, afternoon at 2 PM.</p>
+<p>Track Nifty&#39;s distance from your sold strikes. Ideal: 150-200 points buffer maintained.</p>
+<p>Monitor India VIX. Rising VIX increases risk. Falling VIX benefits your position.</p>
+<h3>When to Exit Early</h3>
+<p><strong>Target Hit:</strong> Position value drops to 30-40% of credit received. Book 60-70% profit.</p>
+<p><strong>Example:</strong> Collected ₹4,500. Position value now ₹1,800. Exit for ₹2,700 profit.</p>
+<p>Don&#39;t wait for 100% profit. Theta slows near expiry. Risk increases.</p>
+<p><strong>Time-Based Exit:</strong> 2 days before expiry. Gamma risk increases. Close all legs.</p>
+<p><strong>Danger Zone Approach:</strong> Nifty within 100 points of either sold strike. Consider exiting threatened side.</p>
+<h3>Rolling the Iron Condor</h3>
+<p>If Nifty approaches one side early in cycle, you can roll to next week.</p>
+<p><strong>Upper Side Threatened:</strong> Close upper spread. Open new upper spread further out.</p>
+<p><strong>Example:</strong> Nifty at 21,550 on Monday (8 days to expiry).</p>
+<p>Close 21,600/21,700 call spread. Open 21,700/21,800 call spread.</p>
+<p>Cost: Small debit usually. But extends profit zone.</p>
+<h3>Adjusting Under Threat</h3>
+<p><strong>Option 1: Close Threatened Side</strong></p>
+<p>Nifty breaks 21,550 heading toward 21,600. Close upper call spread immediately.</p>
+<p>Take small loss on upper (₹750-1,500). Keep lower spread for continued profit.</p>
+<p><strong>Option 2: Convert to Butterfly</strong></p>
+<p>Close buy side of threatened spread. Sell another spread at next strike.</p>
+<p>Complex adjustment. Only for experienced traders.</p>
+<p><strong>Option 3: Exit Entirely</strong></p>
+<p>If both sides getting tested (high volatility), exit completely. Accept loss.</p>
+<p>Fighting extreme moves destroys accounts. Live to trade another day.</p>
+<hr>
+<h2>Understanding Greeks in Iron Condor</h2>
+<h3>Theta: Your Best Friend</h3>
+<p>You have four short options and four long options. Net theta is positive.</p>
+<p><strong>Daily Theta Decay:</strong> Approximately ₹150-225 per day typically.</p>
+<p><strong>Example:</strong> Monday position value ₹4,500. Tuesday (no price change) value ₹4,275.</p>
+<p>Theta works 24/7. Weekends help too. Each passing day is profit.</p>
+<p><strong>Acceleration:</strong> Theta decay accelerates last 7 days. Maximum benefit final week.</p>
+<h3>Delta: Staying Neutral</h3>
+<p>Iron condor starts delta neutral. Equal calls and puts sold.</p>
+<p>As Nifty moves, delta changes. Moving up increases positive delta. Moving down increases negative delta.</p>
+<p><strong>Goal:</strong> Keep delta between -15 and +15 (for 75 lot size).</p>
+<p>If delta reaches ±30, consider adjustments. One side is getting tested.</p>
+<h3>Gamma: The Hidden Risk</h3>
+<p>Gamma is your enemy in iron condor. It represents delta acceleration.</p>
+<p>Near expiry, ATM options have extreme gamma. Your sold strikes are far OTM, so gamma is low initially.</p>
+<p>If Nifty approaches sold strike, gamma explodes. Small Nifty moves create huge P&amp;L swings.</p>
+<p><strong>Protection:</strong> Exit or adjust before Nifty reaches sold strikes. Don&#39;t fight gamma.</p>
+<h3>Vega: Volatility Impact</h3>
+<p>You&#39;re short vega overall. Increasing volatility hurts your position.</p>
+<p><strong>VIX Rises 2 points:</strong> Your position loses ₹600-900 typically.</p>
+<p><strong>VIX Falls 2 points:</strong> Your position gains ₹600-900 typically.</p>
+<p>This is why VIX below 13 is ideal entry condition. Room for VIX to fall further.</p>
+<hr>
+<h2>Real Iron Condor Trade Examples</h2>
+<h3>Example 1: Perfect Range-Bound Trade</h3>
+<p><strong>Date:</strong> Monday, October 28, 2025</p>
+<p><strong>Setup:</strong> Nifty at 21,350. Trading 21,300-21,450 range for 6 days. VIX at 11.5.</p>
+<p><strong>Entry:</strong> 10:30 AM Monday</p>
+<p>Sell 21,600 CE at ₹58. Buy 21,700 CE at ₹28. Credit: ₹30
+Sell 21,200 PE at ₹52. Buy 21,100 PE at ₹22. Credit: ₹30</p>
+<p>Total credit: ₹60 × 75 = ₹4,500</p>
+<p><strong>Management:</strong> Nifty ranged between 21,320-21,480 entire week. Perfect conditions.</p>
+<p><strong>Exit:</strong> Wednesday (9 days later), 2 days before expiry</p>
+<p>Position value: ₹1,350 (70% decay). Bought back all four legs.</p>
+<p><strong>Profit:</strong> ₹4,500 - ₹1,350 = ₹3,150 (70% of maximum profit)</p>
+<p><strong>Duration:</strong> 9 days holding period. Theta decay worked perfectly.</p>
+<h3>Example 2: Upper Side Adjustment Required</h3>
+<p><strong>Date:</strong> Monday, November 4, 2025</p>
+<p><strong>Setup:</strong> Nifty at 21,400. VIX at 12.8. Range 21,300-21,500 established.</p>
+<p><strong>Entry:</strong> Same as Example 1 structure</p>
+<p><strong>Problem:</strong> Thursday, Nifty breaks 21,500 resistance. Rallies to 21,580.</p>
+<p>Upper side threatened. 21,600 CE now trading ₹85 (was ₹58).</p>
+<p><strong>Adjustment:</strong> Close upper call spread immediately.</p>
+<p>Buy back 21,600 CE at ₹85. Sell 21,700 CE at ₹45.</p>
+<p>Upper spread loss: (85 - 58 - 45 + 28) × 75 = ₹750 loss</p>
+<p><strong>Continue:</strong> Keep lower put spread running. Nifty stabilizes 21,550-21,600.</p>
+<p><strong>Final Exit:</strong> Friday before expiry</p>
+<p>Lower put spread collected full ₹30 credit = ₹2,250
+Upper adjustment loss: ₹750
+Net profit: ₹1,500</p>
+<p><strong>Lesson:</strong> Quick adjustment saved ₹2,250. Without adjustment, upper side would have maxed out.</p>
+<h3>Example 3: Failed Trade - Exit with Loss</h3>
+<p><strong>Date:</strong> Monday, November 11, 2025</p>
+<p><strong>Setup:</strong> Nifty at 21,450. VIX 13.2 (bit high but acceptable).</p>
+<p><strong>Entry:</strong> Standard iron condor structure</p>
+<p><strong>Problem:</strong> Tuesday gap down 250 points on global selloff. Nifty opens 21,200.</p>
+<p>Lower put spread immediately tested. 21,200 PE now ITM.</p>
+<p><strong>Decision:</strong> Exit entire position immediately at 11 AM Tuesday.</p>
+<p><strong>Loss Calculation:</strong></p>
+<p>Upper spread: Closed at profit (calls worthless). Gain ₹2,250
+Lower spread: Closed at loss. Loss ₹6,000
+Net loss: ₹3,750</p>
+<p><strong>Lesson:</strong> Gap openings are iron condor&#39;s worst enemy. Exit fast. Don&#39;t hope for recovery.</p>
+<hr>
+<h2>Advanced Iron Condor Techniques</h2>
+<h3>Unbalanced Iron Condor</h3>
+<p>Skew ratio based on market bias. If slightly bullish, make put spread wider.</p>
+<p><strong>Example:</strong></p>
+<ul>
+<li>Call spread: 100-point width</li>
+<li>Put spread: 150-point width</li>
+</ul>
+<p>Collects more premium on put side. Accommodates small upward bias.</p>
+<p>Only for experienced traders. Requires good directional sense.</p>
+<h3>Weekly vs Monthly Iron Condor</h3>
+<p><strong>Weekly Advantages:</strong></p>
+<ul>
+<li>Faster theta decay</li>
+<li>Can execute 4 times per month</li>
+<li>Lower capital per trade</li>
+</ul>
+<p><strong>Monthly Advantages:</strong></p>
+<ul>
+<li>Larger profit per trade</li>
+<li>Less stressful management</li>
+<li>More time for adjustments</li>
+</ul>
+<p>Beginners: Start with monthly. Move to weekly after consistency.</p>
+<h3>Multiple Iron Condors</h3>
+<p>Trade 2-3 iron condors with different expiries. Smooth out returns.</p>
+<p><strong>Example:</strong></p>
+<ul>
+<li>Iron Condor 1: This week expiry</li>
+<li>Iron Condor 2: Next week expiry</li>
+<li>Iron Condor 3: Monthly expiry</li>
+</ul>
+<p>Diversifies risk across time. One failure doesn&#39;t destroy month.</p>
+<hr>
+<h2>Common Iron Condor Mistakes</h2>
+<p><strong>Mistake 1: Trading in Trending Markets</strong></p>
+<p>Biggest error. Setting up iron condor when Nifty clearly trending.</p>
+<p>Result: One side gets destroyed. Maximum loss realized. Learn to identify trends first.</p>
+<p><strong>Mistake 2: Too Narrow Wings</strong></p>
+<p>Using 50-point spreads to collect more premium. Risk is too high.</p>
+<p>Nifty moves 50 points easily. Your spread maxes out frequently. Use 100-point minimum.</p>
+<p><strong>Mistake 3: Not Taking Profits</strong></p>
+<p>Holding for 100% profit. Theta slows last 2 days. Risk increases.</p>
+<p>Take 60-70% profit. Redeploy capital into new iron condor.</p>
+<p><strong>Mistake 4: Ignoring VIX</strong></p>
+<p>Setting up iron condor when VIX is 18. Premium looks attractive.</p>
+<p>But high VIX signals trouble ahead. Range likely to break. Wait for VIX below 14.</p>
+<p><strong>Mistake 5: Over-Leveraging</strong></p>
+<p>Trading 5-10 iron condors simultaneously with small account. One bad event destroys everything.</p>
+<p>Trade 1-2 maximum per expiry cycle. Scale gradually after consistent profits.</p>
+<p><strong>Mistake 6: No Adjustment Plan</strong></p>
+<p>Entering trade without knowing what to do if threatened. Panic decisions follow.</p>
+<p>Plan adjustments before entry. Know your exit triggers precisely.</p>
+<hr>
+<h2>Risk Management for Iron Condor</h2>
+<h3>Position Sizing</h3>
+<p>With ₹1 lakh capital, trade 1-2 iron condors maximum. Each has ₹7,500-12,000 capital requirement.</p>
+<p>Keep 70% capital as buffer. Market opportunities come unexpectedly.</p>
+<h3>Stop-Loss Rules</h3>
+<p><strong>Position-Based Stop-Loss:</strong> Exit if position value reaches 1.5X credit received.</p>
+<p>Example: Collected ₹4,500. Exit if position value hits ₹6,750. Loss = ₹2,250.</p>
+<p><strong>Time-Based Stop-Loss:</strong> Exit 2 days before expiry regardless. Gamma risk too high.</p>
+<h3>Diversification</h3>
+<p>Don&#39;t trade only iron condors. Mix with directional strategies. Balance your portfolio.</p>
+<p>Iron condor works 70% of the time. Other 30% needs different strategies.</p>
+<h3>Capital Allocation</h3>
+<p>Allocate maximum 30% capital to iron condors. Keep 40% for directional trades. Reserve 30% cash.</p>
+<p>This ensures you can handle unexpected volatility. Prevents forced exits at losses.</p>
+<hr>
+<h2>Key Takeaways</h2>
+<p>Iron condor profits from range-bound markets. Nifty stays sideways 60-70% of days.</p>
+<p>Four-leg structure provides defined risk on both sides. Maximum loss is known upfront.</p>
+<p>Best conditions: VIX below 13, established range, no events upcoming. Wait for these conditions.</p>
+<p>Theta decay works in your favor daily. Time is your friend. Each day without price movement is profit.</p>
+<p>Take profits at 60-70% of maximum. Don&#39;t wait for 100%. Redeploy capital faster.</p>
+<p>Exit 2 days before expiry. Gamma risk increases exponentially. Book profits and move on.</p>
+<p>Adjust quickly when threatened. Close threatened side or roll out. Don&#39;t freeze hoping for recovery.</p>
+<p>Start with monthly expiries. Master basics before attempting weeklies. Complexity increases with shorter duration.</p>
+<p>Trade 1-2 positions maximum per cycle. Over-leveraging destroys accounts during volatile events.</p>
+<p>Paper trade minimum 10 iron condors before using real money. Understand adjustment mechanics thoroughly.</p>
+<hr>
+<h2>Action Plan</h2>
+<p><strong>Month 1-2:</strong> Study iron condor mechanics. Understand profit/loss graphs. Learn to identify range-bound markets.</p>
+<p><strong>Month 3-4:</strong> Paper trade 10 iron condors. Track every entry, adjustment, exit. Calculate success rate.</p>
+<p><strong>Month 5:</strong> Start real trading with ₹50,000 capital. Trade 1 iron condor monthly expiry. Risk ₹7,500 maximum.</p>
+<p><strong>Month 6-8:</strong> Introduce adjustments in live trading. Practice rolling threatened sides. Build confidence.</p>
+<p><strong>Month 9-12:</strong> Scale to 2 iron condors per cycle if consistently profitable. Experiment with weekly options cautiously.</p>
+<p><strong>Year 2:</strong> Refine strategy. Develop personal rules for entry/exit. Optimize based on your results.</p>
+<p>Join options strategy communities. Share iron condor experiences. Learn from others&#39; mistakes.</p>
+<p>Maintain detailed journal. Note VIX at entry, Nifty range, adjustments made, final outcome.</p>
+<p>Review monthly performance. Calculate win rate, average profit, largest loss. Improve continuously.</p>
+<hr>
+<h2>Conclusion</h2>
+<p>Iron condor is a powerful strategy for profiting from range-bound Nifty markets. When executed with discipline, it generates consistent returns with defined risk.</p>
+<p>Success requires patience for proper market conditions. Don&#39;t force iron condors in trending or high volatility environments. Wait for VIX below 13 and established ranges.</p>
+<p>The strategy combines multiple options requiring active management. Quick adjustments and profit-taking separate winners from losers. Don&#39;t become complacent after initial success.</p>
+<p>Most importantly, position sizing and risk management determine long-term survival. One oversized position in volatile conditions can destroy months of profits.</p>
+<p><strong>Ready to master iron condor strategy? Open your F&amp;O account with PL Capital and access advanced options strategy tools.</strong></p>
+<p><a href="https://instakyc.plindia.com/"><strong>Open Your PL Capital Account →</strong></a></p>
+<hr>
+<h2>Frequently Asked Questions</h2>
+<p><strong>Q1: What is the minimum capital required to trade Nifty iron condor strategy safely?</strong></p>
+<p>Minimum ₹50,000 recommended for 1 iron condor position. Each position needs ₹5,000-8,000 capital plus buffer. With ₹1 lakh, you can comfortably manage 2 positions with proper risk management.</p>
+<p><strong>Q2: Should beginners start with iron condor or simpler strategies like long calls?</strong></p>
+<p>Start with directional strategies first. Master bull call and bear put spreads for 6 months. Then progress to iron condor. It requires understanding four-leg positions and adjustment techniques.</p>
+<p><strong>Q3: What happens if Nifty gaps beyond my sold strikes overnight?</strong></p>
+<p>Gap openings are iron condor&#39;s biggest risk. Exit immediately when market opens. Don&#39;t wait hoping for recovery. Accept loss and move on. This prevents maximum loss scenarios.</p>
+<p><strong>Q4: How do I know when Nifty is truly range-bound for iron condor?</strong></p>
+<p>Look for 5-7 days consolidation within 300-400 point range. Clear support-resistance levels. VIX below 13. No major events within 10 days. All these confirm range-bound conditions.</p>
+<p><strong>Q5: Should I hold iron condor till expiry or exit early with partial profits?</strong></p>
+<p>Exit at 60-70% of maximum profit, typically 7-10 days into monthly cycle. Don&#39;t hold till expiry. Gamma risk increases final 2 days. Book profits and redeploy capital.</p>
+<hr>
+<div class="important-notes"><p><strong>Important Notes:</strong>
+*Participation figures are estimates. Lot sizes, strike intervals, and contract specifications subject to NSE circulars. Success rates are based on observed market patterns and not guarantees. Iron condor strategy involves substantial risk. This guide is for educational purposes only. Past performance doesn&#39;t guarantee future results. Consult a SEBI-registered advisor before trading. Practice with paper trading extensively.</p>
+</div><p><strong>Created by PL Capital Research Team | November 2025</strong></p>
+
+
+<script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What is the minimum capital required to trade Nifty iron condor strategy safely?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Minimum ₹50,000 recommended for 1 iron condor position. Each position needs ₹5,000-8,000 capital plus buffer. With ₹1 lakh, you can comfortably manage 2 positions with proper risk management."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Should beginners start with iron condor or simpler strategies like long calls?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Start with directional strategies first. Master bull call and bear put spreads for 6 months. Then progress to iron condor. It requires understanding four-leg positions and adjustment techniques."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What happens if Nifty gaps beyond my sold strikes overnight?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Gap openings are iron condor's biggest risk. Exit immediately when market opens. Don't wait hoping for recovery. Accept loss and move on. This prevents maximum loss scenarios."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I know when Nifty is truly range-bound for iron condor?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Look for 5-7 days consolidation within 300-400 point range. Clear support-resistance levels. VIX below 13. No major events within 10 days. All these confirm range-bound conditions."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Should I hold iron condor till expiry or exit early with partial profits?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Exit at 60-70% of maximum profit, typically 7-10 days into monthly cycle. Don't hold till expiry. Gamma risk increases final 2 days. Book profits and redeploy capital."
+        }
+      }
+    ]
+  }
+</script>
+
+<script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Iron Condor Strategy for Nifty Options: Range-Bound Profit Guide",
+    "description": "Comprehensive guide to iron condor strategy for Nifty options covering construction, profit/loss scenarios, Greeks analysis, adjustment techniques, risk management, and real trade examples.",
+    "image": "https://plcapital.com/images/iron-condor-strategy-guide.jpg",
+    "author": {
+      "@type": "Organization",
+      "name": "PL Capital Research Team"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "PL Capital",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://plcapital.com/logo.png"
+      }
+    },
+    "datePublished": "2025-11-14",
+    "dateModified": "2025-11-14",
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": "https://plcapital.com/iron-condor-strategy-nifty-options-range-bound-profit-guide-2025"
+    }
+  }
+</script>

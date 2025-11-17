@@ -20,10 +20,17 @@ class SEOOptimizer {
     console.log('\n🔧 SEO OPTIMIZATION STARTED');
     console.log('='.repeat(60));
 
-    const pendingContent = this.csvManager.getContentByApprovalStatus(['Needs-SEO', 'Pending']);
+    // Only optimize content that has passed validation
+    const pendingContent = this.csvManager.getContentByApprovalStatus([
+      'Validation-Passed',  // NEW: Only process validated content
+      'Needs-SEO',          // LEGACY: For backwards compatibility
+      'Pending'             // LEGACY: For backwards compatibility
+    ]);
 
     if (pendingContent.length === 0) {
-      console.log('⚠️  No content awaiting SEO optimization. Approve content from Stage 4 first.');
+      console.log('⚠️  No content awaiting SEO optimization.');
+      console.log('   • Content must pass validation first (Stage 4.5)');
+      console.log('   • Run: node main.js stage validation');
       return [];
     }
 

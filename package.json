@@ -12,7 +12,8 @@
     "status": "node main.js status",
     "init": "node main.js init",
     "test": "node test-google-apis.js",
-    "test:google-apis": "node test-google-apis.js"
+    "test:google-apis": "node test-google-apis.js",
+    "convert-html": "node scripts/markdown-to-html-converter.js"
   },
   "keywords": [
     "ai",
@@ -33,8 +34,11 @@
     "dotenv": "^16.4.5",
     "form-data": "^4.0.4",
     "google-auth-library": "^9.15.1",
+    "googleapis": "^165.0.0",
     "jsonrepair": "^3.6.1",
+    "marked": "^12.0.2",
     "node-fetch": "^2.7.0",
+    "open": "^10.2.0",
     "sharp": "^0.34.4",
     "sqlite3": "^5.1.7"
   },
