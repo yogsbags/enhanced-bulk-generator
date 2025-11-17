@@ -89,6 +89,11 @@ class EnhancedBulkGenerator {
       console.log(`✨ Custom Topic Mode: "${this.config.customTopic}"`);
     }
 
+    // Custom title mode indicator
+    if (this.config.customTitle) {
+      console.log(`🚀 Custom Title Mode: "${this.config.customTitle}"`);
+    }
+
     // Debug logging for limits
     if (this.config.topicLimit !== null || this.config.deepResearchLimit !== null || this.config.contentLimit !== null) {
       console.log(`📊 Topic Limit: ${this.config.topicLimit}`);
@@ -431,6 +436,29 @@ function parseArgs() {
     return null;
   })();
 
+  const customTitle = (() => {
+    // Handle both formats: --custom-title="Best Options..." and --custom-title "Best Options..."
+    const customTitleArgWithEquals = args.find(arg => arg.startsWith('--custom-title='));
+    if (customTitleArgWithEquals) {
+      return customTitleArgWithEquals.split('=')[1];
+    }
+
+    // Handle space-separated format: --custom-title "Best Options..."
+    const customTitleIndex = args.findIndex(arg => arg === '--custom-title');
+    if (customTitleIndex !== -1 && args[customTitleIndex + 1]) {
+      // Collect all subsequent args until the next flag (starting with --)
+      const titleParts = [];
+      let i = customTitleIndex + 1;
+      while (i < args.length && !args[i].startsWith('--')) {
+        titleParts.push(args[i]);
+        i++;
+      }
+      return titleParts.join(' ');
+    }
+
+    return null;
+  })();
+
   const options = {
     autoApprove: args.includes('--auto-approve'),
     batchSize: parseInt(args.find(arg => arg.startsWith('--batch-size='))?.split('=')[1]) || 50,
@@ -439,7 +467,8 @@ function parseArgs() {
     deepResearchLimit: topicLimit,
     contentLimit: topicLimit,
     category,
-    customTopic
+    customTopic,
+    customTitle
   };
 
   return { command, options, args };

@@ -19,11 +19,12 @@ export async function POST(req: NextRequest) {
       let currentStage = 0
 
       try {
-        // Parse request body to get topic limit, category, and custom topic
+        // Parse request body to get topic limit, category, custom topic, and custom title
         const body = await req.json()
         const topicLimit = body.topicLimit || 1
         const category = body.category || 'derivatives'
         const customTopic = body.customTopic || ''
+        const customTitle = body.customTitle || ''
 
         // Check if we're in Netlify environment
         if (process.env.NETLIFY === 'true' || process.env.AWS_LAMBDA_FUNCTION_NAME) {
@@ -33,6 +34,9 @@ export async function POST(req: NextRequest) {
           sendEvent({ log: `📂 Category Focus: ${category}` })
           if (customTopic) {
             sendEvent({ log: `✨ Custom Topic: "${customTopic}"` })
+          }
+          if (customTitle) {
+            sendEvent({ log: `🚀 Custom Title: "${customTitle}"` })
           }
 
           try {
@@ -48,7 +52,7 @@ export async function POST(req: NextRequest) {
               headers: {
                 'Content-Type': 'application/json',
               },
-              body: JSON.stringify({ topicLimit, category, customTopic }),
+              body: JSON.stringify({ topicLimit, category, customTopic, customTitle }),
             })
 
             sendEvent({ log: `📡 Response status: ${response.status} ${response.statusText}` })
@@ -99,11 +103,17 @@ export async function POST(req: NextRequest) {
           if (customTopic) {
             sendEvent({ log: `✨ Custom Topic: "${customTopic}"` })
           }
+          if (customTitle) {
+            sendEvent({ log: `🚀 Custom Title: "${customTitle}"` })
+          }
 
-          // Execute main.js with 'full' command, topic limit, category, and custom topic
+          // Execute main.js with 'full' command, topic limit, category, custom topic, and custom title
           const args = [mainJsPath, 'full', '--auto-approve', '--topic-limit', topicLimit.toString(), '--category', category]
           if (customTopic) {
             args.push('--custom-topic', customTopic)
+          }
+          if (customTitle) {
+            args.push('--custom-title', customTitle)
           }
 
           // Add parent node_modules to NODE_PATH for Vercel deployment
