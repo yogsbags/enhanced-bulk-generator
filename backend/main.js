@@ -84,6 +84,11 @@ class EnhancedBulkGenerator {
     console.log(`📊 Batch Size: ${this.config.batchSize}`);
     console.log(`📂 Category Focus: ${this.config.category}`);
 
+    // Custom topic mode indicator
+    if (this.config.customTopic) {
+      console.log(`✨ Custom Topic Mode: "${this.config.customTopic}"`);
+    }
+
     // Debug logging for limits
     if (this.config.topicLimit !== null || this.config.deepResearchLimit !== null || this.config.contentLimit !== null) {
       console.log(`📊 Topic Limit: ${this.config.topicLimit}`);
@@ -348,12 +353,14 @@ class EnhancedBulkGenerator {
     console.log('  --quality=N            - Set quality threshold (default: 90)');
     console.log('  --topic-limit=N        - Limit topics processed during deep research');
     console.log('  --category=NAME        - Focus on specific content category (default: derivatives)');
+    console.log('  --custom-topic="TEXT"  - Generate topics based on custom user input (bypasses Stage 1 research)');
     console.log('');
     console.log('EXAMPLES:');
     console.log('  node main.js research --auto-approve');
     console.log('  node main.js full --batch-size=25 --category=mutual_funds');
     console.log('  node main.js auto --auto-approve --category=stock_market');
     console.log('  node main.js stage topics --category=commodities');
+    console.log('  node main.js stage topics --custom-topic "option strategies" --auto-approve');
     console.log('  node main.js monitor');
     console.log('');
     console.log('ENVIRONMENT VARIABLES:');
@@ -401,6 +408,29 @@ function parseArgs() {
     return 'derivatives';
   })();
 
+  const customTopic = (() => {
+    // Handle both formats: --custom-topic="option strategies" and --custom-topic "option strategies"
+    const customTopicArgWithEquals = args.find(arg => arg.startsWith('--custom-topic='));
+    if (customTopicArgWithEquals) {
+      return customTopicArgWithEquals.split('=')[1];
+    }
+
+    // Handle space-separated format: --custom-topic "option strategies"
+    const customTopicIndex = args.findIndex(arg => arg === '--custom-topic');
+    if (customTopicIndex !== -1 && args[customTopicIndex + 1]) {
+      // Collect all subsequent args until the next flag (starting with --)
+      const topicParts = [];
+      let i = customTopicIndex + 1;
+      while (i < args.length && !args[i].startsWith('--')) {
+        topicParts.push(args[i]);
+        i++;
+      }
+      return topicParts.join(' ');
+    }
+
+    return null;
+  })();
+
   const options = {
     autoApprove: args.includes('--auto-approve'),
     batchSize: parseInt(args.find(arg => arg.startsWith('--batch-size='))?.split('=')[1]) || 50,
@@ -408,7 +438,8 @@ function parseArgs() {
     topicLimit,
     deepResearchLimit: topicLimit,
     contentLimit: topicLimit,
-    category
+    category,
+    customTopic
   };
 
   return { command, options, args };
