@@ -288,21 +288,132 @@ Using the approved research brief, craft an SEO ready article that reads like it
 OUTPUT RULES:
 - Respond with a **single valid JSON object** following the schema below. No markdown fences or extra prose.
 - Article audience: mass affluent Indian investors and salaried professionals evaluating wealth options in FY 2025-26.
-- Minimum length: ${wordTarget} words of original copy (exclude tables). Blend data, explanations, frameworks, and examples.
 - Voice & tone: authoritative yet approachable, data-backed, compliance-safe, with PL Capital's advisory expertise shining through.
 - Heading etiquette: never output an H1. Start with \`## Executive Summary\`, then use semantic H2/H3/H4 hierarchy.
-- Structural must-haves (in order):
-  1. \`## Executive Summary\` — 3 crisp sentences covering context, opportunity, and takeaway.
-  2. \`### Key Numbers At a Glance\` — Markdown table with Metric / Value / Why it Matters (>=4 rows).
-  3. \`### Key Takeaways\` — bullet list (5 bullets) of one-line insights.
-  4. Core body sections addressing the content gaps, benchmarks vs competitors, tactical guidance, calculators/frameworks, and risk controls.
-  5. At least one section titled \`### Compliance & Risk Checklist\` with bullet points consolidating SEBI/RBI obligations.
-  6. Final H2 titled \`## Talk to a PL Capital Advisor\` containing a persuasive CTA paragraph.
-- Every body section must integrate insights from the research brief (content gaps, competitor analysis, related questions, superiority plan) with specific data points, examples, and Indian regulatory references.
-- External references must link only to authoritative Indian financial site homepages (like SEBI - sebi.gov.in, AMFI - amfiindia.com, NSE - nseindia.com, BSE - bseindia.com, etc.) and include the anchor text.
 - Tables: use valid Markdown tables, never placeholders.
 - No placeholder strings ({{...}}, [TODO], etc.). Provide finished copy.
-- Content upgrades: populate the JSON array with two value-add artefacts (e.g., how-tos, checklist etc.) but **do not** create an explicit section in the article labelled "Content Upgrades".
+
+**CRITICAL: FOLLOW THESE 39 GUIDELINES STRICTLY**
+
+1. ✅ NEVER mention competitor names: Zerodha, Upstox, Angel One, ICICI Direct, Groww
+2. ✅ START DIRECTLY WITH "## Executive Summary" - NO introductory paragraphs before this H2
+3. ✅ NO H2 for "Introduction" - plain text paragraphs after Executive Summary (no heading)
+4. ✅ ADD "## Key Takeaways" section BEFORE "## Conclusion" (5-7 action-oriented bullets)
+5. ✅ ADD "## Action Plan" section BEFORE "## Conclusion" (step-by-step monthly roadmap)
+6. ✅ MOVE "## FAQ Section" or "## FAQs on [Topic]" AFTER "## Conclusion" (never before)
+7. ✅ Use MIXED formatting throughout - paragraphs, tables, bullets, numbered lists (NOT all bullets)
+8. ✅ EEAT COMPLIANCE: Human-readable, high-quality, original content with expertise, experience, authority, trust
+9. ✅ CTA in Conclusion: MUST include link to https://instakyc.plindia.com/ with text "Open your PL Capital account"
+10. ✅ NATURAL keyword flow - NO keyword stuffing, use semantic variations naturally
+11. ✅ 8th GRADE ENGLISH - Simple language, simplified H2s (avoid jargon, explain technical terms)
+12. ✅ H2s and H3s structure - Semantic hierarchy with focus keyword variations in headings
+13. ✅ WORD COUNT: Under 2500 words (~2,400 words target) - concise and focused
+14. ✅ ELABORATE examples with REAL data - NO hallucination, NO fake statistics, NO invented fund names
+15. ✅ SENTENCES: Under 15 words average - short, punchy, clear sentences
+16. ✅ CONCISE throughout - Every paragraph must earn its place, cut ruthlessly
+17. ✅ ENHANCED GREEKS section (if applicable): Flowing explanations with real examples, NOT just definitions
+18. ✅ 5 FAQs ONLY - No more, no less (H3 format with complete questions)
+19. ✅ 100-WORD Conclusion - Brief, actionable, with PL Capital CTA
+20. ✅ DATE CONTEXT: November 2025 (NOT January 2025) - use "FY 2025-26" for current financial year, "AY 2026-27" for assessment year
+21. ✅ FAQ ANSWERS: 30-40 words each with COMPLETE questions in H3 format (e.g., "### What is...")
+22. ✅ FAQ PLACEMENT: MUST be AFTER "## Conclusion" section (never before, never mid-article)
+23. ✅ WEB RESEARCH: Use factual accuracy, proper content structure, real data from research brief
+
+**FACTUAL ACCURACY & COMPLIANCE RULES (24-39) - Apply ONLY when these topics are mentioned:**
+
+24. ✅ IF mentioning TRADER PARTICIPATION: Use general qualifiers - "Lakhs of traders", "Thousands of traders", "Many traders" - NEVER specific unverifiable numbers like "12 lakh traders" (add asterisk*)
+25. ✅ IF mentioning TRADING VOLUMES: Always prefix with "Approximately" or "Around" - e.g., "Approximately 5-7 crore contracts" (add asterisk*)
+26. ✅ IF mentioning LOT SIZES: Always add qualifier "subject to NSE revisions" - NEVER use "as of Nov 2025" for current date (add asterisk*)
+27. ✅ IF mentioning STRIKE INTERVALS: Use "Typically" or "Generally" prefix - e.g., "Typically 50 points", "Generally 100 points" (add asterisk*)
+28. ✅ IF mentioning INCOME/ELIGIBILITY REQUIREMENTS: Present as broker-specific NOT regulatory - "Most brokers require minimum annual income (typically ₹2-3 lakh)" NOT "SEBI requires ₹2 lakh income" (add asterisk*)
+29. ✅ IF mentioning CIRCUIT LIMITS: Clarify "No individual strike circuits; market-wide breakers apply" NOT just "No circuit limits" (add asterisk*)
+30. ✅ IF mentioning TAX RULES: Always specify assessment year - "for Assessment Year 2026-27" and note rules are subject to change (add asterisk*)
+31. ✅ IF mentioning EXPIRY SCHEDULES: Add qualifier noting NSE's right to change - "Every Tuesday (subject to NSE notifications)" (add asterisk*)
+32. ✅ PROBABILITY & SUCCESS RATES: NEVER state as facts - "65% probability of profit" is PROHIBITED. Instead: "Your profit chances improve when [conditions]... exact probability varies by market conditions"
+33. ✅ RETURNS & ROI: Always frame as examples - "Example Return: 233% if price reaches upper strike" NOT "Return on Investment: 233% gain"
+34. ✅ PERCENTAGE CLAIMS: Qualify cost savings/reductions - "Example shows: 67% cost reduction" or "significantly reduces cost" NOT absolute "40-70% reduction" without context
+35. ✅ AVOID REPETITION: Each key concept should be explained ONCE in detail. Don't repeat cost advantages, volatility warnings, or expiry risks across multiple sections. Consolidate.
+36. ✅ GREEKS/TECHNICAL SECTIONS: Keep practical and accessible. Focus on "Understanding Risk Factors" with real impact, not heavy Greek formulas. Example: "Time decay (Theta)" with practical effect, not "Bought Call Theta: -₹8, Sold Call Theta: +₹6, Net Theta: -₹2"
+37. ✅ UNSOURCED HISTORICAL DATA: NEVER claim "Historical data shows..." or "Studies indicate..." without sources. Use: "Nifty typically shows weekly movements" NOT "Historical data shows Nifty moves 0.5-1% weekly on average"
+38. ✅ IMPORTANT NOTES SECTION: IF any asterisks (*) are used in article, add "**Important Notes:**" section at end explaining all asterisked items. IF no asterisks used, standard risk disclaimer is sufficient.
+39. ✅ ASTERISK USAGE: Mark claims requiring qualifiers with asterisk (*) in body text, then explain in "Important Notes" section. Only include explanations for asterisk-marked items actually used in the article.
+
+**ARTICLE STRUCTURE (MANDATORY ORDER):**
+
+1. ## Executive Summary (3-4 sentences, context + opportunity + takeaway)
+2. Plain text introduction paragraphs (NO H2 heading, 2-3 paragraphs explaining topic)
+3. ## [Main Topic] sections (5-8 H2 sections with H3 subsections)
+4. ## Key Takeaways (5-7 action-oriented bullets BEFORE Conclusion)
+5. ## Action Plan (Monthly roadmap: Month 1-2, Month 3-4, etc.)
+6. ## Conclusion (100 words max, must include CTA with https://instakyc.plindia.com/)
+7. ## FAQ Section or ## FAQs on [Topic] (EXACTLY 5 FAQs with H3 questions, 30-40 word answers)
+
+**CRITICAL FORMATTING RULES:**
+
+- **Executive Summary**: Must be FIRST H2, no content before it
+- **No Introduction H2**: After Executive Summary, start with plain text paragraphs (no heading)
+- **Key Takeaways**: BEFORE Conclusion, bullet list with "You can...", "Consider...", "Start with..."
+- **Action Plan**: BEFORE Conclusion, monthly timeline (Month 1-2: ..., Month 3-4: ...)
+- **Conclusion**: 100 words, 2-3 paragraphs, MUST include: "Ready to [action]? [Open your PL Capital account](https://instakyc.plindia.com/) and..."
+- **FAQs**: AFTER Conclusion, H3 format: "### What is [topic]?", "### How does [topic] work?", etc.
+- **FAQ Answers**: 30-40 words each, complete sentences, specific data (amounts, percentages, timelines)
+
+**WRITING STYLE:**
+
+- Short sentences (under 15 words average)
+- 8th grade reading level (simple, clear language)
+- Active voice: "You can invest..." NOT "Investors can invest..."
+- Mixed formatting: paragraphs + tables + bullets + numbered lists
+- Natural keyword flow (no stuffing)
+- Conversational tone with "you/your" language
+- Specific examples with INR amounts (₹10,000, ₹1 lakh, ₹50,000)
+- Real data only (NO hallucination, NO fake statistics)
+
+**GREEKS/RISK FACTORS SECTION (if applicable for options/derivatives topics):**
+
+- Title section "Understanding Risk Factors" NOT "Greeks Analysis" for better accessibility
+- Explain concepts in plain language: "Price Movement (Delta)", "Time Decay (Theta)", "Volatility Impact (Vega)"
+- Focus on practical impact: "If Nifty moves 100 points, your spread gains value gradually"
+- Use simple examples with real ₹ amounts, NOT complex formulas like "Net Theta: -₹2 = (Bought -₹8) + (Sold +₹6)"
+- Skip Gamma entirely unless absolutely critical - it's too technical for most readers
+- Keep it conversational: "Time works against all options buyers. Bull call spread reduces this impact significantly."
+
+**PROHIBITED:**
+
+- ❌ Competitor names: Zerodha, Upstox, Angel One, ICICI Direct, Groww
+- ❌ "## Introduction" heading (use plain text after Executive Summary)
+- ❌ FAQs before Conclusion
+- ❌ More than 5 FAQs
+- ❌ Conclusions longer than 100 words
+- ❌ Keyword stuffing or repetitive explanations
+- ❌ Fake statistics or invented data
+- ❌ Generic CTA links (must use https://instakyc.plindia.com/)
+- ❌ January 2025 references (use November 2025 or FY 2025-26)
+- ❌ Sentences longer than 20 words (aim for under 15 words)
+- ❌ Specific unverifiable trader numbers ("12 lakh traders", "5 lakh users")
+- ❌ Absolute statements about lot sizes, volumes, or intervals without qualifiers
+- ❌ Presenting broker requirements as SEBI/regulatory mandates
+- ❌ "Disclaimer" heading (use "Important Notes" instead)
+- ❌ Unqualified tax rules (always add "for AY 2026-27")
+- ❌ Probability/success rates stated as facts ("65% probability", "60-65% success rate")
+- ❌ Unsourced historical claims ("Historical data shows...", "Studies indicate...")
+- ❌ Absolute ROI claims (frame as "Example Return" not "Return on Investment")
+- ❌ Future-date references like "as of Nov 2025" (just use "subject to NSE revisions")
+- ❌ Heavy Greek formulas (use practical "Understanding Risk Factors" approach)
+
+**WORD COUNT DISTRIBUTION (~2,400 words total):**
+
+- Executive Summary: 50-80 words
+- Introduction paragraphs (no heading): 150-200 words
+- Main H2 sections (5-8 sections): 1,800-2,000 words (250-300 words each)
+- Key Takeaways: 100-150 words
+- Action Plan: 150-200 words
+- Conclusion: 100 words
+- FAQs (5 questions): 200-250 words (40-50 words per FAQ)
+
+**JSON SCHEMA (REQUIRED OUTPUT FORMAT):**
+
+Respond with a single valid JSON object (no markdown fences) following this schema:
 
 JSON SCHEMA:
 {
