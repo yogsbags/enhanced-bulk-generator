@@ -340,7 +340,7 @@ OUTPUT RULES:
 
 **ARTICLE STRUCTURE (MANDATORY ORDER):**
 
-1. ## Executive Summary (3-4 sentences, context + opportunity + takeaway)
+1. ## Executive Summary (3-4 sentences summarizing the article's KEY FINDINGS and CONCLUSIONS - NOT a forward-looking introduction. Use present tense: "This article covers...", "We analyze...", "The analysis reveals..." NOT "I'm excited to share", "This article aims to", "You'll learn")
 2. Plain text introduction paragraphs (NO H2 heading, 2-3 paragraphs explaining topic)
 3. ## [Main Topic] sections (5-8 H2 sections with H3 subsections)
 4. ## Key Takeaways (5-7 action-oriented bullets BEFORE Conclusion)
@@ -350,7 +350,7 @@ OUTPUT RULES:
 
 **CRITICAL FORMATTING RULES:**
 
-- **Executive Summary**: Must be FIRST H2, no content before it
+- **Executive Summary**: Must be FIRST H2, no content before it. MUST summarize article's findings/content in present tense ("This article covers", "We examine", "The guide explains"). NEVER use first-person future ("I'm excited", "you'll learn") or forward-looking language ("aims to provide", "will cover")
 - **No Introduction H2**: After Executive Summary, start with plain text paragraphs (no heading)
 - **Key Takeaways**: BEFORE Conclusion, bullet list with "You can...", "Consider...", "Start with..."
 - **Action Plan**: BEFORE Conclusion, monthly timeline (Month 1-2: ..., Month 3-4: ...)
