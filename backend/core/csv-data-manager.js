@@ -54,10 +54,10 @@ class CSVDataManager {
   }
 
   /**
-   * Initialize CSV files with headers if they don't exist
+   * Get schema columns for a specific CSV type
    */
-  initializeCSVFiles() {
-    const headers = {
+  getSchemaColumns(csvType) {
+    const schemas = {
       masterResearch: [
         'research_id', 'research_date', 'total_gaps_identified', 'competitors_analyzed',
         'phase_1_focus', 'phase_2_focus', 'phase_3_focus', 'estimated_traffic_growth',
@@ -106,15 +106,43 @@ class CSVDataManager {
       ]
     };
 
-    Object.entries(headers).forEach(([key, headerRow]) => {
-      const filePath = this.files[key];
+    return schemas[csvType] || null;
+  }
+
+  /**
+   * Initialize CSV files with headers if they don't exist
+   */
+  initializeCSVFiles() {
+    const csvTypes = Object.keys(this.files);
+
+    csvTypes.forEach(csvType => {
+      const filePath = this.files[csvType];
+      const headers = this.getSchemaColumns(csvType);
+
+      if (!headers) {
+        console.warn(`⚠️  No schema defined for ${csvType}`);
+        return;
+      }
+
       if (!fs.existsSync(filePath)) {
         // For array headers, write directly as CSV string
-        const csvContent = headerRow.join(',') + '\n';
+        const csvContent = headers.join(',') + '\n';
         fs.writeFileSync(filePath, csvContent);
-        console.log(`📄 Initialized ${key}.csv with headers`);
+        console.log(`📄 Initialized ${csvType}.csv with headers`);
       }
     });
+  }
+
+  /**
+   * Get CSV type from file path
+   */
+  getCsvTypeFromPath(filePath) {
+    for (const [csvType, path] of Object.entries(this.files)) {
+      if (path === filePath) {
+        return csvType;
+      }
+    }
+    return null;
   }
 
   /**
@@ -143,13 +171,29 @@ class CSVDataManager {
   }
 
   /**
-   * Write data to CSV file
+   * Write data to CSV file with schema-enforced columns
    */
   writeCSV(filePath, data, options = {}) {
     try {
+      // Determine columns to use
+      let columns = options.columns;
+
+      // If no columns specified, use schema columns for known CSV types
+      if (!columns) {
+        const csvType = this.getCsvTypeFromPath(filePath);
+        if (csvType) {
+          columns = this.getSchemaColumns(csvType);
+        }
+      }
+
+      // Fallback to Object.keys if still no columns and data exists
+      if (!columns && data.length > 0 && !Array.isArray(data[0])) {
+        columns = Object.keys(data[0] || {});
+      }
+
       const csvContent = stringify(data, {
         header: options.header !== false,
-        columns: options.columns || (data.length > 0 && Array.isArray(data[0]) ? undefined : Object.keys(data[0] || {})),
+        columns: columns,
         quoted: true,  // Always quote fields to handle embedded commas, quotes, newlines
         quoted_string: true,  // Quote all string fields
         escape: '"',  // Use double-quote escaping (standard CSV)
@@ -979,6 +1023,92 @@ class CSVDataManager {
   }
 
   /**
+   * Migrate CSV file to match current schema (adds missing columns)
+   */
+  migrateCSVToSchema(csvType) {
+    const filePath = this.files[csvType];
+    const schemaColumns = this.getSchemaColumns(csvType);
+
+    if (!schemaColumns) {
+      console.warn(`⚠️  No schema defined for ${csvType}`);
+      return false;
+    }
+
+    if (!fs.existsSync(filePath)) {
+      console.log(`ℹ️  ${csvType}.csv doesn't exist, skipping migration`);
+      return false;
+    }
+
+    try {
+      // Read existing data
+      const existingData = this.readCSV(filePath);
+
+      if (existingData.length === 0) {
+        console.log(`ℹ️  ${csvType}.csv is empty, rewriting with correct headers`);
+        const csvContent = schemaColumns.join(',') + '\n';
+        fs.writeFileSync(filePath, csvContent);
+        return true;
+      }
+
+      // Check if migration is needed
+      const existingColumns = Object.keys(existingData[0] || {});
+      const missingColumns = schemaColumns.filter(col => !existingColumns.includes(col));
+
+      if (missingColumns.length === 0) {
+        console.log(`✅ ${csvType}.csv already has all schema columns`);
+        return true;
+      }
+
+      console.log(`🔄 Migrating ${csvType}.csv - adding columns: ${missingColumns.join(', ')}`);
+
+      // Create backup
+      const backupPath = `${filePath}.backup.${Date.now()}`;
+      fs.copyFileSync(filePath, backupPath);
+      console.log(`📦 Backup created: ${backupPath}`);
+
+      // Add missing columns with empty values
+      const migratedData = existingData.map(row => {
+        const newRow = { ...row };
+        missingColumns.forEach(col => {
+          newRow[col] = '';
+        });
+        return newRow;
+      });
+
+      // Write back with schema columns (this will use writeCSV which enforces schema)
+      this.writeCSV(filePath, migratedData);
+      console.log(`✅ Successfully migrated ${csvType}.csv (${existingData.length} rows)`);
+
+      return true;
+    } catch (error) {
+      console.error(`❌ Error migrating ${csvType}.csv:`, error.message);
+      return false;
+    }
+  }
+
+  /**
+   * Migrate all CSV files to match current schemas
+   */
+  migrateAllCSVs() {
+    console.log('\n' + '='.repeat(60));
+    console.log('🔄 CSV SCHEMA MIGRATION');
+    console.log('='.repeat(60));
+
+    const csvTypes = Object.keys(this.files);
+    const results = {};
+
+    csvTypes.forEach(csvType => {
+      results[csvType] = this.migrateCSVToSchema(csvType);
+    });
+
+    console.log('='.repeat(60));
+    const successCount = Object.values(results).filter(r => r === true).length;
+    console.log(`✅ Migration complete: ${successCount}/${csvTypes.length} files processed\n`);
+
+    return results;
+  }
+
+  /**
    * Clean up old data (optional maintenance)
    */
   cleanupOldData(daysOld = 30) {
@@ -1024,7 +1154,24 @@ if (require.main === module) {
       manager.cleanupOldData(days);
       break;
 
+    case 'migrate':
+      const csvType = process.argv[3];
+      if (csvType) {
+        // Migrate specific CSV
+        manager.migrateCSVToSchema(csvType);
+      } else {
+        // Migrate all CSVs
+        manager.migrateAllCSVs();
+      }
+      break;
+
     default:
-      console.log('Usage: node csv-data-manager.js [init|stats|cleanup]');
+      console.log('Usage: node csv-data-manager.js [init|stats|cleanup|migrate [csvType]]');
+      console.log('  init              - Initialize CSV files with headers');
+      console.log('  stats             - Show workflow statistics');
+      console.log('  cleanup [days]    - Clean up old data (default: 30 days)');
+      console.log('  migrate [csvType] - Migrate CSV(s) to match current schema');
+      console.log('                      If csvType is provided, migrates that specific CSV');
+      console.log('                      Otherwise, migrates all CSV files');
   }
 }
