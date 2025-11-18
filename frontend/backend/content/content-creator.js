@@ -307,8 +307,8 @@ OUTPUT RULES:
 10. ✅ NATURAL keyword flow - NO keyword stuffing, use semantic variations naturally
 11. ✅ 8th GRADE ENGLISH - Simple language, simplified H2s (avoid jargon, explain technical terms)
 12. ✅ H2s and H3s structure - Semantic hierarchy with focus keyword variations in headings
-13. ✅ WORD COUNT: Under 2500 words (~2,400 words target) - concise and focused
-14. ✅ ELABORATE examples with REAL data - NO hallucination, NO fake statistics, NO invented fund names
+13. ✅ WORD COUNT: MINIMUM 2,200 words, TARGET 2,400 words - substantive and comprehensive. Each H2 section must be 250-350 words with detailed examples, tables, data, and step-by-step breakdowns. DO NOT submit articles under 2,000 words
+14. ✅ ELABORATE examples with REAL data - NO hallucination, NO fake statistics, NO invented fund names. Use CURRENT accurate data (e.g., Bank Nifty lot size = 30 units, expiry = last Tuesday)
 15. ✅ SENTENCES: Under 15 words average - short, punchy, clear sentences
 16. ✅ CONCISE throughout - Every paragraph must earn its place, cut ruthlessly
 17. ✅ ENHANCED GREEKS section (if applicable): Flowing explanations with real examples, NOT just definitions
@@ -319,16 +319,17 @@ OUTPUT RULES:
 22. ✅ FAQ PLACEMENT: MUST be AFTER "## Conclusion" section (never before, never mid-article)
 23. ✅ WEB RESEARCH: Use factual accuracy, proper content structure, real data from research brief
 
-**FACTUAL ACCURACY & COMPLIANCE RULES (24-39) - Apply ONLY when these topics are mentioned:**
+**FACTUAL ACCURACY & COMPLIANCE RULES (24-40) - Apply ONLY when these topics are mentioned:**
 
-24. ✅ IF mentioning TRADER PARTICIPATION: Use general qualifiers - "Lakhs of traders", "Thousands of traders", "Many traders" - NEVER specific unverifiable numbers like "12 lakh traders" (add asterisk*)
-25. ✅ IF mentioning TRADING VOLUMES: Always prefix with "Approximately" or "Around" - e.g., "Approximately 5-7 crore contracts" (add asterisk*)
-26. ✅ IF mentioning LOT SIZES: Always add qualifier "subject to NSE revisions" - NEVER use "as of Nov 2025" for current date (add asterisk*)
-27. ✅ IF mentioning STRIKE INTERVALS: Use "Typically" or "Generally" prefix - e.g., "Typically 50 points", "Generally 100 points" (add asterisk*)
-28. ✅ IF mentioning INCOME/ELIGIBILITY REQUIREMENTS: Present as broker-specific NOT regulatory - "Most brokers require minimum annual income (typically ₹2-3 lakh)" NOT "SEBI requires ₹2 lakh income" (add asterisk*)
-29. ✅ IF mentioning CIRCUIT LIMITS: Clarify "No individual strike circuits; market-wide breakers apply" NOT just "No circuit limits" (add asterisk*)
-30. ✅ IF mentioning TAX RULES: Always specify assessment year - "for Assessment Year 2026-27" and note rules are subject to change (add asterisk*)
-31. ✅ IF mentioning EXPIRY SCHEDULES: Add qualifier noting NSE's right to change - "Every Tuesday (subject to NSE notifications)" (add asterisk*)
+24. ✅ VERIFY CURRENT DATA: Always use CURRENT accurate data from research brief. DO NOT use outdated information. Examples: Bank Nifty lot size is 30 (NOT 15), Nifty 50 lot size is 75 (NOT 50), Nifty expiry is LAST TUESDAY of month (NOT Thursday)
+25. ✅ IF mentioning TRADER PARTICIPATION: Use general qualifiers - "Lakhs of traders", "Thousands of traders", "Many traders" - NEVER specific unverifiable numbers like "12 lakh traders" (add asterisk*)
+26. ✅ IF mentioning TRADING VOLUMES: Always prefix with "Approximately" or "Around" - e.g., "Approximately 5-7 crore contracts" (add asterisk*)
+27. ✅ IF mentioning LOT SIZES: Use CURRENT accurate lot sizes from NSE. Examples: Bank Nifty = 30 units, Nifty 50 = 75 units, FinNifty = 25 units. Always add "subject to NSE revisions" qualifier (add asterisk*)
+28. ✅ IF mentioning EXPIRY DATES: Use CURRENT schedule - "Last Tuesday of the contract month (subject to NSE notifications)" NOT "last Thursday". Weekly expiries also on Tuesday (add asterisk*)
+29. ✅ IF mentioning STRIKE INTERVALS: Use "Typically" or "Generally" prefix - e.g., "Typically 50 points", "Generally 100 points" (add asterisk*)
+30. ✅ IF mentioning INCOME/ELIGIBILITY REQUIREMENTS: Present as broker-specific NOT regulatory - "Most brokers require minimum annual income (typically ₹2-3 lakh)" NOT "SEBI requires ₹2 lakh income" (add asterisk*)
+31. ✅ IF mentioning CIRCUIT LIMITS: Clarify "No individual strike circuits; market-wide breakers apply" NOT just "No circuit limits" (add asterisk*)
+32. ✅ IF mentioning TAX RULES: Always specify assessment year - "for Assessment Year 2026-27" and note rules are subject to change (add asterisk*)
 32. ✅ PROBABILITY & SUCCESS RATES: NEVER state as facts - "65% probability of profit" is PROHIBITED. Instead: "Your profit chances improve when [conditions]... exact probability varies by market conditions"
 33. ✅ RETURNS & ROI: Always frame as examples - "Example Return: 233% if price reaches upper strike" NOT "Return on Investment: 233% gain"
 34. ✅ PERCENTAGE CLAIMS: Qualify cost savings/reductions - "Example shows: 67% cost reduction" or "significantly reduces cost" NOT absolute "40-70% reduction" without context
@@ -400,16 +401,26 @@ OUTPUT RULES:
 - ❌ Absolute ROI claims (frame as "Example Return" not "Return on Investment")
 - ❌ Future-date references like "as of Nov 2025" (just use "subject to NSE revisions")
 - ❌ Heavy Greek formulas (use practical "Understanding Risk Factors" approach)
+- ❌ OUTDATED DATA: Bank Nifty lot size 15 (use 30), Nifty lot size 50 (use 75), expiry "last Thursday" (use "last Tuesday")
+- ❌ ARTICLES UNDER 2,000 WORDS - Every article must be minimum 2,200 words with substantive content
 
-**WORD COUNT DISTRIBUTION (~2,400 words total):**
+**WORD COUNT DISTRIBUTION (MANDATORY 2,400+ words total - DO NOT submit articles under 2,200 words):**
 
 - Executive Summary: 50-80 words
 - Introduction paragraphs (no heading): 150-200 words
-- Main H2 sections (5-8 sections): 1,800-2,000 words (250-300 words each)
+- Main H2 sections (5-8 sections): 1,800-2,000 words (250-350 words each with detailed examples, tables, data)
 - Key Takeaways: 100-150 words
 - Action Plan: 150-200 words
 - Conclusion: 100 words
 - FAQs (5 questions): 200-250 words (40-50 words per FAQ)
+
+**CRITICAL: Each main H2 section MUST be substantive (250-350 words) with:**
+- Detailed explanations with specific examples
+- Data tables comparing options
+- Step-by-step breakdowns
+- Real ₹ amounts and calculations
+- Pros/cons lists where applicable
+Total article MUST exceed 2,200 words. Articles under 2,000 words will be REJECTED.
 
 **JSON SCHEMA (REQUIRED OUTPUT FORMAT):**
 
