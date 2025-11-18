@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import EditModal from './components/EditModal'
 
 type WorkflowStage = {
   id: number
@@ -49,6 +50,8 @@ export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState<string>('derivatives')
   const [customTopic, setCustomTopic] = useState<string>('')
   const [customTitle, setCustomTitle] = useState<string>('')
+  const [editModalOpen, setEditModalOpen] = useState(false)
+  const [editingRow, setEditingRow] = useState<{stageId: number, data: any, index: number} | null>(null)
 
   // Comprehensive broking & wealth categories
   const categories = [
@@ -247,6 +250,56 @@ export default function Home() {
       case 'completed': return 'text-green-500'
       case 'error': return 'text-red-500'
     }
+  }
+
+  const handleEditRow = (stageId: number, rowData: any, rowIndex: number) => {
+    setEditingRow({ stageId, data: rowData, index: rowIndex })
+    setEditModalOpen(true)
+  }
+
+  const handleEditSubmit = async (editedData: Record<string, any>) => {
+    if (!editingRow) return
+
+    try {
+      addLog(`📝 Submitting edited data for ${stages[editingRow.stageId - 1].name}...`)
+
+      const response = await fetch('/api/workflow/edit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          stageId: editingRow.stageId,
+          rowIndex: editingRow.index,
+          data: editedData
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const result = await response.json()
+
+      // Refresh stage data
+      const dataResponse = await fetch(`/api/workflow/data?stage=${editingRow.stageId}`)
+      if (dataResponse.ok) {
+        const data = await dataResponse.json()
+        setStageData(prev => ({ ...prev, [editingRow.stageId]: data }))
+      }
+
+      addLog(`✅ Successfully updated ${stages[editingRow.stageId - 1].name} data`)
+
+      if (result.message) {
+        addLog(`   ${result.message}`)
+      }
+    } catch (error) {
+      addLog(`❌ Failed to update data: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      throw error
+    }
+  }
+
+  const isContentStage = (stageId: number) => {
+    // Stages 4 (Content Creation) and 5 (Content Validation) use rich text editor
+    return stageId === 4 || stageId === 5
   }
 
   return (
@@ -642,8 +695,20 @@ export default function Home() {
                     <div className="overflow-x-auto">
                       <div className="max-h-96 overflow-y-auto">
                         {stageData[stage.id].data.map((row: any, idx: number) => (
-                          <div key={idx} className="mb-3 p-3 bg-gray-50 rounded border border-gray-200 text-xs">
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                          <div key={idx} className="mb-3 p-3 bg-gray-50 rounded border border-gray-200 text-xs relative">
+                            {/* Edit Button */}
+                            <button
+                              onClick={() => handleEditRow(stage.id, row, idx)}
+                              className="absolute top-2 right-2 px-3 py-1 bg-amber-500 text-white rounded hover:bg-amber-600 transition-colors flex items-center gap-1 text-xs font-semibold shadow-md hover:shadow-lg"
+                              title="Edit this row"
+                            >
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                              Edit
+                            </button>
+
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 pr-16">
                               {Object.entries(row).slice(0, 6).map(([key, value]) => (
                                 <div key={key} className="break-words">
                                   <span className="font-semibold text-gray-600">{key}:</span>
@@ -817,6 +882,22 @@ export default function Home() {
           </p>
         </div>
       </div>
+
+      {/* Edit Modal */}
+      {editingRow && (
+        <EditModal
+          isOpen={editModalOpen}
+          onClose={() => {
+            setEditModalOpen(false)
+            setEditingRow(null)
+          }}
+          data={editingRow.data}
+          stageId={editingRow.stageId}
+          stageName={stages[editingRow.stageId - 1]?.name || `Stage ${editingRow.stageId}`}
+          onSubmit={handleEditSubmit}
+          isContentStage={isContentStage(editingRow.stageId)}
+        />
+      )}
     </div>
   )
 }
