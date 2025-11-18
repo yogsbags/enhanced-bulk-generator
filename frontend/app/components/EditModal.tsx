@@ -89,7 +89,7 @@ export default function EditModal({
             value={editedData[field] || ''}
             onChange={(e) => handleFieldChange(field, e.target.value)}
             rows={20}
-            className="w-full px-3 py-2 border-2 border-purple-300 rounded-lg focus:border-purple-500 focus:outline-none font-mono text-sm"
+            className="w-full px-3 py-2 border-2 border-purple-300 rounded-lg focus:border-purple-500 focus:outline-none font-mono text-sm text-gray-900 bg-white placeholder-gray-400"
             placeholder={`Enter ${field.replace(/_/g, ' ')}...`}
           />
           <div className="flex items-center justify-between text-xs text-gray-500">
@@ -110,7 +110,7 @@ export default function EditModal({
             value={editedData[field] || ''}
             onChange={(e) => handleFieldChange(field, e.target.value)}
             rows={6}
-            className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+            className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none text-gray-900 bg-white placeholder-gray-400"
             placeholder={`Enter ${field.replace(/_/g, ' ')}...`}
           />
           <span className="text-xs text-gray-500">
@@ -130,7 +130,7 @@ export default function EditModal({
             type="number"
             value={editedData[field] || ''}
             onChange={(e) => handleFieldChange(field, parseFloat(e.target.value) || 0)}
-            className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+            className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none text-gray-900 bg-white"
           />
         </div>
       )
@@ -145,7 +145,7 @@ export default function EditModal({
           <select
             value={String(editedData[field])}
             onChange={(e) => handleFieldChange(field, e.target.value)}
-            className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+            className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none text-gray-900 bg-white"
           >
             <option value="true">Yes / True</option>
             <option value="false">No / False</option>
@@ -164,7 +164,7 @@ export default function EditModal({
           type="text"
           value={editedData[field] || ''}
           onChange={(e) => handleFieldChange(field, e.target.value)}
-          className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+          className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none text-gray-900 bg-white placeholder-gray-400"
           placeholder={`Enter ${field.replace(/_/g, ' ')}...`}
         />
       </div>
