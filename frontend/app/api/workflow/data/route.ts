@@ -8,13 +8,14 @@ export const dynamic = 'force-dynamic'
 
 // Map stages to their CSV files
 const STAGE_CSV_MAP: Record<number, string> = {
-  1: 'research-gaps.csv',
-  2: 'generated-topics.csv',
-  3: 'topic-research.csv',
-  4: 'created-content.csv',
-  5: 'created-content.csv', // SEO optimization updates same file
-  6: 'published-content.csv',
-  7: 'workflow-status.csv'
+  1: 'research-gaps.csv',          // Stage 1: SEO Research
+  2: 'generated-topics.csv',       // Stage 2: Topic Generation
+  3: 'topic-research.csv',         // Stage 3: Deep Research
+  4: 'created-content.csv',        // Stage 4: Content Creation
+  5: 'created-content.csv',        // Stage 5: Content Validation
+  6: 'created-content.csv',        // Stage 6: SEO Optimization (adds metadata to same file)
+  7: 'published-content.csv',      // Stage 7: Publication
+  8: 'workflow-status.csv'         // Stage 8: Completion
 }
 
 // Map CSV files to Google Sheets sheet names
