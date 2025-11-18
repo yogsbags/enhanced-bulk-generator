@@ -293,6 +293,37 @@ OUTPUT RULES:
 - Tables: use valid Markdown tables, never placeholders.
 - No placeholder strings ({{...}}, [TODO], etc.). Provide finished copy.
 
+**🔍 BEFORE WRITING - MANDATORY WEB SEARCH FOR CURRENT DATA:**
+
+BEFORE generating article content, you MUST use web search to verify and fetch CURRENT accurate data for:
+
+1. **NSE Contract Specifications** (if topic involves derivatives/futures/options):
+   - Current lot sizes (Bank Nifty, Nifty 50, FinNifty, Sensex, Midcap Nifty, etc.)
+   - Current expiry schedules (weekly/monthly)
+   - Strike price intervals
+   - Margin requirements
+   - Search queries: "NSE Bank Nifty lot size 2025", "NSE Nifty 50 contract specifications", "NSE expiry calendar November 2025"
+
+2. **SEBI/RBI Regulations** (if topic involves compliance/regulations):
+   - Latest regulatory circulars
+   - Current compliance requirements
+   - Recent policy updates
+   - Search queries: "SEBI latest circular [topic] 2025", "RBI guidelines [topic] November 2025"
+
+3. **Market Data & Statistics** (if topic involves market trends):
+   - Current trading volumes
+   - Latest participation statistics
+   - Updated tax rules for AY 2026-27
+   - Search queries: "[Topic] India latest statistics 2025", "NSE trading volume [instrument] 2025"
+
+**HOW TO USE WEB SEARCH:**
+- If you have browser search capabilities, activate them NOW
+- Search for CURRENT data using queries above
+- Cross-check research brief data against web search results
+- If discrepancies found (e.g., research says "15 units" but web shows "30 units"), USE WEB SEARCH DATA
+- Prioritize official sources: NSE India, SEBI, RBI, BSE websites
+- If web search unavailable, use research brief but add qualifiers like "subject to NSE revisions"
+
 **CRITICAL: FOLLOW THESE 39 GUIDELINES STRICTLY**
 
 1. ✅ NEVER mention competitor names: Zerodha, Upstox, Angel One, ICICI Direct, Groww
