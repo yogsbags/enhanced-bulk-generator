@@ -39,6 +39,9 @@ class MasterSEOResearcher {
     this.gscDataFetcher = config.gscDataFetcher || null;
     this.seoDataFetcher = config.seoDataFetcher || null;
 
+    // 📊 KEYWORD REFERENCE DATA - Load actual search volumes from Google Sheets
+    this.keywordReference = this.loadKeywordReference();
+
     // Top 10 competitors from competitor analysis (Jan 2025)
     this.competitors = config.competitors || [
       // Discount brokers (Top 4 - 72% market share)
@@ -65,6 +68,80 @@ class MasterSEOResearcher {
   /**
    * Validate configuration
    */
+  /**
+   * Load keyword reference data from CSV
+   * Contains actual search volumes from Google Sheets PKY Search Volume column
+   */
+  loadKeywordReference() {
+    try {
+      const referencePath = '/tmp/keyword_search_volumes_reference.csv';
+      if (!fs.existsSync(referencePath)) {
+        console.log('ℹ️  Keyword reference CSV not found, AI will estimate search volumes');
+        return new Map();
+      }
+
+      const csvContent = fs.readFileSync(referencePath, 'utf-8');
+      const lines = csvContent.split('\n');
+      const referenceMap = new Map();
+
+      // Skip header row
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+
+        // Parse CSV line (handling quoted fields with commas)
+        const match = line.match(/"([^"]*)","([^"]*)","([^"]*)","([^"]*)","([^"]*)"/);
+        if (!match) continue;
+
+        const [, topicTitle, primaryKeyword, pkySearchVolume, sheetName, dataFormatNotes] = match;
+
+        // Store single primary keyword with its search volume
+        // Normalize keyword to lowercase for matching
+        const normalizedKeyword = primaryKeyword.trim().toLowerCase();
+
+        if (normalizedKeyword && pkySearchVolume) {
+          referenceMap.set(normalizedKeyword, {
+            searchVolume: pkySearchVolume.trim(),
+            topicTitle: topicTitle,
+            sheetName: sheetName,
+            dataFormat: dataFormatNotes,
+            isNumeric: /^\d/.test(pkySearchVolume.trim())
+          });
+        }
+      }
+
+      console.log(`✅ Loaded ${referenceMap.size} keyword search volumes from reference CSV`);
+      return referenceMap;
+    } catch (error) {
+      console.warn(`⚠️  Failed to load keyword reference: ${error.message}`);
+      return new Map();
+    }
+  }
+
+  /**
+   * Look up actual search volume for a keyword from reference data
+   * Returns null if not found in reference
+   */
+  lookupSearchVolume(keyword) {
+    if (!this.keywordReference || this.keywordReference.size === 0) {
+      return null;
+    }
+
+    const normalizedKeyword = (keyword || '').toLowerCase().trim();
+    const reference = this.keywordReference.get(normalizedKeyword);
+
+    if (reference) {
+      return {
+        volume: reference.searchVolume,
+        isNumeric: reference.isNumeric,
+        source: `Google Sheets (${reference.sheetName})`,
+        topicTitle: reference.topicTitle
+      };
+    }
+
+    return null;
+  }
+
   /**
    * Load optimized model parameters from config file
    */
@@ -110,6 +187,11 @@ class MasterSEOResearcher {
     console.log(`🤖 Primary Model: ${this.currentModel} (native web search)`);
     console.log(`🔄 Backup Models: ${this.models.compoundMini} (web search), ${this.models.browserSearch20B}, ${this.models.browserSearch120B}, ${this.models.gemini}, ${this.models.fallback}`);
     console.log(`📂 Category Focus: ${this.selectedCategory.replace('_', ' ').toUpperCase()}`);
+    if (this.keywordReference && this.keywordReference.size > 0) {
+      console.log(`📊 Keyword Reference: ${this.keywordReference.size} verified search volumes loaded from Google Sheets`);
+    } else {
+      console.log(`📊 Keyword Reference: Not loaded (AI will estimate search volumes)`);
+    }
     return true;
   }
 
@@ -299,17 +381,49 @@ class MasterSEOResearcher {
         }
       }
 
-      // Add AI-generated gaps with category override
+      // Add AI-generated gaps with category override and keyword reference enhancement
       if (researchData.content_gaps && researchData.content_gaps.length > 0) {
+        let referenceEnhancedCount = 0;
+
         researchData.content_gaps.forEach(gap => {
           gap.source = 'AI Analysis';
+
           // Override topic_area with selected category if specified
           if (this.selectedCategory) {
             gap.topic_area = this.selectedCategory;
           }
+
+          // 📊 ENHANCE WITH KEYWORD REFERENCE DATA
+          if (gap.primary_keyword) {
+            const volumeData = this.lookupSearchVolume(gap.primary_keyword);
+            if (volumeData) {
+              // Store AI estimate as backup
+              gap.search_volume_ai_estimate = gap.search_volume;
+
+              // Replace with actual data from Google Sheets
+              if (volumeData.isNumeric) {
+                // Parse numeric volume (may include commas like "2,46,000")
+                const numericVolume = parseInt(volumeData.volume.replace(/,/g, ''));
+                gap.search_volume = numericVolume;
+                gap.search_volume_verified = true;
+                gap.search_volume_source = volumeData.source;
+                referenceEnhancedCount++;
+                console.log(`   📊 [Reference] "${gap.primary_keyword}": ${volumeData.volume}/month (verified from ${volumeData.source})`);
+              } else {
+                // Non-numeric data (usage guide format)
+                gap.search_volume_guide = volumeData.volume;
+                gap.search_volume_source = volumeData.source;
+                console.log(`   📊 [Reference] "${gap.primary_keyword}": ${volumeData.volume} (usage guide from ${volumeData.source})`);
+              }
+            }
+          }
         });
+
         allGaps.push(...researchData.content_gaps);
         console.log(`✅ [AI] Added ${researchData.content_gaps.length} gaps from AI competitor analysis`);
+        if (referenceEnhancedCount > 0) {
+          console.log(`   📊 [Reference] Enhanced ${referenceEnhancedCount} gaps with verified search volumes from Google Sheets`);
+        }
         if (this.selectedCategory) {
           console.log(`   📂 All gaps set to category: ${this.selectedCategory.replace('_', ' ').toUpperCase()}`);
         }
