@@ -46,6 +46,9 @@ class TopicGenerator {
     this.gscDataFetcher = config.gscDataFetcher || null;
     this.seoDataFetcher = config.seoDataFetcher || null;
 
+    // 🎯 Load live topics for deduplication
+    this.liveTopics = this.loadLiveTopics();
+
     // Topic generation strategy
     this.topicStrategy = {
       quickWins: 20,        // Low difficulty, decent volume, 30-60 days ranking
@@ -110,6 +113,96 @@ class TopicGenerator {
         }
       };
     }
+  }
+
+  /**
+   * Load live topics from CSV for deduplication
+   * Returns a Set of normalized topic titles for fast lookup
+   */
+  loadLiveTopics() {
+    try {
+      const liveTopicsPath = '/tmp/live_topics_all_sheets.csv';
+
+      if (!fs.existsSync(liveTopicsPath)) {
+        console.log('ℹ️  Live topics CSV not found, skipping live topic deduplication');
+        return new Set();
+      }
+
+      const csvContent = fs.readFileSync(liveTopicsPath, 'utf-8');
+      const lines = csvContent.split('\n').slice(1); // Skip header
+
+      const liveTopicTitles = new Set();
+
+      lines.forEach(line => {
+        if (!line.trim()) return;
+
+        // Parse CSV line (handle quoted fields)
+        const match = line.match(/^"([^"]+)"/);
+        if (match && match[1]) {
+          const title = match[1].trim();
+          // Normalize title for comparison (lowercase, remove special chars)
+          const normalized = this.normalizeTopicTitle(title);
+          liveTopicTitles.add(normalized);
+        }
+      });
+
+      console.log(`✅ Loaded ${liveTopicTitles.size} live topics for deduplication`);
+      return liveTopicTitles;
+
+    } catch (error) {
+      console.warn(`⚠️  Failed to load live topics: ${error.message}`);
+      return new Set();
+    }
+  }
+
+  /**
+   * Normalize topic title for comparison
+   * Removes special characters, extra spaces, and converts to lowercase
+   */
+  normalizeTopicTitle(title) {
+    return title
+      .toLowerCase()
+      .replace(/[^\w\s]/g, '') // Remove special characters
+      .replace(/\s+/g, ' ')    // Normalize spaces
+      .trim();
+  }
+
+  /**
+   * Check if a topic is already live
+   */
+  isTopicLive(topicTitle) {
+    const normalized = this.normalizeTopicTitle(topicTitle);
+    return this.liveTopics.has(normalized);
+  }
+
+  /**
+   * Filter out live topics from generated topics
+   */
+  deduplicateAgainstLiveTopics(topics) {
+    if (this.liveTopics.size === 0) {
+      console.log('ℹ️  No live topics loaded, skipping deduplication');
+      return topics;
+    }
+
+    console.log(`\n🔍 Deduplicating ${topics.length} topics against ${this.liveTopics.size} live topics...`);
+
+    const newTopics = [];
+    const duplicates = [];
+
+    topics.forEach(topic => {
+      if (this.isTopicLive(topic.topic_title)) {
+        duplicates.push(topic);
+        console.log(`   ⏭️  "${topic.topic_title}" - Already live, skipping`);
+      } else {
+        newTopics.push(topic);
+      }
+    });
+
+    console.log(`✅ Deduplication complete:`);
+    console.log(`   ✅ New topics: ${newTopics.length}`);
+    console.log(`   ⏭️  Duplicates filtered: ${duplicates.length}`);
+
+    return newTopics;
   }
 
   /**
@@ -203,7 +296,15 @@ class TopicGenerator {
 
       console.log(`✅ Generated ${topics.length} topics from ${approvedGaps.length} research gaps`);
 
-      // 🎯 NEW: Validate topics with CSE to prevent duplicates!
+      // 🎯 FIRST: Deduplicate against live topics from spreadsheet
+      topics = this.deduplicateAgainstLiveTopics(topics);
+
+      if (topics.length === 0) {
+        console.log('⚠️  All generated topics are already live. No new topics to create.');
+        return [];
+      }
+
+      // 🎯 SECOND: Validate topics with CSE to prevent duplicates!
       if (this.gscDataFetcher && this.gscDataFetcher.cseClient && this.gscDataFetcher.useCSE) {
         try {
           console.log(`\n🔍 [MCP CSE] Validating ${topics.length} topics for duplicate content...`);
