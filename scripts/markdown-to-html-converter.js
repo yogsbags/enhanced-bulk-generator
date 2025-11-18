@@ -35,6 +35,30 @@ class MarkdownToHtmlConverter {
   }
 
   /**
+   * Extract SEO meta title from SEO metadata section
+   */
+  extractMetaTitle(seoContent) {
+    const titleMatch = seoContent.match(/###\s*SEO Meta Title[\s\S]*?```\s*\n([^\n]+)\n```/);
+    return titleMatch ? titleMatch[1].trim() : '';
+  }
+
+  /**
+   * Extract SEO meta description from SEO metadata section
+   */
+  extractMetaDescription(seoContent) {
+    const descMatch = seoContent.match(/###\s*SEO Meta Description[\s\S]*?```\s*\n([^\n]+)\n```/);
+    return descMatch ? descMatch[1].trim() : '';
+  }
+
+  /**
+   * Extract canonical URL from SEO metadata section
+   */
+  extractCanonicalUrl(seoContent) {
+    const urlMatch = seoContent.match(/###\s*SEO Optimized URL[\s\S]*?```\s*\n(https?:\/\/[^\n]+)\n```/);
+    return urlMatch ? urlMatch[1].trim() : '';
+  }
+
+  /**
    * Extract script tags from SEO metadata
    */
   extractScriptTags(seoContent) {
@@ -50,6 +74,22 @@ class MarkdownToHtmlConverter {
   }
 
   /**
+   * Generate SEO metadata HTML comment block
+   */
+  generateSeoMetadataBlock(metaTitle, metaDescription, canonicalUrl) {
+    if (!metaTitle && !metaDescription && !canonicalUrl) {
+      return '';
+    }
+
+    return `
+<!-- SEO Metadata -->
+<!-- SEO Optimized URL: ${canonicalUrl} -->
+<!-- SEO Meta Title: ${this.escapeHtml(metaTitle)} -->
+<!-- SEO Meta Description: ${this.escapeHtml(metaDescription)} -->
+`;
+  }
+
+  /**
    * Remove SEO metadata section from markdown content
    */
   stripSeoMetadata(content) {
@@ -59,14 +99,19 @@ class MarkdownToHtmlConverter {
   }
 
   /**
-   * Generate raw HTML (no template, just content + SEO scripts)
+   * Generate raw HTML (content + SEO metadata + schema scripts)
    */
-  generateRawHtml(content, seoScripts) {
+  generateRawHtml(content, seoMetadataBlock, seoScripts) {
     let html = content;
 
-    // Add SEO scripts at the end if they exist
+    // Add SEO metadata block after content
+    if (seoMetadataBlock) {
+      html += '\n\n' + seoMetadataBlock;
+    }
+
+    // Add SEO schema scripts at the end
     if (seoScripts) {
-      html += '\n\n' + seoScripts;
+      html += '\n' + seoScripts;
     }
 
     return html;
@@ -116,10 +161,10 @@ class MarkdownToHtmlConverter {
       '<div class="important-notes"><p><strong>Important Notes:</strong>'
     );
 
-    // Close important notes div at end or before next major section
+    // Close important notes div after the "Created by" line
     html = html.replace(
-      /(<div class="important-notes">[\s\S]*?)<p><strong>Created by/,
-      '$1</div><p><strong>Created by'
+      /(<div class="important-notes">[\s\S]*?<p><strong>Created by PL Capital Research Team[\s\S]*?<\/p>)/,
+      '$1\n</div>'
     );
 
     return html;
@@ -135,11 +180,17 @@ class MarkdownToHtmlConverter {
       // Read markdown content
       const markdownContent = fs.readFileSync(filePath, 'utf-8');
 
-      // Extract SEO metadata
+      // Extract SEO metadata section
       const seoContent = this.extractSeoMetadata(markdownContent);
 
-      // Extract script tags from SEO metadata
+      // Extract individual SEO components
+      const metaTitle = this.extractMetaTitle(seoContent);
+      const metaDescription = this.extractMetaDescription(seoContent);
+      const canonicalUrl = this.extractCanonicalUrl(seoContent);
       const seoScripts = this.extractScriptTags(seoContent);
+
+      // Generate SEO metadata block
+      const seoMetadataBlock = this.generateSeoMetadataBlock(metaTitle, metaDescription, canonicalUrl);
 
       // Strip SEO metadata from content
       const contentWithoutSeo = this.stripSeoMetadata(markdownContent);
@@ -150,8 +201,8 @@ class MarkdownToHtmlConverter {
       // Post-process HTML
       htmlContent = this.postProcessHtml(htmlContent);
 
-      // Generate raw HTML with SEO scripts
-      const finalHtml = this.generateRawHtml(htmlContent, seoScripts);
+      // Generate raw HTML with SEO metadata and scripts
+      const finalHtml = this.generateRawHtml(htmlContent, seoMetadataBlock, seoScripts);
 
       // Generate output filename
       const baseName = path.basename(filePath, '.md');
@@ -161,6 +212,12 @@ class MarkdownToHtmlConverter {
       fs.writeFileSync(outputPath, finalHtml, 'utf-8');
 
       console.log(`   ✅ Converted to: ${path.basename(outputPath)}`);
+      if (metaTitle) {
+        console.log(`      Title: ${metaTitle.substring(0, 60)}...`);
+      }
+      if (canonicalUrl) {
+        console.log(`      URL: ${canonicalUrl}`);
+      }
       return true;
     } catch (error) {
       console.error(`   ❌ Error converting ${path.basename(filePath)}: ${error.message}`);
