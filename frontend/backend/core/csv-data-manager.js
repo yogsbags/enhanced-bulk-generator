@@ -88,7 +88,7 @@ class CSVDataManager {
         'topic_research_id', 'topic_id', 'research_date', 'primary_keyword',
         'top_10_competitors', 'content_gaps', 'search_intent', 'related_questions',
         'content_superiority_plan', 'resource_requirements', 'regulatory_compliance',
-        'estimated_impact', 'source_urls', 'approval_status', 'created_at'
+        'estimated_impact', 'content_outline', 'source_urls', 'approval_status', 'created_at'
       ],
       createdContent: [
         'content_id', 'topic_id', 'creation_date', 'seo_metadata', 'article_content',
@@ -430,6 +430,7 @@ class CSVDataManager {
         resource_requirements: serializeField(item.resource_requirements),
         regulatory_compliance: serializeField(item.regulatory_compliance),
         estimated_impact: serializeField(item.estimated_impact),
+        content_outline: serializeField(item.content_outline),
         source_urls: Array.isArray(item.source_urls) ? JSON.stringify(item.source_urls) : (item.source_urls || '[]'),
         approval_status: item.approval_status || 'Pending',
         created_at: timestamp
@@ -458,6 +459,7 @@ class CSVDataManager {
       'resource_requirements',
       'regulatory_compliance',
       'estimated_impact',
+      'content_outline',
       'source_urls'
     ];
 

@@ -278,6 +278,14 @@ What's needed to create this content:
 - Visual assets (charts, infographics, calculators)
 - Legal/compliance review needed
 
+6. CONTENT OUTLINE
+Create a detailed article outline with:
+- Introduction hook and key points to cover
+- 8-12 main sections (H2 headings) with subsections (H3 headings)
+- FAQ section with 5-8 common questions
+- Conclusion with key takeaways and call-to-action
+- Each section should specify what to cover in detail
+
 Return your analysis in this JSON format:
 {
   "topic_id": "${topic.topic_id}",
@@ -290,6 +298,7 @@ Return your analysis in this JSON format:
   "resource_requirements": "Expert, data, visual requirements",
   "regulatory_compliance": "${topic.regulatory_requirements || 'Standard disclaimers'}",
   "estimated_impact": "Expected ranking improvement and traffic",
+  "content_outline": "Detailed article outline with introduction, main sections (H2/H3), FAQ, and conclusion",
   "approval_status": "Pending"
 }
 
@@ -825,6 +834,7 @@ Focus on Indian market context and SEBI/RBI compliance where applicable.`;
             resource_requirements: parsed.resource_requirements || '',
             regulatory_compliance: parsed.regulatory_compliance || topic.regulatory_requirements || '',
             estimated_impact: parsed.estimated_impact || '',
+            content_outline: parsed.content_outline || '',
             source_urls: sources,
             approval_status: 'Pending'
           };
@@ -852,6 +862,7 @@ Focus on Indian market context and SEBI/RBI compliance where applicable.`;
         resource_requirements: 'Expert review recommended',
         regulatory_compliance: topic.regulatory_requirements || 'Standard disclaimers',
         estimated_impact: 'High',
+        content_outline: '',
         source_urls: fallbackSources,
         approval_status: 'Pending'
       };
