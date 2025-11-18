@@ -448,7 +448,7 @@ RESEARCH CONTEXT:
 - Resource Requirements: ${research.resource_requirements}
 - Regulatory Compliance: ${research.regulatory_compliance}
 - Estimated Impact: ${research.estimated_impact}
-
+${research.content_outline ? `\n**RECOMMENDED CONTENT OUTLINE (from deep research):**\n${typeof research.content_outline === 'string' ? research.content_outline : JSON.stringify(research.content_outline)}\n\nUse this outline as a strategic guide. Adapt it to ensure the article follows the MANDATORY ORDER and CRITICAL FORMATTING RULES above.` : ''}
 
 Focus on outperforming top competitors in depth, freshness, and authority while maintaining compliance.
 `;
