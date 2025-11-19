@@ -631,19 +631,6 @@ If Exact Date/Circular Unknown:
   3. Keep each sentence focused on ONE idea
   4. Target 10-15 words per sentence (never exceed 20)
 
-**🔗 INTERNAL LINKING STRATEGY (MANDATORY 3-5 LINKS):**
-
-- Include 3-5 contextual internal links to related content
-- Format: [anchor text](link-placeholder-123) where 123 is a number
-- Placement: Naturally within body paragraphs, NOT forced in intro/conclusion
-- Examples:
-  ✅ "For a deeper dive into Section 80CCD deductions, see our [comprehensive NPS tax guide](link-placeholder-1)."
-  ✅ "If you're new to derivatives, check our [beginner's guide to Bank Nifty options](link-placeholder-2)."
-  ✅ "Learn more about [mutual fund taxation in FY 2025-26](link-placeholder-3)."
-- Link anchor text should be descriptive (8-12 words)
-- Links should point to complementary topics, NOT competitors
-- Leave URL as "link-placeholder-N" (publishing system will map to actual URLs)
-
 **✨ E-E-A-T EXPERIENCE SIGNALS (MANDATORY AUTHORITY BUILDERS):**
 
 - Include 1-2 brief case study examples with realistic scenarios:
