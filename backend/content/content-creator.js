@@ -304,6 +304,18 @@ OUTPUT RULES:
 - Tables: use valid Markdown tables, never placeholders.
 - No placeholder strings ({{...}}, [TODO], etc.). Provide finished copy.
 
+**🔍 ATTRIBUTION REQUIREMENT (MANDATORY FOR ALL FACTUAL CLAIMS):**
+- When stating facts, data, regulations, or statistics, ALWAYS add attribution phrases
+- Use patterns: "As per [source]...", "According to [authority]...", "Based on [document]..."
+- Examples:
+  ✅ "As per Union Budget 2025, LTCG tax is 12.5%"
+  ✅ "According to NSE specifications, Bank Nifty lot size is 30 units"
+  ✅ "Based on SEBI circular dated October 2024..."
+  ✅ "As per RBI guidelines..."
+- If exact source unknown, use qualifiers: "Typically...", "Generally...", "Industry standards suggest..."
+- For current/latest data, reference the year: "As of 2025...", "For FY 2025-26..."
+- NEVER state bare facts without attribution (e.g., ❌ "LTCG tax is 12.5%" without source)
+
 **🚨 CRITICAL: ANTI-HALLUCINATION RULES (VIOLATIONS WILL RESULT IN ARTICLE REJECTION):**
 
 1. ❌ **NO FABRICATED STATISTICS**: NEVER invent specific data points, percentages, or statistics that cannot be verified
@@ -448,6 +460,54 @@ BEFORE generating article content, you MUST use web search to verify and fetch C
 - Conversational tone with "you/your" language
 - Specific examples with INR amounts (₹10,000, ₹1 lakh, ₹50,000)
 - Real data only (NO hallucination, NO fake statistics)
+
+**📏 READABILITY MANDATE (MANDATORY 80% COMPLIANCE):**
+
+- TARGET: 80% of sentences MUST be ≤15 words
+- Break compound sentences with periods, NOT commas/semicolons
+- Transformation examples:
+  ❌ WRONG: "As of November 2025, data from NPS Trust reveals a distinct divergence: while 1-year returns have moderated to single digits due to recent market consolidation, 5-year CAGRs remain robust at 20-22%." (42 words)
+  ✅ RIGHT: "November 2025 data from NPS Trust shows a divergence. One-year returns have moderated to single digits due to market consolidation. However, 5-year CAGRs remain robust at 20-22%." (3 sentences, 11+14+10 words each)
+
+  ❌ WRONG: "Recent market volatility has tested investor patience, but the structural low-cost advantage of NPS (Expense Ratios capped at 0.09%) continues to compound wealth effectively over the long term." (28 words)
+  ✅ RIGHT: "Recent market volatility has tested investor patience. But NPS has a structural advantage. Expense ratios are capped at 0.09%. This compounds wealth effectively long-term." (4 sentences, 7+8+7+6 words each)
+
+- How to split long sentences:
+  1. Find compound clauses joined by commas, semicolons, or conjunctions
+  2. Break into separate sentences using periods
+  3. Keep each sentence focused on ONE idea
+  4. Target 10-15 words per sentence (never exceed 20)
+
+**🔗 INTERNAL LINKING STRATEGY (MANDATORY 3-5 LINKS):**
+
+- Include 3-5 contextual internal links to related content
+- Format: [anchor text](link-placeholder-123) where 123 is a number
+- Placement: Naturally within body paragraphs, NOT forced in intro/conclusion
+- Examples:
+  ✅ "For a deeper dive into Section 80CCD deductions, see our [comprehensive NPS tax guide](link-placeholder-1)."
+  ✅ "If you're new to derivatives, check our [beginner's guide to Bank Nifty options](link-placeholder-2)."
+  ✅ "Learn more about [mutual fund taxation in FY 2025-26](link-placeholder-3)."
+- Link anchor text should be descriptive (8-12 words)
+- Links should point to complementary topics, NOT competitors
+- Leave URL as "link-placeholder-N" (publishing system will map to actual URLs)
+
+**✨ E-E-A-T EXPERIENCE SIGNALS (MANDATORY AUTHORITY BUILDERS):**
+
+- Include 1-2 brief case study examples with realistic scenarios:
+  Example: "A 35-year-old software engineer who switched from SBI to UTI Pension Fund in 2020 saw their XIRR improve from 9.8% to 13.2% over 5 years."
+
+- Add expert quote callouts using blockquote format:
+  Example:
+  > "The key to NPS success is staying invested through volatility cycles. Time in the market beats timing the market."
+  > — Senior Pension Fund Analyst, PFRDA-certified advisor
+
+- Link out to 2-3 authoritative sources for regulatory/data claims:
+  - Format: "As per [PFRDA guidelines](https://www.pfrda.org.in), you can switch managers once annually."
+  - Use official domains: pfrda.org.in, sebi.gov.in, rbi.org.in, nseindia.com
+  - Only link to verifiable, credible sources
+
+- Add "Data Source" attributions under tables:
+  Example: "*Data Source: PFRDA/NPS Trust disclosures as of November 2025. Past performance is not indicative of future results.*"
 
 **GREEKS/RISK FACTORS SECTION (if applicable for options/derivatives topics):**
 
@@ -713,6 +773,7 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
           maxOutputTokens: 8192,
           responseMimeType: 'application/json',
         },
+        tools: [{ googleSearch: {} }],
         systemInstruction: 'You are a senior financial content strategist. Always respond with valid JSON following the provided schema. Never include markdown code fences or explanatory text - ONLY return the JSON object.',
       });
 

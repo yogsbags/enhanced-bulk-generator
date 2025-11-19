@@ -628,7 +628,7 @@ For EACH of the ${topicCount} topic(s), provide:
 1. topic_id: "TOPIC-YYYYMMDD-XXX" (sequential)
 2. research_gap_id: "CUSTOM-GAP" (since this bypasses Stage 1 research)
 3. content_type: [blog|ymyl|listicle|news] (auto-detect based on topic)
-4. topic_title: Generate a compelling, SEO-optimized blog title based on the keyword "${customTopicTitle}" (e.g., "Wealth Maximization: Complete Guide for Indians 2025", NOT just "wealth maximization")
+4. topic_title: Generate a compelling, SEO-optimized blog title based on the keyword "${customTopicTitle}" (e.g., "Nifty Options strategies: Complete Guide for Indians 2025" or  "What are Options Trading Strategies? Complete Guide for Beginners 2025", NOT just the primary keyword.
 5. category: [mutual_funds|tax_planning|stock_market|retirement_planning|insurance|personal_finance|investment_strategies|derivatives] (auto-detect)
 6. primary_keyword: Main target keyword extracted from the title
 7. secondary_keywords: 3-5 related keywords (comma-separated string)
