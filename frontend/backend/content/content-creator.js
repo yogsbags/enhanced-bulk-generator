@@ -15,6 +15,7 @@ const fs = require('fs');
 const path = require('path');
 const CSVDataManager = require('../core/csv-data-manager');
 const { generateHeroImage } = require('../integrations/image-generator');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 class ContentCreator {
   constructor(config = {}) {
@@ -29,8 +30,14 @@ class ContentCreator {
     this.customTitle = config.customTitle || null;
     this.openaiApiKey = process.env.OPENAI_API_KEY;
     this.groqApiKey = process.env.GROQ_API_KEY;
+    this.geminiApiKey = process.env.GEMINI_API_KEY;
     this.openaiApiUrl = 'https://api.openai.com/v1/chat/completions';
     this.groqApiUrl = 'https://api.groq.com/openai/v1/chat/completions';
+
+    // Initialize Google Generative AI
+    if (this.geminiApiKey) {
+      this.genAI = new GoogleGenerativeAI(this.geminiApiKey);
+    }
 
     this.csvManager = new CSVDataManager();
     this.heroImageCache = new Map();
@@ -43,12 +50,16 @@ class ContentCreator {
   }
 
   validateConfig() {
-    if (!this.openaiApiKey && !this.groqApiKey) {
-      console.warn('⚠️  Neither OPENAI_API_KEY nor GROQ_API_KEY set!');
-      console.log('Please set at least one API key');
+    if (!this.openaiApiKey && !this.groqApiKey && !this.geminiApiKey) {
+      console.warn('⚠️  No AI API keys configured!');
+      console.log('Please set at least one: GEMINI_API_KEY, GROQ_API_KEY, or OPENAI_API_KEY');
       return false;
     }
-    console.log('✅ Content Creator initialized');
+    if (this.geminiApiKey) {
+      console.log('✅ Content Creator initialized with Gemini 3.0 Pro Preview (primary)');
+    } else {
+      console.log('✅ Content Creator initialized');
+    }
     return true;
   }
 
@@ -293,6 +304,43 @@ OUTPUT RULES:
 - Tables: use valid Markdown tables, never placeholders.
 - No placeholder strings ({{...}}, [TODO], etc.). Provide finished copy.
 
+**🚨 CRITICAL: ANTI-HALLUCINATION RULES (VIOLATIONS WILL RESULT IN ARTICLE REJECTION):**
+
+1. ❌ **NO FABRICATED STATISTICS**: NEVER invent specific data points, percentages, or statistics that cannot be verified
+   - ❌ WRONG: "India's household net-worth grew only 3% in 2023 despite a 12% market rally"
+   - ✅ RIGHT: "Many Indian households lag market gains due to poor asset allocation"
+   - If you don't have current verified data, use qualifiers: "Recent trends suggest...", "Experts estimate...", "Industry reports indicate..."
+
+2. ❌ **NO WORKSHEET/TEMPLATE REFERENCES**: NEVER mention downloadable worksheets, printable templates, or fill-in documents
+   - ❌ WRONG: "### Worksheet Preview – Goal-Setting Template" or "A printable worksheet asks for target amount..."
+   - ❌ WRONG: "Download the allocation worksheet", "Fill in the goal-setting template"
+   - ✅ RIGHT: "Consider these factors when setting goals: target amount, time horizon, expected return, monthly SIP"
+   - Markdown articles CANNOT include downloadable files - use text explanations instead
+
+3. ❌ **NO INTERACTIVE ELEMENTS**: NEVER reference interactive tools, calculators, heat maps, sliders, or drag-and-drop features
+   - ❌ WRONG: "### Interactive Allocation Heat-Map (Embed)" or "Use the PL Capital portal to drag-and-drop percentages"
+   - ❌ WRONG: "### Tax-Impact Calculator Walkthrough: 1. Enter investment amount 2. Select tax slab 3. View results"
+   - ❌ WRONG: "Embed the calculator below", "Use the interactive slider to adjust allocation"
+   - ✅ RIGHT: "Calculate tax impact by multiplying returns by your tax bracket (30% for highest slab)"
+   - PL Capital website does NOT have these interactive tools - use manual calculation examples instead
+
+4. ❌ **NO HALLUCINATED FUND NAMES OR SPECIFIC PRODUCTS**: NEVER invent fund names, product names, or specific offerings
+   - ❌ WRONG: "XYZ Growth Fund", "ABC Nifty Index Fund", "PQR Tax Saver ELSS"
+   - ❌ WRONG: "Fund Type | Avg. Expense Ratio | Example Fund | ..."
+   - ✅ RIGHT: "Actively Managed Equity Fund", "Nifty 50 Index Fund", "Tax-saving ELSS fund"
+   - ✅ RIGHT: Use generic categories, not specific branded products
+
+5. ❌ **NO HALLUCINATED DATA IN TABLES**: If creating comparison tables, use ONLY generic categories or clearly labeled example values
+   - ❌ WRONG: Tables with specific fund names, invented expense ratios, or unverified data points
+   - ✅ RIGHT: "| Category | Typical Range | Notes |" with "Example values for illustration only" disclaimer
+   - ✅ RIGHT: Use research brief data or mark clearly as "Example calculation assuming..."
+
+**IF YOU NEED SPECIFIC DATA:**
+- Use research brief data ONLY
+- Add qualifiers: "For example...", "Assuming...", "Typical ranges include..."
+- Mark example calculations clearly: "Example: If investing ₹10,000 monthly at 12% returns..."
+- NEVER present hypothetical data as facts
+
 **🔍 BEFORE WRITING - MANDATORY WEB SEARCH FOR CURRENT DATA:**
 
 BEFORE generating article content, you MUST use web search to verify and fetch CURRENT accurate data for:
@@ -419,6 +467,11 @@ BEFORE generating article content, you MUST use web search to verify and fetch C
 - ❌ Conclusions longer than 100 words
 - ❌ Keyword stuffing or repetitive explanations
 - ❌ Fake statistics or invented data
+- ❌ FABRICATED STATISTICS: "India's household net-worth grew only 3% in 2023", unverified market data
+- ❌ WORKSHEET/TEMPLATE REFERENCES: "Goal-Setting Template", "printable worksheet", "downloadable tools"
+- ❌ INTERACTIVE ELEMENTS: "Interactive Heat-Map", "Tax Calculator Walkthrough", "drag-and-drop", "embed calculator"
+- ❌ HALLUCINATED FUND NAMES: "XYZ Growth Fund", "ABC Nifty Index Fund", "PQR Tax Saver ELSS"
+- ❌ HALLUCINATED DATA IN TABLES: Specific fund names, invented expense ratios, unverified comparisons
 - ❌ Generic CTA links (must use https://instakyc.plindia.com/)
 - ❌ January 2025 references (use November 2025 or FY 2025-26)
 - ❌ Sentences longer than 20 words (aim for under 15 words)
@@ -497,12 +550,24 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
   }
 
   /**
-   * Call Groq/OpenAI models in priority order for content drafting
+   * Call Gemini/Groq/OpenAI models in priority order for content drafting
    */
   async callAI(prompt) {
+    // Try Gemini first (primary model)
+    if (this.geminiApiKey) {
+      try {
+        const result = await this.callGeminiModel('gemini-2.0-flash-exp', prompt);
+        console.log('🤖 Draft generated via Google Gemini 2.0 Flash Experimental (primary)');
+        return result;
+      } catch (error) {
+        console.warn(`⚠️  Gemini 2.0 Flash failed: ${error.message}`);
+      }
+    }
+
+    // Fallback to Groq models
     const groqModels = [
-      { name: 'groq/compound', label: 'Groq Compound (primary)', temperature: 0.55 },
-      { name: 'openai/gpt-oss-120b', label: 'Groq GPT-OSS 120B (secondary)', temperature: 0.6 }
+      { name: 'groq/compound', label: 'Groq Compound (fallback)', temperature: 0.55 },
+      { name: 'openai/gpt-oss-120b', label: 'Groq GPT-OSS 120B (fallback)', temperature: 0.6 }
     ];
 
     if (this.groqApiKey) {
@@ -628,6 +693,58 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
     }
 
     return content;
+  }
+
+  /**
+   * Call Google Gemini model for content generation
+   */
+  async callGeminiModel(modelName, prompt) {
+    if (!this.geminiApiKey) {
+      throw new Error('GEMINI_API_KEY not configured');
+    }
+
+    try {
+      const model = this.genAI.getGenerativeModel({
+        model: modelName,
+        generationConfig: {
+          temperature: 0.6,
+          topP: 0.92,
+          topK: 40,
+          maxOutputTokens: 8192,
+          responseMimeType: 'application/json',
+        },
+      });
+
+      const result = await model.generateContent([
+        {
+          role: 'user',
+          parts: [{
+            text: 'You are a senior financial content strategist. Always respond with valid JSON following the provided schema. Never include markdown code fences or explanatory text - ONLY return the JSON object.'
+          }]
+        },
+        {
+          role: 'model',
+          parts: [{
+            text: 'Understood. I will respond with ONLY valid JSON following the exact schema provided, with no markdown fences, explanations, or additional text.'
+          }]
+        },
+        {
+          role: 'user',
+          parts: [{ text: prompt }]
+        }
+      ]);
+
+      const response = await result.response;
+      const content = response.text();
+
+      if (!content) {
+        throw new Error('Gemini returned an empty response');
+      }
+
+      return content;
+    } catch (error) {
+      throw new Error(`Gemini API error: ${error.message}`);
+    }
   }
 
   /**
