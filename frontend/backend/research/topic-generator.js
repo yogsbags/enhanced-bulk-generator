@@ -628,7 +628,7 @@ For EACH of the ${topicCount} topic(s), provide:
 1. topic_id: "TOPIC-YYYYMMDD-XXX" (sequential)
 2. research_gap_id: "CUSTOM-GAP" (since this bypasses Stage 1 research)
 3. content_type: [blog|ymyl|listicle|news] (auto-detect based on topic)
-4. topic_title: Use the provided title: "${customTopicTitle}" (or enhance it slightly if needed)
+4. topic_title: Generate a compelling, SEO-optimized blog title based on the keyword "${customTopicTitle}" (e.g., "Wealth Maximization: Complete Guide for Indians 2025", NOT just "wealth maximization")
 5. category: [mutual_funds|tax_planning|stock_market|retirement_planning|insurance|personal_finance|investment_strategies|derivatives] (auto-detect)
 6. primary_keyword: Main target keyword extracted from the title
 7. secondary_keywords: 3-5 related keywords (comma-separated string)
@@ -657,9 +657,9 @@ OUTPUT FORMAT
       "topic_id": "TOPIC-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-001",
       "research_gap_id": "CUSTOM-GAP",
       "content_type": "blog",
-      "topic_title": "${customTopicTitle}",
-      "category": "derivatives",
-      "primary_keyword": "extracted keyword",
+      "topic_title": "${customTopicTitle}: Complete Guide for Indian Investors 2025",
+      "category": "investment_strategies",
+      "primary_keyword": "${customTopicTitle.toLowerCase()}",
       "secondary_keywords": "related,keywords,here",
       "search_volume": 5000,
       "keyword_difficulty": 35,
@@ -683,6 +683,7 @@ CRITICAL:
 - Generate exactly ${topicCount} topic(s)
 - Return ONLY the JSON object described above
 - No markdown formatting, no explanations
+- topic_title MUST be a compelling blog title (e.g., "Wealth Maximization: 7 Proven Strategies for 2025"), NOT just the keyword "${customTopicTitle}"
 - Validate JSON structure before returning`;
   }
 
