@@ -174,13 +174,26 @@ class WorkflowOrchestrator {
    * Stage 1: Master SEO Research
    * Uses Google APIs (GA4 + CSE + optional Ads) for real data
    */
-  async executeStage1Research() {
+  async executeStage1Research(options = {}) {
     console.log('\n📍 STAGE 1: Master SEO Research');
     console.log('-'.repeat(40));
 
     try {
       console.log(`🎯 Generating ${this.config.gapsPerRun} content gap opportunities...`);
-      console.log(`📂 Category Filter: ${this.config.category || 'derivatives (default)'}`);
+
+      // Use customTopic if provided, otherwise use category
+      if (options.customTopic || this.config.customTopic) {
+        const topic = options.customTopic || this.config.customTopic;
+        console.log(`✨ Custom Topic Focus: "${topic}"`);
+        console.log(`📂 Category (fallback): ${this.config.category || 'derivatives (default)'}`);
+
+        // Update researcher with custom topic
+        this.researcher.customTopic = topic;
+        this.researcher.selectedCategory = this.config.category || 'derivatives';
+      } else {
+        console.log(`📂 Category Filter: ${this.config.category || 'derivatives (default)'}`);
+      }
+
       console.log('');
       console.log('🔄 Data Sources:');
       console.log('   1. Groq Llama 3.3 70B: Competitor analysis + web search');
@@ -730,7 +743,7 @@ class WorkflowOrchestrator {
 
     switch (stageName.toLowerCase()) {
       case 'research':
-        return await this.executeStage1Research();
+        return await this.executeStage1Research(options);
       case 'topics':
         return await this.executeStage2Topics(options);
       case 'deep-research':
