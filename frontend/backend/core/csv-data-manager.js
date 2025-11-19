@@ -434,6 +434,13 @@ class CSVDataManager {
   }
 
   /**
+   * Get all topics (both approved and pending)
+   */
+  getAllTopics() {
+    return this.readCSV(this.files.generatedTopics);
+  }
+
+  /**
    * Save topic research data
    */
   saveTopicResearch(research) {

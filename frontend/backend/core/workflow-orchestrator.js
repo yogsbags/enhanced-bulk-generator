@@ -450,6 +450,31 @@ class WorkflowOrchestrator {
     console.log('-'.repeat(40));
 
     try {
+      // Check if custom topic is provided but no topics exist
+      const customTopic = options.customTopic || this.config.customTopic;
+      if (customTopic) {
+        console.log(`✨ Custom Topic Mode: "${customTopic}"`);
+
+        // Check if we have topics for this custom topic
+        const existingTopics = this.csvManager.getAllTopics();
+        const hasCustomTopics = existingTopics.some(t =>
+          t.topic_title && t.topic_title.toLowerCase().includes(customTopic.toLowerCase())
+        );
+
+        if (!hasCustomTopics) {
+          console.log(`⚠️  No topics found for "${customTopic}"`);
+          console.log('🔄 Auto-running prerequisite stages...\n');
+
+          // Run Stage 2 (Topic Generation)
+          await this.executeStage2Topics({ ...options, customTopic });
+
+          // Run Stage 3 (Deep Research)
+          await this.executeStage3DeepResearch(options);
+
+          console.log('\n✅ Prerequisites completed, resuming Stage 4...');
+        }
+      }
+
       const limit = options.limit ?? this.config.contentLimit ?? null;
       let approvedResearch = this.csvManager.getApprovedTopicResearch();
 
