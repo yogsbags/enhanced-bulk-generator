@@ -293,8 +293,40 @@ class ContentCreator {
       ? sources.map((url, idx) => `${idx + 1}. ${url}`).join('\n')
       : 'Reference RBI publications, SEBI circulars, and reputable Indian financial portals.';
 
+    // 🚨 CUSTOM TITLE MODE: Build ultra-forceful enforcement if detected
+    const isCustomTitleMode = research.topic_id?.startsWith('CUSTOM-TITLE-');
+    const customTitleEnforcement = isCustomTitleMode ? `
+🚨🚨🚨 CRITICAL OVERRIDE - READ THIS FIRST 🚨🚨🚨
+
+**CUSTOM TITLE MODE ACTIVATED**
+
+The user has provided a CUSTOM ARTICLE TITLE. This OVERRIDES all SEO optimization rules.
+
+**MANDATORY REQUIREMENT:**
+- Custom Title: "${research.primary_keyword}"
+- You MUST use this EXACT title in seo_metadata.title field
+- DO NOT change capitalization
+- DO NOT add punctuation
+- DO NOT add descriptive words
+- DO NOT add "Guide", "Strategic", "for Indian Investors", "FY 2025-26", or ANY other text
+- DO NOT apply SEO best practices to this title
+
+**EXAMPLES:**
+❌ FORBIDDEN: "What is Technical Analysis? A Strategic Guide for Indian Investors (FY 2025-26)"
+❌ FORBIDDEN: "What is Technical Analysis: A Complete Guide"
+❌ FORBIDDEN: "Technical Analysis Explained"
+✅ CORRECT: "${research.primary_keyword}" (EXACT COPY, no changes)
+
+**IF YOU MODIFY THIS TITLE IN ANY WAY, YOUR RESPONSE WILL BE REJECTED**
+
+This is a user-provided title override. Ignore ALL other title optimization instructions below.
+
+` : '';
+
     return `You are an award-winning Indian financial strategist, senior editor, and compliance reviewer.
 Using the approved research brief, craft an SEO ready article that reads like it was written by PL Capital's in-house experts.
+
+${customTitleEnforcement}
 
 ⚠️ **MANDATORY BEFORE WRITING:** You have Google Search enabled. SEARCH FIRST, WRITE SECOND.
 - For EVERY factual claim (numbers, dates, regulations, tax rates), SEARCH before writing
@@ -711,7 +743,7 @@ JSON SCHEMA:
 {
   "topic_id": "string",
   "seo_metadata": {
-    "title": "string <= 60 characters containing the focus keyphrase",
+    "title": ${isCustomTitleMode ? `"${research.primary_keyword}" (EXACT COPY - NO MODIFICATIONS ALLOWED)` : `"string <= 60 characters containing the focus keyphrase"`},
     "meta_description": "string 140-160 characters with a CTA and focus keyphrase",
     "focus_keyphrase": "string",
     "secondary_keywords": ["string", "string", "string"]
@@ -728,7 +760,6 @@ JSON SCHEMA:
 
 ${feedback}
 ATTEMPT: ${attempt}
-
 RESEARCH CONTEXT:
 - Topic ID: ${research.topic_id}
 - Primary Keyword: ${research.primary_keyword}
@@ -1513,7 +1544,24 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
   normalizeSeoMetadata(meta, research, article = '') {
     const raw = this.safeParseJSON(meta, meta && typeof meta === 'object' ? meta : {});
     const focus = raw.focus_keyphrase || research.primary_keyword || '';
-    const title = this.truncateTitle(raw.title || research.topic_id || focus);
+
+    // ⚠️ CUSTOM TITLE ENFORCEMENT: Override AI-generated title with user's custom title
+    let title;
+    if (research.topic_id?.startsWith('CUSTOM-TITLE-')) {
+      // This is a custom title scenario - use the exact custom title provided by the user
+      title = research.primary_keyword || research.topic_id || focus;
+
+      // Warn if AI ignored the custom title instruction
+      if (raw.title && raw.title !== research.primary_keyword) {
+        console.warn(`⚠️  AI generated title "${raw.title}" instead of using custom title "${research.primary_keyword}". Overriding with custom title.`);
+      }
+
+      console.log(`✅ Custom title enforced: "${title}"`);
+    } else {
+      // Normal workflow - use AI-generated title
+      title = this.truncateTitle(raw.title || research.topic_id || focus);
+    }
+
     const metaDescription = this.buildMetaDescription(raw.meta_description, article, focus);
 
     const secondary = this.ensureArray(raw.secondary_keywords || [])
