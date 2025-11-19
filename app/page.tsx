@@ -404,11 +404,11 @@ export default function Home() {
                 value={customTopic}
                 onChange={(e) => setCustomTopic(e.target.value)}
                 disabled={isRunning || executingStage !== null}
-                placeholder="e.g., option strategies"
+                placeholder="e.g., wealth maximization"
                 className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none font-medium text-gray-800 disabled:bg-gray-100 disabled:cursor-not-allowed"
               />
               <p className="text-xs text-gray-500 mt-1">
-                🎯 Bypass Stage 1 - Generate topics from custom input (Stage 2)
+                ✨ Stage 1 will research this custom topic instead of category (overrides category)
               </p>
             </div>
           </div>

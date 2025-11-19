@@ -175,7 +175,9 @@ class EnhancedBulkGenerator {
 
     try {
       // Stage 1: Master SEO Research
-      await this.orchestrator.executeStage('research');
+      await this.orchestrator.executeStage('research', {
+        customTopic: this.config.customTopic
+      });
 
       // Stage 2: Topic Generation
       await this.orchestrator.executeStage('topics', {
@@ -519,7 +521,9 @@ async function main() {
         }
         const stageOptions = {};
         // Always pass limit regardless of truthiness - let the orchestrator handle null/undefined
-        if (stageName === 'topics') {
+        if (stageName === 'research') {
+          stageOptions.customTopic = generator.config.customTopic;
+        } else if (stageName === 'topics') {
           stageOptions.limit = generator.config.topicLimit;
         } else if (stageName === 'deep-research') {
           stageOptions.limit = generator.config.deepResearchLimit;

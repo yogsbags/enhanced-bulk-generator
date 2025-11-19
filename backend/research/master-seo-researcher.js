@@ -62,6 +62,7 @@ class MasterSEOResearcher {
 
     this.contentCategories = this.loadContentCategories(config.categoriesPath);
     this.selectedCategory = config.category || 'derivatives'; // Default to derivatives
+    this.customTopic = config.customTopic || ''; // Custom topic overrides category if provided
 
     this.validateConfig();
   }
@@ -113,7 +114,15 @@ class MasterSEOResearcher {
     console.log('✅ Master SEO Researcher initialized');
     console.log(`🤖 Primary Model: ${this.currentModel} (native web search)`);
     console.log(`🔄 Backup Models: ${this.models.compoundMini} (web search), ${this.models.browserSearch20B}, ${this.models.browserSearch120B}, ${this.models.gemini}, ${this.models.fallback}`);
-    console.log(`📂 Category Focus: ${this.selectedCategory.replace('_', ' ').toUpperCase()}`);
+
+    // Show custom topic if provided, otherwise show category
+    if (this.customTopic) {
+      console.log(`✨ Research Focus: "${this.customTopic}" (CUSTOM TOPIC)`);
+      console.log(`   Category: ${this.selectedCategory.replace('_', ' ').toUpperCase()} (fallback for gap categorization)`);
+    } else {
+      console.log(`📂 Category Focus: ${this.selectedCategory.replace('_', ' ').toUpperCase()}`);
+    }
+
     return true;
   }
 
@@ -1261,11 +1270,19 @@ IMPORTANT: Extract ALL fields from the source text including content_gaps, quick
    * Build comprehensive research prompt
    */
   buildResearchPrompt() {
-    const categoryFocus = this.selectedCategory
-      ? `\n\n⚠️ CATEGORY FOCUS: Primary focus on "${this.selectedCategory.replace('_', ' ').toUpperCase()}" category. Prioritize content gaps in this area.\n`
-      : '';
+    // Use customTopic if provided, otherwise fall back to category focus
+    let focusSection = '';
+    let focusArea = '';
 
-    return `Execute comprehensive Master SEO Research for Indian WealthTech niche.${categoryFocus}
+    if (this.customTopic) {
+      focusSection = `\n\n⚠️ CUSTOM TOPIC FOCUS: Primary research focus on "${this.customTopic}". All content gaps should be related to this topic.\n`;
+      focusArea = this.customTopic;
+    } else if (this.selectedCategory) {
+      focusSection = `\n\n⚠️ CATEGORY FOCUS: Primary focus on "${this.selectedCategory.replace('_', ' ').toUpperCase()}" category. Prioritize content gaps in this area.\n`;
+      focusArea = this.selectedCategory.replace('_', ' ').toUpperCase();
+    }
+
+    return `Execute comprehensive Master SEO Research for Indian WealthTech niche.${focusSection}
 
 ANALYSIS REQUIREMENTS:
 
@@ -1274,15 +1291,15 @@ Analyze these top WealthTech competitors:
 ${this.competitors.map(comp => `- ${comp}`).join('\n')}
 
 For each competitor identify:
-- Top 20 ranking keywords${this.selectedCategory ? ` (focus on ${this.selectedCategory.replace('_', ' ')} topics)` : ''}
+- Top 20 ranking keywords${focusArea ? ` (focus on ${focusArea} topics)` : ''}
 - Content strengths (what they do well)
 - Content weaknesses (gaps, outdated info, poor UX)
 - Traffic estimates
 - Topical authority areas
 
-2. CONTENT GAP OPPORTUNITIES${this.selectedCategory ? ` (Focus on ${this.selectedCategory.replace('_', ' ').toUpperCase()})` : ''}
-Find 10 high-value content opportunities${this.selectedCategory ? ` primarily in the ${this.selectedCategory.replace('_', ' ').toUpperCase()} category` : ' in these categories (distributed proportionally)'}:
-${this.selectedCategory ? `- ${this.selectedCategory.replace('_', ' ').toUpperCase()} (PRIMARY FOCUS - at least 7 out of 10 gaps)\n` : ''}${Object.entries(this.contentCategories).map(([cat, count]) => `- ${cat.replace('_', ' ').toUpperCase()}`).join('\n')}
+2. CONTENT GAP OPPORTUNITIES${focusArea ? ` (Focus on ${focusArea})` : ''}
+Find 10 high-value content opportunities${focusArea ? ` primarily related to "${focusArea}"` : ' in these categories (distributed proportionally)'}:
+${focusArea ? `- ${focusArea} (PRIMARY FOCUS - at least 7 out of 10 gaps)\n` : ''}${this.customTopic ? '' : Object.entries(this.contentCategories).map(([cat]) => `- ${cat.replace('_', ' ').toUpperCase()}`).join('\n')}
 
 For each gap, analyze:
 - Why competitors are weak here
