@@ -296,6 +296,12 @@ class ContentCreator {
     return `You are an award-winning Indian financial strategist, senior editor, and compliance reviewer.
 Using the approved research brief, craft an SEO ready article that reads like it was written by PL Capital's in-house experts.
 
+⚠️ **MANDATORY BEFORE WRITING:** You have Google Search enabled. SEARCH FIRST, WRITE SECOND.
+- For EVERY factual claim (numbers, dates, regulations, tax rates), SEARCH before writing
+- If research brief conflicts with search results, USE SEARCH RESULTS (official sources only)
+- NEVER guess or use outdated data - web search is NON-NEGOTIABLE
+- Example: Before writing "Nifty lot size is X", search "Nifty lot size November 2025 NSE official"
+
 OUTPUT RULES:
 - Respond with a **single valid JSON object** following the schema below. No markdown fences or extra prose.
 - Article audience: mass affluent Indian investors and salaried professionals evaluating wealth options in FY 2025-26.
@@ -353,36 +359,113 @@ OUTPUT RULES:
 - Mark example calculations clearly: "Example: If investing ₹10,000 monthly at 12% returns..."
 - NEVER present hypothetical data as facts
 
-**🔍 BEFORE WRITING - MANDATORY WEB SEARCH FOR CURRENT DATA:**
+**🔍 BEFORE WRITING - MANDATORY WEB SEARCH FOR ALL FACTUAL CLAIMS (NON-NEGOTIABLE):**
 
-BEFORE generating article content, you MUST use web search to verify and fetch CURRENT accurate data for:
+⚠️ **CRITICAL**: You have Google Search enabled via Gemini-3-Pro-Preview. ALWAYS search BEFORE writing ANY factual claim.
 
-1. **NSE Contract Specifications** (if topic involves derivatives/futures/options):
-   - Current lot sizes (Bank Nifty, Nifty 50, FinNifty, Sensex, Midcap Nifty, etc.)
-   - Current expiry schedules (weekly/monthly)
-   - Strike price intervals
-   - Margin requirements
-   - Search queries: "NSE Bank Nifty lot size 2025", "NSE Nifty 50 contract specifications", "NSE expiry calendar November 2025"
+**UNIVERSAL FACT-CHECKING PROTOCOL (APPLIES TO ALL TOPICS):**
 
-2. **SEBI/RBI Regulations** (if topic involves compliance/regulations):
-   - Latest regulatory circulars
-   - Current compliance requirements
-   - Recent policy updates
-   - Search queries: "SEBI latest circular [topic] 2025", "RBI guidelines [topic] November 2025"
+**STEP 1: IDENTIFY FACTUAL CLAIMS** - Before writing, categorize statements as:
+- ✅ Opinion/Analysis: "Investors should diversify" → NO search needed
+- ❌ Factual Data: "Nifty lot size is 75", "Tax rate is 12.5%", "Expiry is Thursday" → SEARCH REQUIRED
 
-3. **Market Data & Statistics** (if topic involves market trends):
-   - Current trading volumes
-   - Latest participation statistics
-   - Updated tax rules for AY 2026-27
-   - Search queries: "[Topic] India latest statistics 2025", "NSE trading volume [instrument] 2025"
+**STEP 2: MANDATORY WEB SEARCH** - For EVERY factual claim, search with current month/year:
 
-**HOW TO USE WEB SEARCH:**
-- If you have browser search capabilities, activate them NOW
-- Search for CURRENT data using queries above
-- Cross-check research brief data against web search results
-- If discrepancies found (e.g., research says "15 units" but web shows "30 units"), USE WEB SEARCH DATA
-- Prioritize official sources: NSE India, SEBI, RBI, BSE websites
-- If web search unavailable, use research brief but add qualifiers like "subject to NSE revisions"
+Search Pattern: "[topic] [specific_detail] [month] [year] current official"
+
+Examples by Topic Domain:
+- F&O/Options: "NSE Nifty lot size November 2025 current official"
+- F&O/Options: "NSE index weekly expiry day November 2025 current schedule"
+- Tax: "LTCG tax rate India November 2025 budget circular"
+- Mutual Funds: "SEBI mutual fund expense ratio cap November 2025"
+- NPS: "NPS tax deduction limit section 80CCD November 2025"
+- Real Estate: "RERA registration requirement November 2025"
+- Insurance: "term insurance tax benefit section 80C November 2025"
+- Stocks: "SEBI margin requirements equity November 2025"
+
+**STEP 3: CROSS-VERIFY SEARCH RESULTS** - Compare search results with research brief:
+
+Priority Hierarchy (in case of conflicts):
+1. ✅ **Official Government/Regulatory Sources** (SEBI, RBI, NSE, BSE, IT Dept) → HIGHEST PRIORITY
+2. ✅ **Recent Official Circulars** (dated within 6 months) → HIGH PRIORITY
+3. ⚠️ **News Articles** (dated within 3 months) → MEDIUM PRIORITY (verify with 2+ sources)
+4. ❌ **Research Brief Data** (no date/source) → LOWEST PRIORITY (verify before use)
+5. ❌ **Undated/Generic Sources** → DO NOT USE
+
+If Search Result ≠ Research Brief:
+- ✅ Use Search Result (if from official source)
+- ❌ Discard Research Brief data
+- ⚠️ Add qualifier: "As per [official source dated month year]..."
+
+**STEP 4: CITE SOURCES EXPLICITLY** - EVERY factual claim MUST have attribution:
+
+Attribution Patterns:
+- Regulatory: "As per SEBI circular SEBI/HO/MRD/DP/CIR/P/2024/xxx dated October 15, 2024..."
+- Tax: "According to Union Budget 2024 (effective October 1, 2024)..."
+- NSE/BSE: "As per NSE circular NSE/INSP/xxx dated November 2025..."
+- RBI: "Based on RBI notification RBI/2024-25/xxx..."
+- Generic: "As of November 2025, [authority] specifies..."
+
+If Exact Date/Circular Unknown:
+- Use: "As per current [authority] guidelines (November 2025)..."
+- Add qualifier: "(subject to regulatory updates)"
+- Mark with asterisk (*) and explain in Important Notes section
+
+**STEP 5: VERIFICATION CHECKPOINT** - Before finalizing ANY section:
+
+✅ All numbers/percentages have search-verified sources cited inline
+✅ All regulatory data has official circular/notification reference
+✅ All dates/schedules have month+year qualifier
+✅ All discontinued policies/schemes are NOT mentioned (verify via search)
+✅ No bare facts without "As per..." / "According to..." attribution
+✅ Conflicting data resolved by prioritizing official sources over research brief
+
+**SPECIFIC DATA TYPES - MANDATORY SEARCH QUERIES:**
+
+1. **NSE/BSE Data** (lot sizes, margins, circuits, expiries):
+   - Search: "[instrument] lot size [month] [year] NSE official"
+   - Search: "[index] expiry day [month] [year] NSE schedule"
+   - Verify: Changes happen quarterly - NEVER use hardcoded values
+   - Format: "As per NSE specifications (November 2025), [data] (subject to NSE revisions)"
+
+2. **Tax Rates** (LTCG, STCG, STT, GST):
+   - Search: "[tax type] rate India [month] [year] Union Budget"
+   - Search: "Income tax slab [assessment year] India"
+   - Verify: Budget changes (Feb every year), mid-year circulars
+   - Format: "As per Union Budget [year] (effective [date]), [rate] for Assessment Year [AY]"
+
+3. **Regulatory Limits** (expense ratios, investment limits, deduction caps):
+   - Search: "[regulation] limit India [month] [year] [regulator] circular"
+   - Verify: SEBI/RBI/PFRDA circulars change frequently
+   - Format: "According to [regulator] circular dated [date], [limit]"
+
+4. **Discontinued Schemes/Features** (crucial to avoid mentioning):
+   - Search: "[scheme/feature] discontinued India [year]"
+   - Search: "[scheme/feature] still available [month] [year]"
+   - Rule: If search confirms discontinuation, DO NOT mention it in article
+   - Example: If "Bank Nifty weekly expiry discontinued Nov 2024" → Don't write about weekly Bank Nifty expiry
+
+**IF SEARCH FAILS OR RETURNS CONFLICTING RESULTS:**
+
+- ❌ DO NOT guess or fabricate data
+- ❌ DO NOT use research brief blindly
+- ✅ Add strong qualifiers:
+  * "Generally..." / "Typically..." / "As of [date]..."
+  * "Subject to verification on official [authority] website"
+  * "Investors should verify current rates/limits with [authority]"
+- ✅ Mark with asterisk (*):
+  * "Nifty lot size is typically 50-75 units* as of November 2025"
+  * *Add to Important Notes: "Lot sizes subject to NSE revisions. Verify current lot size on NSE website before trading."
+
+**CRITICAL FAILURE MODES TO AVOID:**
+
+❌ **OUTDATED DATA**: "Bank Nifty weekly expiry is Wednesday" (discontinued Nov 2024)
+❌ **WRONG NUMBERS**: "Nifty lot size is 75" (actually 65 as of Nov 2024)
+❌ **WRONG SCHEDULES**: "Nifty expiry is Thursday" (actually Tuesday)
+❌ **UNSOURCED CLAIMS**: "LTCG tax is 12.5%" (without "As per Union Budget 2024...")
+❌ **RESEARCH BRIEF OVER SEARCH**: Using research brief data that contradicts search results
+
+✅ **CORRECT APPROACH**: "As per NSE circular dated October 28, 2024, Nifty 50 lot size is 65 units (subject to NSE revisions). Only Nifty 50 has weekly expiries as of November 2025 (every Tuesday), while Bank Nifty and Fin Nifty weekly expiries were discontinued effective November 20, 2024."
 
 **CRITICAL: FOLLOW THESE 39 GUIDELINES STRICTLY**
 
@@ -410,17 +493,55 @@ BEFORE generating article content, you MUST use web search to verify and fetch C
 22. ✅ FAQ PLACEMENT: MUST be AFTER "## Conclusion" section (never before, never mid-article)
 23. ✅ WEB RESEARCH: Use factual accuracy, proper content structure, real data from research brief
 
-**FACTUAL ACCURACY & COMPLIANCE RULES (24-40) - Apply ONLY when these topics are mentioned:**
+**FACTUAL ACCURACY & COMPLIANCE RULES (24-40) - UNIVERSAL APPLICATION:**
 
-24. ✅ VERIFY CURRENT DATA: Always use CURRENT accurate data from research brief. DO NOT use outdated information. Examples: Bank Nifty lot size is 30 (NOT 15), Nifty 50 lot size is 75 (NOT 50), Nifty expiry is LAST TUESDAY of month (NOT Thursday)
-25. ✅ IF mentioning TRADER PARTICIPATION: Use general qualifiers - "Lakhs of traders", "Thousands of traders", "Many traders" - NEVER specific unverifiable numbers like "12 lakh traders" (add asterisk*)
-26. ✅ IF mentioning TRADING VOLUMES: Always prefix with "Approximately" or "Around" - e.g., "Approximately 5-7 crore contracts" (add asterisk*)
-27. ✅ IF mentioning LOT SIZES: Use CURRENT accurate lot sizes from NSE. Examples: Bank Nifty = 30 units, Nifty 50 = 75 units, FinNifty = 25 units. Always add "subject to NSE revisions" qualifier (add asterisk*)
-28. ✅ IF mentioning EXPIRY DATES: Use CURRENT schedule - "Last Tuesday of the contract month (subject to NSE notifications)" NOT "last Thursday". Weekly expiries also on Tuesday (add asterisk*)
-29. ✅ IF mentioning STRIKE INTERVALS: Use "Typically" or "Generally" prefix - e.g., "Typically 50 points", "Generally 100 points" (add asterisk*)
-30. ✅ IF mentioning INCOME/ELIGIBILITY REQUIREMENTS: Present as broker-specific NOT regulatory - "Most brokers require minimum annual income (typically ₹2-3 lakh)" NOT "SEBI requires ₹2 lakh income" (add asterisk*)
-31. ✅ IF mentioning CIRCUIT LIMITS: Clarify "No individual strike circuits; market-wide breakers apply" NOT just "No circuit limits" (add asterisk*)
-32. ✅ IF mentioning TAX RULES: Always specify assessment year - "for Assessment Year 2026-27" and note rules are subject to change (add asterisk*)
+24. ✅ VERIFY CURRENT DATA VIA WEB SEARCH: NEVER use research brief data without search verification. If search result conflicts with research brief, ALWAYS use search result from official sources. Add source attribution for ALL factual claims.
+
+25. ✅ QUANTITATIVE CLAIMS (volumes, participation, user counts):
+   - ❌ AVOID specific unverifiable numbers: "12 lakh traders", "5.7 crore contracts"
+   - ✅ USE general qualifiers: "Lakhs of traders", "Approximately X crore", "Industry estimates suggest..."
+   - ✅ IF using specific numbers, cite source: "As per NSE data (Nov 2025), approximately X contracts..."
+   - Add asterisk (*) and explain in Important Notes if source unavailable
+
+26. ✅ REGULATORY DATA (lot sizes, margins, limits, ratios):
+   - ❌ NEVER use hardcoded values without search verification
+   - ✅ ALWAYS search: "[specific_data] [month] [year] [authority] official"
+   - ✅ ALWAYS add qualifier: "As per [authority] (subject to [authority] revisions)"
+   - ✅ Example: "As per NSE specifications (November 2025), Nifty lot size is X units (subject to NSE revisions)"
+
+27. ✅ SCHEDULES & DATES (expiries, deadlines, timelines):
+   - ❌ NEVER assume schedules remain constant - they change frequently
+   - ✅ ALWAYS search: "[schedule] [month] [year] current" before writing
+   - ✅ ALWAYS verify discontinued schedules: Search "[feature] discontinued [year]"
+   - ✅ Example: "As of November 2025, [index] expiry is [day] (subject to exchange notifications)"
+
+28. ✅ RANGES & INTERVALS (strike intervals, percentage bands, thresholds):
+   - ❌ AVOID absolute statements: "Strike interval is 50 points"
+   - ✅ USE qualifiers: "Typically...", "Generally...", "As of [date]..."
+   - ✅ Example: "Strike intervals are typically 50 points for ATM strikes (verify on NSE for specific contracts)"
+
+29. ✅ ELIGIBILITY & REQUIREMENTS (income limits, qualifications, prerequisites):
+   - ❌ NEVER present broker requirements as regulatory mandates
+   - ✅ CLARIFY source: "Most brokers require...", "Typical broker criteria include..."
+   - ✅ NOT: "SEBI requires ₹2 lakh income" UNLESS you have SEBI circular reference
+   - ✅ Example: "Brokers typically require minimum annual income (₹2-3 lakh varies by broker) for F&O trading"
+
+30. ✅ LIMITS & CAPS (circuit limits, investment caps, deduction limits):
+   - ✅ SEARCH for current limits before writing
+   - ✅ CLARIFY scope: "Individual stock circuits...", "Market-wide breakers...", "No strike-level circuits..."
+   - ✅ Example: "Individual strikes have no circuit limits; market-wide breakers apply at index level (±10%, ±15%, ±20%)"
+
+31. ✅ TAX RULES (rates, slabs, deductions, exemptions):
+   - ✅ ALWAYS specify assessment year: "for Assessment Year 2026-27"
+   - ✅ ALWAYS cite budget/circular: "As per Union Budget 2024 (effective Oct 1, 2024)..."
+   - ✅ ALWAYS add disclaimer: "(subject to future budget changes)"
+   - ✅ Search before writing: "[tax_type] rate India [month] [year] budget"
+
+32. ✅ DISCONTINUED POLICIES/FEATURES (crucial to avoid outdated content):
+   - ✅ SEARCH FIRST: "[feature/policy] discontinued India [year]" AND "[feature] still available [month] [year]"
+   - ❌ IF discontinued, DO NOT mention as current option
+   - ✅ IF historically relevant, clarify: "Previously available until [date]" or "Discontinued effective [date]"
+   - ✅ Example: If search confirms "Bank Nifty weekly expiry discontinued Nov 2024" → Don't write about it as current feature
 32. ✅ PROBABILITY & SUCCESS RATES: NEVER state as facts - "65% probability of profit" is PROHIBITED. Instead: "Your profit chances improve when [conditions]... exact probability varies by market conditions"
 33. ✅ RETURNS & ROI: Always frame as examples - "Example Return: 233% if price reaches upper strike" NOT "Return on Investment: 233% gain"
 34. ✅ PERCENTAGE CLAIMS: Qualify cost savings/reductions - "Example shows: 67% cost reduction" or "significantly reduces cost" NOT absolute "40-70% reduction" without context
@@ -545,8 +666,24 @@ BEFORE generating article content, you MUST use web search to verify and fetch C
 - ❌ Absolute ROI claims (frame as "Example Return" not "Return on Investment")
 - ❌ Future-date references like "as of Nov 2025" (just use "subject to NSE revisions")
 - ❌ Heavy Greek formulas (use practical "Understanding Risk Factors" approach)
-- ❌ OUTDATED DATA: Bank Nifty lot size 15 (use 30), Nifty lot size 50 (use 75), expiry "last Thursday" (use "last Tuesday")
 - ❌ ARTICLES UNDER 2,000 WORDS - Every article must be minimum 2,200 words with substantive content
+
+**❌ CRITICAL: OUTDATED DATA THAT MUST BE SEARCH-VERIFIED (EXAMPLES OF COMMON ERRORS):**
+
+- ❌ **WRONG LOT SIZES**: "Nifty lot size is 75" (verify via search - as of Nov 2024, it's 65)
+- ❌ **WRONG EXPIRY DAYS**: "Nifty expiry is Thursday" (verify via search - currently Tuesday)
+- ❌ **DISCONTINUED FEATURES**: "Bank Nifty weekly expiry is Wednesday" (discontinued Nov 2024 - verify via search)
+- ❌ **DISCONTINUED FEATURES**: "Fin Nifty weekly expiry" (discontinued Nov 2024 - verify via search)
+- ❌ **OLD TAX RATES**: Stating tax rates without Union Budget year and effective date
+- ❌ **OLD DEDUCTION LIMITS**: Using previous year's 80C/80CCD limits without verification
+- ❌ **OUTDATED REGULATIONS**: Citing old SEBI/RBI circulars without checking for updates
+
+**✅ CORRECT APPROACH - ALWAYS SEARCH FIRST:**
+1. Search: "Nifty lot size November 2025 NSE official" → Use search result, not research brief
+2. Search: "NSE index weekly expiry November 2025" → Verify current schedule
+3. Search: "Bank Nifty weekly expiry discontinued 2024" → Confirm if feature is available
+4. Add source: "As per NSE circular dated [date], Nifty lot size is X (subject to NSE revisions)"
+5. For discontinued features: Don't mention them OR clarify "Previously available until [date]"
 
 **WORD COUNT DISTRIBUTION (MANDATORY 2,400+ words total - DO NOT submit articles under 2,200 words):**
 
