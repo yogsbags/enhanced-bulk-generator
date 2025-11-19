@@ -713,27 +713,10 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
           maxOutputTokens: 8192,
           responseMimeType: 'application/json',
         },
+        systemInstruction: 'You are a senior financial content strategist. Always respond with valid JSON following the provided schema. Never include markdown code fences or explanatory text - ONLY return the JSON object.',
       });
 
-      const result = await model.generateContent([
-        {
-          role: 'user',
-          parts: [{
-            text: 'You are a senior financial content strategist. Always respond with valid JSON following the provided schema. Never include markdown code fences or explanatory text - ONLY return the JSON object.'
-          }]
-        },
-        {
-          role: 'model',
-          parts: [{
-            text: 'Understood. I will respond with ONLY valid JSON following the exact schema provided, with no markdown fences, explanations, or additional text.'
-          }]
-        },
-        {
-          role: 'user',
-          parts: [{ text: prompt }]
-        }
-      ]);
-
+      const result = await model.generateContent(prompt);
       const response = await result.response;
       const content = response.text();
 
