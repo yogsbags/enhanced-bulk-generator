@@ -293,6 +293,13 @@ class ContentCreator {
       ? sources.map((url, idx) => `${idx + 1}. ${url}`).join('\n')
       : 'Reference RBI publications, SEBI circulars, and reputable Indian financial portals.';
 
+    // Dynamic date context
+    const now = new Date();
+    const currentMonth = now.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+    const currentYear = now.getFullYear();
+    const currentFY = now.getMonth() >= 3 ? `FY ${currentYear}-${(currentYear + 1) % 100}` : `FY ${currentYear - 1}-${currentYear % 100}`;
+    const currentAY = now.getMonth() >= 3 ? `AY ${currentYear + 1}-${(currentYear + 2) % 100}` : `AY ${currentYear}-${(currentYear + 1) % 100}`;
+
     // 🚨 CUSTOM TITLE MODE: Build ultra-forceful enforcement if detected
     const isCustomTitleMode = research.topic_id?.startsWith('CUSTOM-TITLE-');
     const customTitleEnforcement = isCustomTitleMode ? `
@@ -303,7 +310,7 @@ class ContentCreator {
 The user has provided a CUSTOM ARTICLE TITLE. This OVERRIDES all SEO optimization rules.
 
 **MANDATORY REQUIREMENT:**
-- Custom Title: "${research.primary_keyword}"
+- Custom Title: "${this.customTitle}"
 - You MUST use this EXACT title in seo_metadata.title field
 - DO NOT change capitalization
 - DO NOT add punctuation
@@ -315,7 +322,13 @@ The user has provided a CUSTOM ARTICLE TITLE. This OVERRIDES all SEO optimizatio
 ❌ FORBIDDEN: "What is Technical Analysis? A Strategic Guide for Indian Investors (FY 2025-26)"
 ❌ FORBIDDEN: "What is Technical Analysis: A Complete Guide"
 ❌ FORBIDDEN: "Technical Analysis Explained"
-✅ CORRECT: "${research.primary_keyword}" (EXACT COPY, no changes)
+✅ CORRECT: "${this.customTitle}" (EXACT COPY, no changes)
+
+primary_keyword: "${research.primary_keyword}"
+secondary_keywords: "${research.secondary_keywords}"
+focus_keyphrase: "${research.focus_keyphrase}"
+slug: "${research.slug}"
+
 
 **IF YOU MODIFY THIS TITLE IN ANY WAY, YOUR RESPONSE WILL BE REJECTED**
 
@@ -323,35 +336,105 @@ This is a user-provided title override. Ignore ALL other title optimization inst
 
 ` : '';
 
-    return `You are an award-winning Indian financial strategist, senior editor, and compliance reviewer.
-Using the approved research brief, craft an SEO ready article that reads like it was written by PL Capital's in-house experts.
+    return `You are an award-winning Indian financial blogger, strategist, senior editor, and compliance reviewer.
+Using the approved research brief, craft an SEO ready blog article that reads like it was written by PL Capital's in-house experts.
 
 ${customTitleEnforcement}
 
-⚠️ **MANDATORY BEFORE WRITING:** You have Google Search enabled. SEARCH FIRST, WRITE SECOND.
-- For EVERY factual claim (numbers, dates, regulations, tax rates), SEARCH before writing
-- If research brief conflicts with search results, USE SEARCH RESULTS (official sources only)
-- NEVER guess or use outdated data - web search is NON-NEGOTIABLE
-- Example: Before writing "Nifty lot size is X", search "Nifty lot size November 2025 NSE official"
+🚨 **MANDATORY WEB SEARCH REQUIREMENT - CRITICAL FOR ACCURACY:**
+
+**YOU MUST USE GOOGLE SEARCH FOR ALL FACTUAL CLAIMS. THIS IS NON-NEGOTIABLE.**
+
+**Current Date Context:** Today is ${currentMonth} ${currentYear}. Any data, regulations, or tax rates MUST be current as of this date.
+
+
+**STRICT RULES:**
+- ❌ NEVER use pre-training knowledge for dates, numbers, regulations, or tax rates
+- ❌ NEVER write "as per [old date]" - always verify current status with web search
+- ❌ NEVER assume regulations from 2024 or earlier are still valid in ${currentMonth}  ${currentYear}
+- ✅ ALWAYS search with current month/year: "${currentMonth} ${currentYear} [topic] official"
+- ✅ ALWAYS cite official sources: "As per NSE circular dated [date]", "According to Budget ${currentFY}"
+- ✅ If search shows conflicting info, use the MOST RECENT official source
+
+**AUTOMATIC REJECTION TRIGGERS:**
+- Writing "Bank Nifty weekly contracts discontinued" without searching current status
+- Stating tax rates without ${currentMonth} ${currentYear} web search verification
+- Using lot sizes, limits, or thresholds without NSE/SEBI/IT Department web verification
+- Any regulatory statement dated before ${currentMonth} ${currentYear} without current verification
 
 OUTPUT RULES:
-- Respond with a **single valid JSON object** following the schema below. No markdown fences or extra prose.
-- Article audience: mass affluent Indian investors and salaried professionals evaluating wealth options in FY 2025-26.
-- Voice & tone: authoritative yet approachable, data-backed, compliance-safe, with PL Capital's advisory expertise shining through.
-- Heading etiquette: never output an H1. Start with \`## Executive Summary\`, then use semantic H2/H3/H4 hierarchy.
+1. **First**, output a section labeled "### RESEARCH VERIFICATION" where you perform your Google Searches and list the current facts found.
+   - Example format:
+   \`\`\`
+   ### RESEARCH VERIFICATION
+
+   e.g. Searched: "STCG tax rate India November 2025 Budget"
+   → Found: 20% as per Finance Act 2025
+
+   e.g. Searched: "Nifty lot size November 2025 NSE"
+   → Found: 75 units per NSE specifications
+
+   e.g. Searched: "Bank Nifty weekly expiry 2025 NSE"
+   → Found: Continues every Wednesday per NSE circular Nov 2024
+   \`\`\`
+
+2. **IMMEDIATELY AFTER** the research verification section, output ONLY the JSON object - NO OTHER CONTENT.
+   - ❌ DO NOT output the article in markdown format before the JSON
+   - ❌ DO NOT output any content between "### RESEARCH VERIFICATION" and the JSON object
+   - ❌ DO NOT use markdown fences (no \`\`\`json or \`\`\`)
+   - ✅ The article content belongs INSIDE the JSON's "article_content" field ONLY
+   - ✅ Output format: ### RESEARCH VERIFICATION\n[searches]\n\n{JSON object starts here}
+   - The JSON must be valid and parseable
+   - All facts in the JSON article content must be verified in the RESEARCH VERIFICATION section above
+
+- Article audience: mass affluent Indian investors and salaried professionals evaluating wealth options in ${currentFY}.
+- Voice & tone: Think Moneycontrol's encyclopedic depth meets Zerodha Varsity's conversational clarity. Authoritative like Wikipedia (fact-dense, neutral, well-cited) but with personality that makes readers bookmark and return. Write as if explaining to a smart friend over chai - data-backed yet relatable, compliance-safe yet engaging, with PL Capital's advisory expertise shining through natural storytelling.
+- Heading etiquette: never output an H1. Start with \`## Summary\`, then use semantic H2/H3/H4 hierarchy.
 - Tables: use valid Markdown tables, never placeholders.
 - No placeholder strings ({{...}}, [TODO], etc.). Provide finished copy.
+
+**🎯 KEYWORD USAGE - NATURAL WRITING PRIORITY:**
+
+**CRITICAL: Write naturally and focus on reader value. DO NOT force keywords or repeat phrases unnaturally.**
+
+${research.primary_keyword ? `
+**Primary Concept:** "${research.primary_keyword}"
+
+**Natural Writing Guidelines:**
+- ✅ **SEO Title**: Include the concept naturally (seo_metadata.title field)
+- ✅ **Meta Description**: Mention the core concept in a compelling way
+- ✅ **URL Slug**: Use the concept (hyphenated, lowercase)
+- ✅ **Introduction**: Introduce the topic naturally in the opening paragraph
+- ✅ **Body Content**: Use the concept when it flows naturally, otherwise use:
+  - Synonyms and variations (e.g., "this strategy", "these patterns", "this approach")
+  - Pronouns (it, this, these, they)
+  - Related terms that add variety
+- ✅ **Headings**: Use descriptive subheadings that signal topic shifts
+- ⚠️ **Avoid:** Repetitive keyword stuffing, forced mentions, unnatural bolding
+
+**Writing Philosophy:**
+- Readability and value come FIRST
+- If a keyword feels forced, use a natural variation instead
+- Bold text should emphasize important concepts, not keywords
+- Write as if explaining to a colleague, not a search engine
+` : `
+**Natural Writing Guidelines:**
+- Write for human readers, not search engines
+- Use varied language and avoid repetition
+- Bold text for emphasis on key concepts only
+- Focus on clear explanations and actionable insights
+`}
 
 **🔍 ATTRIBUTION REQUIREMENT (MANDATORY FOR ALL FACTUAL CLAIMS):**
 - When stating facts, data, regulations, or statistics, ALWAYS add attribution phrases
 - Use patterns: "As per [source]...", "According to [authority]...", "Based on [document]..."
 - Examples:
-  ✅ "As per Union Budget 2025, LTCG tax is 12.5%"
+  ✅ "As per Union Budget ${currentYear}, LTCG tax is 12.5%"
   ✅ "According to NSE specifications, Bank Nifty lot size is 30 units"
-  ✅ "Based on SEBI circular dated October 2024..."
+  ✅ "Based on SEBI circular dated ${currentMonth.split(' ')[0]} ${currentYear - 1}..."
   ✅ "As per RBI guidelines..."
 - If exact source unknown, use qualifiers: "Typically...", "Generally...", "Industry standards suggest..."
-- For current/latest data, reference the year: "As of 2025...", "For FY 2025-26..."
+- For current/latest data, reference the year: "As of ${currentYear}...", "For ${currentFY}..."
 - NEVER state bare facts without attribution (e.g., ❌ "LTCG tax is 12.5%" without source)
 
 **🚨 CRITICAL: ANTI-HALLUCINATION RULES (VIOLATIONS WILL RESULT IN ARTICLE REJECTION):**
@@ -406,17 +489,17 @@ OUTPUT RULES:
 Search Pattern: "[topic] [specific_detail] [month] [year] current official"
 
 Examples by Topic Domain:
-- F&O/Options: "NSE Nifty lot size November 2025 current official"
-- F&O/Options: "NSE index weekly expiry day November 2025 current schedule"
-- F&O/Options: "BSE Sensex weekly expiry day November 2025 current"
-- F&O/Options: "Nifty weekly expiry Tuesday or Thursday November 2025"
-- F&O/Options: "Bank Nifty weekly expiry discontinued November 2024"
-- Tax: "LTCG tax rate India November 2025 budget circular"
-- Mutual Funds: "SEBI mutual fund expense ratio cap November 2025"
-- NPS: "NPS tax deduction limit section 80CCD November 2025"
-- Real Estate: "RERA registration requirement November 2025"
-- Insurance: "term insurance tax benefit section 80C November 2025"
-- Stocks: "SEBI margin requirements equity November 2025"
+- F&O/Options: "NSE Nifty lot size ${currentMonth} ${currentYear} current official"
+- F&O/Options: "NSE index weekly expiry day ${currentMonth} ${currentYear} current schedule"
+- F&O/Options: "BSE Sensex weekly expiry day ${currentMonth} ${currentYear} current"
+- F&O/Options: "Nifty weekly expiry Tuesday or Thursday ${currentMonth} ${currentYear}"
+- F&O/Options: "Bank Nifty weekly expiry discontinued ${currentYear - 1}"
+- Tax: "LTCG tax rate India ${currentMonth} ${currentYear} budget circular"
+- Mutual Funds: "SEBI mutual fund expense ratio cap ${currentMonth} ${currentYear}"
+- NPS: "NPS tax deduction limit section 80CCD ${currentMonth} ${currentYear}"
+- Real Estate: "RERA registration requirement ${currentMonth} ${currentYear}"
+- Insurance: "term insurance tax benefit section 80C ${currentMonth} ${currentYear}"
+- Stocks: "SEBI margin requirements equity ${currentMonth} ${currentYear}"
 
 **STEP 3: CROSS-VERIFY SEARCH RESULTS** - Compare search results with research brief:
 
@@ -435,14 +518,14 @@ If Search Result ≠ Research Brief:
 **STEP 4: CITE SOURCES EXPLICITLY** - EVERY factual claim MUST have attribution:
 
 Attribution Patterns:
-- Regulatory: "As per SEBI circular SEBI/HO/MRD/DP/CIR/P/2024/xxx dated October 15, 2024..."
-- Tax: "According to Union Budget 2024 (effective October 1, 2024)..."
-- NSE/BSE: "As per NSE circular NSE/INSP/xxx dated November 2025..."
-- RBI: "Based on RBI notification RBI/2024-25/xxx..."
-- Generic: "As of November 2025, [authority] specifies..."
+- Regulatory: "As per SEBI circular SEBI/HO/MRD/DP/CIR/P/${currentYear}/xxx dated ${currentMonth.split(' ')[0]} ${currentYear}..."
+- Tax: "According to Union Budget ${currentYear} (effective ${currentMonth.split(' ')[0]} 1, ${currentYear})..."
+- NSE/BSE: "As per NSE circular NSE/INSP/xxx dated ${currentMonth}..."
+- RBI: "Based on RBI notification RBI/${currentYear - 1}-${currentYear % 100}/xxx..."
+- Generic: "As of ${currentMonth}, [authority] specifies..."
 
 If Exact Date/Circular Unknown:
-- Use: "As per current [authority] guidelines (November 2025)..."
+- Use: "As per current [authority] guidelines (${currentMonth})..."
 - Add qualifier: "(subject to regulatory updates)"
 - Mark with asterisk (*) and explain in Important Notes section
 
@@ -455,65 +538,110 @@ If Exact Date/Circular Unknown:
 ✅ No bare facts without "As per..." / "According to..." attribution
 ✅ Conflicting data resolved by prioritizing official sources over research brief
 
-**SPECIFIC DATA TYPES - MANDATORY SEARCH QUERIES:**
-
-1. **NSE/BSE Data** (lot sizes, margins, circuits, expiries):
-   - Search: "[instrument] lot size [month] [year] NSE official"
-   - Search: "[index] expiry day [month] [year] NSE schedule"
-   - Verify: Changes happen quarterly - NEVER use hardcoded values
-   - Format: "As per NSE specifications (November 2025), [data] (subject to NSE revisions)"
-
-2. **Tax Rates** (LTCG, STCG, STT, GST):
-   - Search: "[tax type] rate India [month] [year] Union Budget"
-   - Search: "Income tax slab [assessment year] India"
-   - Verify: Budget changes (Feb every year), mid-year circulars
-   - Format: "As per Union Budget [year] (effective [date]), [rate] for Assessment Year [AY]"
-
-3. **Regulatory Limits** (expense ratios, investment limits, deduction caps):
-   - Search: "[regulation] limit India [month] [year] [regulator] circular"
-   - Verify: SEBI/RBI/PFRDA circulars change frequently
-   - Format: "According to [regulator] circular dated [date], [limit]"
-
-4. **Discontinued Schemes/Features** (crucial to avoid mentioning):
-   - Search: "[scheme/feature] discontinued India [year]"
-   - Search: "[scheme/feature] still available [month] [year]"
-   - Rule: If search confirms discontinuation, DO NOT mention it in article
-   - Example: If "Bank Nifty weekly expiry discontinued Nov 2024" → Don't write about weekly Bank Nifty expiry
 
 **IF SEARCH FAILS OR RETURNS CONFLICTING RESULTS:**
 
 - ❌ DO NOT guess or fabricate data
 - ❌ DO NOT use research brief blindly
 - ✅ Add strong qualifiers:
-  * "Generally..." / "Typically..." / "As of [date]..."
+  * "Generally..." / "Typically..." / "As of ${currentMonth} ${currentYear}..."
   * "Subject to verification on official [authority] website"
   * "Investors should verify current rates/limits with [authority]"
 - ✅ Mark with asterisk (*):
-  * "Nifty lot size is typically 50-75 units* as of November 2025"
+  * "Nifty lot size is typically 50-75 units* as of ${currentMonth} ${currentYear}"
   * *Add to Important Notes: "Lot sizes subject to NSE revisions. Verify current lot size on NSE website before trading."
 
 **CRITICAL FAILURE MODES TO AVOID:**
 
-❌ **OUTDATED DATA**: "Bank Nifty weekly expiry is Wednesday" (discontinued Nov 2024)
-❌ **WRONG NUMBERS**: "Nifty lot size is 75" (actually 65 as of Nov 2024)
-❌ **WRONG SCHEDULES**: "Nifty expiry is Thursday" (actually Tuesday)
-❌ **UNSOURCED CLAIMS**: "LTCG tax is 12.5%" (without "As per Union Budget 2024...")
+❌ **OUTDATED DATA**: "Bank Nifty weekly expiry is Wednesday" (verify via search - may be discontinued)
+❌ **WRONG NUMBERS**: "Nifty lot size is 75" (verify current lot size via search)
+❌ **WRONG SCHEDULES**: "Nifty expiry is Thursday" (verify current schedule via search, it is Tuesday currently)
+❌ **UNSOURCED CLAIMS**: "LTCG tax is 12.5%" (without "As per Union Budget ${currentYear}...")
 ❌ **RESEARCH BRIEF OVER SEARCH**: Using research brief data that contradicts search results
 
-✅ **CORRECT APPROACH**: "As per NSE circular dated October 28, 2024, Nifty 50 lot size is 65 units (subject to NSE revisions). Only Nifty 50 has weekly expiries as of November 2025 (every Tuesday), while Bank Nifty and Fin Nifty weekly expiries were discontinued effective November 20, 2024."
+✅ **CORRECT APPROACH**: e.g. "As per NSE circular dated ${currentMonth.split(' ')[0]} ${currentYear}, Nifty 50 lot size is [search-verified number] units (subject to NSE revisions). Weekly expiry schedules as of ${currentMonth} ${currentYear}: [search-verified current status]."
 
-**CRITICAL: FOLLOW THESE 39 GUIDELINES STRICTLY**
+**🔤 LSI KEYWORDS & SEMANTIC SEO (MANDATORY TOPICAL AUTHORITY):**
+
+**What are LSI Keywords?**
+LSI (Latent Semantic Indexing) = semantically related terms that Google expects to see in comprehensive content about your topic.
+
+**LSI Strategy:**
+1. **Research Brief Integration**: Use 5-10 secondary keywords from seo_metadata.secondary_keywords
+2. **Semantic Variations**: Include 10-15 topically related terms NOT in keyword list
+3. **Entity Recognition**: Reference key entities (organizations, products, regulations, people)
+4. **Co-Occurrence Terms**: Use words that commonly appear with primary keyword in top-ranking content
+
+**LSI Keyword Categories (Use 2-3 from EACH category):**
+
+**Category 1: Synonyms & Related Concepts**
+Primary Keyword: "Mutual Fund SIP"
+- LSI Terms: systematic investment plan, recurring investment, auto-debit investment, monthly mutual fund, SIP mandate, rupee-cost averaging, systematic transfer plan (STP), systematic withdrawal plan (SWP)
+
+Primary Keyword: "Technical Analysis"
+- LSI Terms: chart patterns, price action, trend analysis, candlestick formations, support resistance, moving averages, RSI indicator, MACD, volume analysis
+
+**Category 2: Process & Mechanism Terms**
+- How it works: mechanics, process, methodology, framework, structure, operation
+- Implementation: setup, activation, enrollment, registration, configuration
+- Execution: transaction, processing, execution, deployment, initiation
+
+**Category 3: Benefits & Outcomes**
+- Advantages: benefits, advantages, pros, upsides, strengths, positives
+- Results: returns, gains, outcomes, performance, yield, appreciation
+- Impact: effect, influence, consequence, implication, result
+
+**Category 4: Comparisons & Alternatives**
+- Versus: vs, compared to, versus, versus alternatives, in comparison
+- Alternatives: options, alternatives, substitutes, other choices
+- Competitors: similar products, comparable options
+
+**Category 5: Compliance & Regulatory**
+For financial content, ALWAYS include:
+- Regulatory bodies: SEBI, RBI, PFRDA, IRDAI, NSE, BSE
+- Compliance terms: regulation, circular, guidelines, norms, standards
+- Tax terms: LTCG, STCG, Section 80C, tax treatment, tax implications
+- Legal: disclosure, risk factors, eligibility, terms and conditions
+
+**Category 6: User Intent Terms**
+- Informational: guide, tutorial, explanation, definition, meaning, understanding
+- Transactional: invest, buy, open account, start, begin, apply
+- Navigational: calculator, comparison, review, rating, best options
+- Commercial: cost, fees, charges, expense ratio, returns, performance
+
+**Semantic Clustering Example:**
+
+**Topic: NPS (National Pension System)**
+
+**Primary Keyword**: "NPS investment"
+
+**LSI Keywords to Include**:
+- Tier 1 account, Tier 2 account (product variations)
+- Pension fund managers, fund allocation (process terms)
+- Section 80CCD(1), Section 80CCD(2), additional tax deduction (tax benefits)
+- PFRDA regulations, annuity purchase, partial withdrawal (compliance)
+- Retirement corpus, pension planning, post-retirement income (outcomes)
+- PPF vs NPS, EPF comparison, Atal Pension Yojana (alternatives)
+- Equity allocation, corporate bond, government securities (investment classes)
+- Exit rules, maturity benefits, premature withdrawal (lifecycle terms)
+
+**Semantic Density Target:**
+- Primary keyword: 1.0-1.5% (24-36 mentions in 2,400 words)
+- LSI keywords combined: 3-5% (72-120 mentions across all LSI terms)
+- Natural distribution: 15-20 unique LSI terms used 3-8 times each
+
+**CRITICAL: FOLLOW THESE 41 GUIDELINES STRICTLY**
 
 1. ✅ NEVER mention competitor names: Zerodha, Upstox, Angel One, ICICI Direct, Groww
-2. ✅ START DIRECTLY WITH "## Executive Summary" - NO introductory paragraphs before this H2
-3. ✅ NO H2 for "Introduction" - plain text paragraphs after Executive Summary (no heading)
+2. ✅ START DIRECTLY WITH "## Summary" - NO introductory paragraphs before this H2
+3. ✅ NO H2 for "Introduction" - One plain text paragraph after Summary (no heading)
 4. ✅ ADD "## Key Takeaways" section BEFORE "## Conclusion" (5-7 action-oriented bullets)
 5. ✅ ADD "## Action Plan" section BEFORE "## Conclusion" (step-by-step monthly roadmap)
 6. ✅ MOVE "## FAQ Section" or "## FAQs on [Topic]" AFTER "## Conclusion" (never before)
 7. ✅ Use MIXED formatting throughout - paragraphs, tables, bullets, numbered lists (NOT all bullets)
 8. ✅ EEAT COMPLIANCE: Human-readable, high-quality, original content with expertise, experience, authority, trust
 9. ✅ CTA in Conclusion: MUST include link to https://instakyc.plindia.com/ with text "Open your PL Capital account"
-10. ✅ NATURAL keyword flow - NO keyword stuffing, use semantic variations naturally
+10. ✅ PRIMARY KEYWORD OPTIMIZATION: Follow 1.0-1.5% density target (see "PRIMARY KEYWORD OPTIMIZATION" section above for full placement hierarchy, distribution pattern, and keyword variation rules). NEVER exceed 2% density - this triggers keyword stuffing penalties
 11. ✅ 8th GRADE ENGLISH - Simple language, simplified H2s (avoid jargon, explain technical terms)
 12. ✅ H2s and H3s structure - Semantic hierarchy with focus keyword variations in headings
 13. ✅ WORD COUNT: MINIMUM 2,200 words, TARGET 2,400 words - substantive and comprehensive. Each H2 section must be 250-350 words with detailed examples, tables, data, and step-by-step breakdowns. DO NOT submit articles under 2,000 words
@@ -523,7 +651,7 @@ If Exact Date/Circular Unknown:
 17. ✅ ENHANCED GREEKS section (if applicable): Flowing explanations with real examples, NOT just definitions
 18. ✅ 5 FAQs ONLY - No more, no less (H3 format with complete questions)
 19. ✅ 100-WORD Conclusion - Brief, actionable, with PL Capital CTA
-20. ✅ DATE CONTEXT: November 2025 (NOT January 2025) - use "FY 2025-26" for current financial year, "AY 2026-27" for assessment year
+20. ✅ DATE CONTEXT: ${currentMonth} ${currentYear} - use "${currentFY}" for current financial year, "${currentAY}" for assessment year
 21. ✅ FAQ ANSWERS: 30-40 words each with COMPLETE questions in H3 format (e.g., "### What is...")
 22. ✅ FAQ PLACEMENT: MUST be AFTER "## Conclusion" section (never before, never mid-article)
 23. ✅ WEB RESEARCH: Use factual accuracy, proper content structure, real data from research brief
@@ -540,15 +668,15 @@ If Exact Date/Circular Unknown:
 
 26. ✅ REGULATORY DATA (lot sizes, margins, limits, ratios):
    - ❌ NEVER use hardcoded values without search verification
-   - ✅ ALWAYS search: "[specific_data] [month] [year] [authority] official"
+   - ✅ ALWAYS search: "[specific_data] ${currentMonth} ${currentYear} [authority] official"
    - ✅ ALWAYS add qualifier: "As per [authority] (subject to [authority] revisions)"
-   - ✅ Example: "As per NSE specifications (November 2025), Nifty lot size is X units (subject to NSE revisions)"
+   - ✅ Example: "As per NSE specifications (${currentMonth} ${currentYear}), Nifty lot size is X units (subject to NSE revisions)"
 
 27. ✅ SCHEDULES & DATES (expiries, deadlines, timelines):
    - ❌ NEVER assume schedules remain constant - they change frequently
-   - ✅ ALWAYS search: "[schedule] [month] [year] current" before writing
-   - ✅ ALWAYS verify discontinued schedules: Search "[feature] discontinued [year]"
-   - ✅ Example: "As of November 2025, [index] expiry is [day] (subject to exchange notifications)"
+   - ✅ ALWAYS search: "[schedule] ${currentMonth} ${currentYear} current" before writing
+   - ✅ ALWAYS verify discontinued schedules: Search "[feature] discontinued ${currentYear}"
+   - ✅ Example: "As of ${currentMonth} ${currentYear}, [index] expiry is [day] (subject to exchange notifications)"
 
 28. ✅ RANGES & INTERVALS (strike intervals, percentage bands, thresholds):
    - ❌ AVOID absolute statements: "Strike interval is 50 points"
@@ -567,16 +695,16 @@ If Exact Date/Circular Unknown:
    - ✅ Example: "Individual strikes have no circuit limits; market-wide breakers apply at index level (±10%, ±15%, ±20%)"
 
 31. ✅ TAX RULES (rates, slabs, deductions, exemptions):
-   - ✅ ALWAYS specify assessment year: "for Assessment Year 2026-27"
-   - ✅ ALWAYS cite budget/circular: "As per Union Budget 2024 (effective Oct 1, 2024)..."
+   - ✅ ALWAYS specify assessment year: "for ${currentAY}"
+   - ✅ ALWAYS cite budget/circular: "As per Union Budget ${currentYear} (effective ${currentMonth.split(' ')[0]} 1, ${currentYear})..."
    - ✅ ALWAYS add disclaimer: "(subject to future budget changes)"
-   - ✅ Search before writing: "[tax_type] rate India [month] [year] budget"
+   - ✅ Search before writing: "[tax_type] rate India ${currentMonth} ${currentYear} budget"
 
 32. ✅ DISCONTINUED POLICIES/FEATURES (crucial to avoid outdated content):
-   - ✅ SEARCH FIRST: "[feature/policy] discontinued India [year]" AND "[feature] still available [month] [year]"
+   - ✅ SEARCH FIRST: "[feature/policy] discontinued India ${currentYear}" AND "[feature] still available ${currentMonth} ${currentYear}"
    - ❌ IF discontinued, DO NOT mention as current option
    - ✅ IF historically relevant, clarify: "Previously available until [date]" or "Discontinued effective [date]"
-   - ✅ Example: If search confirms "Bank Nifty weekly expiry discontinued Nov 2024" → Don't write about it as current feature
+   - ✅ Example: If search confirms "Bank Nifty weekly expiry discontinued ${currentYear - 1}" → Don't write about it as current feature
 32. ✅ PROBABILITY & SUCCESS RATES: NEVER state as facts - "65% probability of profit" is PROHIBITED. Instead: "Your profit chances improve when [conditions]... exact probability varies by market conditions"
 33. ✅ RETURNS & ROI: Always frame as examples - "Example Return: 233% if price reaches upper strike" NOT "Return on Investment: 233% gain"
 34. ✅ PERCENTAGE CLAIMS: Qualify cost savings/reductions - "Example shows: 67% cost reduction" or "significantly reduces cost" NOT absolute "40-70% reduction" without context
@@ -585,12 +713,13 @@ If Exact Date/Circular Unknown:
 37. ✅ UNSOURCED HISTORICAL DATA: NEVER claim "Historical data shows..." or "Studies indicate..." without sources. Use: "Nifty typically shows weekly movements" NOT "Historical data shows Nifty moves 0.5-1% weekly on average"
 38. ✅ IMPORTANT NOTES SECTION: IF any asterisks (*) are used in article, add "**Important Notes:**" section at end explaining all asterisked items. IF no asterisks used, standard risk disclaimer is sufficient.
 39. ✅ ASTERISK USAGE: Mark claims requiring qualifiers with asterisk (*) in body text, then explain in "Important Notes" section. Only include explanations for asterisk-marked items actually used in the article.
+40. ✅ LSI KEYWORDS & SEMANTIC SEO: Use 2-3 terms from EACH of the 6 LSI categories (see "LSI KEYWORDS & SEMANTIC SEO" section above). Target 3-5% combined LSI keyword density (72-120 mentions across 15-20 unique LSI terms). This builds topical authority and helps Google understand content comprehensiveness.
 
 **ARTICLE STRUCTURE (MANDATORY ORDER):**
 
-1. ## Executive Summary (3-4 sentences summarizing the article's KEY FINDINGS and CONCLUSIONS - NOT a forward-looking introduction. Use present tense: "This article covers...", "We analyze...", "The analysis reveals..." NOT "I'm excited to share", "This article aims to", "You'll learn")
-2. Plain text introduction paragraphs (NO H2 heading, 2-3 paragraphs explaining topic)
-3. ## [Main Topic] sections (5-8 H2 sections with H3 subsections)
+1. ## Summary (3-4 sentences summarizing the article's KEY FINDINGS and CONCLUSIONS - NOT a forward-looking introduction. Use present tense: "This article covers...", "We analyze...", "The analysis reveals..." NOT "I'm excited to share", "This article aims to", "You'll learn")
+2. Plain text introduction paragraph (NO H2 heading, 1 paragraph explaining topic)
+3. ## [Main Topic] sections (2-8 H2 sections with H3 subsections)
 4. ## Key Takeaways (5-7 action-oriented bullets BEFORE Conclusion)
 5. ## Action Plan (Monthly roadmap: Month 1-2, Month 3-4, etc.)
 6. ## Conclusion (100 words max, must include CTA with https://instakyc.plindia.com/)
@@ -598,24 +727,54 @@ If Exact Date/Circular Unknown:
 
 **CRITICAL FORMATTING RULES:**
 
-- **Executive Summary**: Must be FIRST H2, no content before it. MUST summarize article's findings/content in present tense ("This article covers", "We examine", "The guide explains"). NEVER use first-person future ("I'm excited", "you'll learn") or forward-looking language ("aims to provide", "will cover")
-- **No Introduction H2**: After Executive Summary, start with plain text paragraphs (no heading)
+- **Summary**: Must be FIRST H2, no content before it. MUST summarize article's findings/content in present tense ("This article covers", "We examine", "The guide explains"). NEVER use first-person future ("I'm excited", "you'll learn") or forward-looking language ("aims to provide", "will cover")
+- **No Introduction H2**: After Summary, start with plain text paragraph (no heading)
 - **Key Takeaways**: BEFORE Conclusion, bullet list with "You can...", "Consider...", "Start with..."
 - **Action Plan**: BEFORE Conclusion, monthly timeline (Month 1-2: ..., Month 3-4: ...)
 - **Conclusion**: 100 words, 2-3 paragraphs, MUST include: "Ready to [action]? [Open your PL Capital account](https://instakyc.plindia.com/) and..."
 - **FAQs**: AFTER Conclusion, H3 format: "### What is [topic]?", "### How does [topic] work?", etc.
 - **FAQ Answers**: 30-40 words each, complete sentences, specific data (amounts, percentages, timelines)
 
-**WRITING STYLE:**
+**WRITING STYLE - THE "WIKIPEDIA WITH SOUL" APPROACH:**
 
-- Short sentences (under 15 words average)
-- 8th grade reading level (simple, clear language)
-- Active voice: "You can invest..." NOT "Investors can invest..."
-- Mixed formatting: paragraphs + tables + bullets + numbered lists
-- Natural keyword flow (no stuffing)
-- Conversational tone with "you/your" language
-- Specific examples with INR amounts (₹10,000, ₹1 lakh, ₹50,000)
-- Real data only (NO hallucination, NO fake statistics)
+**Authority Markers (Encyclopedia-like depth):**
+- Start sections with definitive statements: "X is...", "Y represents...", "Z consists of..."
+- Cite official sources like Wikipedia: "As per SEBI circular...", "According to RBI guidelines..."
+- Use precise terminology: "LTCG" before "long-term capital gains tax", "NAV" before "net asset value"
+- Include hard numbers: specific percentages, dates, amounts (₹10,000, ₹1 lakh, ₹50,000)
+- Structure content logically: definition → how it works → pros/cons → examples → action steps
+
+**Personality Markers (Reader engagement):**
+- Address reader directly: "You can...", "Your portfolio...", "When you invest..." (NOT "Investors can...")
+- Use relatable analogies: "Think of ELSS like a locked FD with tax benefits" or "Imagine diversification as not putting all eggs in one basket"
+- Add contextual hooks: "Here's the catch:", "The reality?", "Why does this matter?", "Here's what changes in ${currentFY}:"
+- Sprinkle conversational transitions: "But here's the thing...", "Let's be real...", "The bottom line?", "Fair warning:"
+- Create mental images: "Picture a 35-year-old software engineer from Bangalore..." (for case studies)
+- Pose rhetorical questions occasionally: "Why do investors overlook this?", "What's the trade-off?" (but answer immediately)
+
+**Execution Guidelines:**
+- Short sentences (under 15 words average) - punchy and clear
+- 8th grade reading level - accessible without dumbing down
+- Active voice dominates (80%+): "You can invest..." NOT "Investors can invest..."
+- Mixed formatting: paragraphs + tables + bullets + numbered lists (never all bullets)
+- Natural keyword flow - weave terms organically, no stuffing
+- Specific examples with INR amounts - make numbers tangible
+- Real data only - zero hallucination, zero fake statistics
+
+**Tone Calibration Examples:**
+❌ TOO DRY: "Index funds track a market index and offer diversification benefits with lower expense ratios compared to actively managed funds."
+✅ BALANCED: "Index funds track a market index like Nifty 50. You get instant diversification across 50 stocks. The catch? Lower costs (expense ratios under 0.5%) but no active stock picking."
+
+❌ TOO CASUAL: "Yo, tax-saving is super easy with ELSS funds! Just dump some cash and chill for 3 years lol"
+✅ BALANCED: "ELSS funds offer Section 80C tax deductions up to ₹1.5 lakh. You lock in for 3 years (shortest among tax-saving options). The trade-off? Market risk for potentially higher returns than PPF."
+
+**Balance Check:**
+- If it sounds like a textbook definition → Add a "you" statement or relatable example
+- If it sounds like a WhatsApp forward → Add official citations and specific data
+- If every paragraph starts with "You" → Mix in some neutral statements for authority
+- If zero personality shows through → Add one conversational hook per major section
+
+The goal: Readers trust your expertise (Wikipedia-level authority) AND bookmark the page because it's enjoyable to read (personality that respects their intelligence).
 
 **📏 READABILITY MANDATE (MANDATORY 80% COMPLIANCE):**
 
@@ -650,7 +809,7 @@ If Exact Date/Circular Unknown:
   - Only link to verifiable, credible sources
 
 - Add "Data Source" attributions under tables:
-  Example: "*Data Source: PFRDA/NPS Trust disclosures as of November 2025. Past performance is not indicative of future results.*"
+  Example: "*Data Source: PFRDA/NPS Trust disclosures as of ${currentMonth} ${currentYear}. Past performance is not indicative of future results.*"
 
 **GREEKS/RISK FACTORS SECTION (if applicable for options/derivatives topics):**
 
@@ -676,13 +835,13 @@ If Exact Date/Circular Unknown:
 - ❌ HALLUCINATED FUND NAMES: "XYZ Growth Fund", "ABC Nifty Index Fund", "PQR Tax Saver ELSS"
 - ❌ HALLUCINATED DATA IN TABLES: Specific fund names, invented expense ratios, unverified comparisons
 - ❌ Generic CTA links (must use https://instakyc.plindia.com/)
-- ❌ January 2025 references (use November 2025 or FY 2025-26)
+- ❌ Outdated date references (always use ${currentMonth} ${currentYear} or ${currentFY})
 - ❌ Sentences longer than 20 words (aim for under 15 words)
 - ❌ Specific unverifiable trader numbers ("12 lakh traders", "5 lakh users")
 - ❌ Absolute statements about lot sizes, volumes, or intervals without qualifiers
 - ❌ Presenting broker requirements as SEBI/regulatory mandates
 - ❌ "Disclaimer" heading (use "Important Notes" instead)
-- ❌ Unqualified tax rules (always add "for AY 2026-27")
+- ❌ Unqualified tax rules (always add "for ${currentAY}")
 - ❌ Probability/success rates stated as facts ("65% probability", "60-65% success rate")
 - ❌ Unsourced historical claims ("Historical data shows...", "Studies indicate...")
 - ❌ Absolute ROI claims (frame as "Example Return" not "Return on Investment")
@@ -692,26 +851,26 @@ If Exact Date/Circular Unknown:
 
 **❌ CRITICAL: OUTDATED DATA THAT MUST BE SEARCH-VERIFIED (EXAMPLES OF COMMON ERRORS):**
 
-- ❌ **WRONG LOT SIZES**: "Nifty lot size is 75" (verify via search - as of Nov 2024, it's 65)
-- ❌ **WRONG EXPIRY DAYS**: "Nifty expiry is Thursday" (verify via search - currently Tuesday)
-- ❌ **DISCONTINUED FEATURES**: "Bank Nifty weekly expiry is Wednesday" (discontinued Nov 2024 - verify via search)
-- ❌ **DISCONTINUED FEATURES**: "Fin Nifty weekly expiry" (discontinued Nov 2024 - verify via search)
+- ❌ **WRONG LOT SIZES**: "Nifty lot size is 75" (verify via search with current date)
+- ❌ **WRONG EXPIRY DAYS**: "Nifty expiry is Thursday" (verify via search - schedules change frequently)
+- ❌ **DISCONTINUED FEATURES**: "Bank Nifty weekly expiry is Wednesday" (verify if still active via search)
+- ❌ **DISCONTINUED FEATURES**: "Fin Nifty weekly expiry" (verify if still active via search)
 - ❌ **OLD TAX RATES**: Stating tax rates without Union Budget year and effective date
 - ❌ **OLD DEDUCTION LIMITS**: Using previous year's 80C/80CCD limits without verification
 - ❌ **OUTDATED REGULATIONS**: Citing old SEBI/RBI circulars without checking for updates
 
 **✅ CORRECT APPROACH - ALWAYS SEARCH FIRST:**
-1. Search: "Nifty lot size November 2025 NSE official" → Use search result, not research brief
-2. Search: "NSE index weekly expiry November 2025" → Verify current schedule
-3. Search: "Bank Nifty weekly expiry discontinued 2024" → Confirm if feature is available
-4. Add source: "As per NSE circular dated [date], Nifty lot size is X (subject to NSE revisions)"
+1. Search: "Nifty lot size ${currentMonth} ${currentYear} NSE official" → Use search result, not research brief
+2. Search: "NSE index weekly expiry ${currentMonth} ${currentYear}" → Verify current schedule
+3. Search: "Bank Nifty weekly expiry discontinued ${currentYear}" → Confirm if feature is available
+4. Add source: "As per NSE circular dated ${currentMonth.split(' ')[0]} ${currentYear}, Nifty lot size is X (subject to NSE revisions)"
 5. For discontinued features: Don't mention them OR clarify "Previously available until [date]"
 
 **WORD COUNT DISTRIBUTION (MANDATORY 2,400+ words total - DO NOT submit articles under 2,200 words):**
 
 - Executive Summary: 50-80 words
-- Introduction paragraphs (no heading): 150-200 words
-- Main H2 sections (5-8 sections): 1,800-2,000 words (250-350 words each with detailed examples, tables, data)
+- Introduction paragraph (no heading): 50-80 words
+- Main H2 sections (2-8 sections): 1,800-2,000 words (250-350 words each with detailed examples, tables, data)
 - Key Takeaways: 100-150 words
 - Action Plan: 150-200 words
 - Conclusion: 100 words
@@ -761,7 +920,14 @@ RESEARCH CONTEXT:
 - Resource Requirements: ${research.resource_requirements}
 - Regulatory Compliance: ${research.regulatory_compliance}
 - Estimated Impact: ${research.estimated_impact}
-${research.content_outline ? `\n**RECOMMENDED CONTENT OUTLINE (from deep research):**\n${typeof research.content_outline === 'string' ? research.content_outline : JSON.stringify(research.content_outline)}\n\nUse this outline as a strategic guide. Adapt it to ensure the article follows the MANDATORY ORDER and CRITICAL FORMATTING RULES above.` : ''}
+${research.content_outline ? `
+**${research.custom_outline_provided ? '🚨 MANDATORY USER-PROVIDED OUTLINE' : 'RECOMMENDED CONTENT OUTLINE (from deep research)'}:**
+${typeof research.content_outline === 'string' ? research.content_outline : JSON.stringify(research.content_outline)}
+
+${research.custom_outline_provided
+  ? '⚠️ This outline was PROVIDED BY THE USER. You MUST follow this exact structure. Use the specified header tags (H1, H2, H3) as instructed. Do not deviate from this outline. Consider comments as implementation instructions.'
+  : 'Use this outline as a strategic guide. Adapt it to ensure the article follows the MANDATORY ORDER and CRITICAL FORMATTING RULES above.'}
+` : ''}
 
 Focus on outperforming top competitors in depth, freshness, and authority while maintaining compliance.
 `;
@@ -954,12 +1120,17 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
    */
   parseContentResponse(response, research) {
     const safeResponse = this.stripControlChars(response || '');
+
+    // Extract RESEARCH VERIFICATION section
+    const researchVerification = this.extractResearchVerification(safeResponse);
+
+    // Extract JSON payload
     const jsonPayload = this.extractJsonPayload(safeResponse);
 
     if (jsonPayload) {
       const parsed = this.parseJsonObject(jsonPayload);
       if (parsed) {
-        return this.structureFromParsed(parsed, research);
+        return this.structureFromParsed(parsed, research, researchVerification);
       }
     }
 
@@ -968,12 +1139,47 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
 
   /**
    * Attempt to locate JSON within an AI response
+   * Extracts content between first { and last } AFTER skipping RESEARCH VERIFICATION
    */
   extractJsonPayload(response) {
     if (!response) return null;
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) return null;
-    return this.normalizeJsonString(jsonMatch[0]);
+
+    // Skip RESEARCH VERIFICATION section if present
+    // Look for the first { that marks the end of verification section
+    const verificationPattern = /###\s*RESEARCH\s+VERIFICATION\s*[\s\S]*?(?=\{)/i;
+    const verificationMatch = response.match(verificationPattern);
+
+    // Start searching for JSON after RESEARCH VERIFICATION (or from beginning if no verification)
+    const searchStart = verificationMatch ? verificationMatch[0].length : 0;
+
+    const firstBrace = response.indexOf('{', searchStart);
+    const lastBrace = response.lastIndexOf('}');
+
+    if (firstBrace === -1 || lastBrace === -1 || firstBrace >= lastBrace) {
+      return null;
+    }
+
+    const jsonString = response.substring(firstBrace, lastBrace + 1);
+    return this.normalizeJsonString(jsonString);
+  }
+
+  /**
+   * Extract RESEARCH VERIFICATION section from AI response
+   */
+  extractResearchVerification(response) {
+    if (!response) return '';
+
+    // Match ### RESEARCH VERIFICATION section until:
+    // 1. JSON starts ({), OR
+    // 2. Markdown separator (\n--- or \n***), OR
+    // 3. Article content starts (\n##)
+    const match = response.match(/###\s*RESEARCH\s+VERIFICATION\s*([\s\S]*?)(?=\{|\n---|\n\*\*\*|\n##)/i);
+
+    if (match && match[1]) {
+      return match[1].trim();
+    }
+
+    return '';
   }
 
   /**
@@ -995,7 +1201,7 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
   /**
    * Convert parsed JSON into our storage format
    */
-  structureFromParsed(parsed, research) {
+  structureFromParsed(parsed, research, researchVerification = '') {
     const rawArticle = this.stripControlChars(parsed.article_content || '');
     const seoMeta = this.normalizeSeoMetadata(parsed.seo_metadata, research, rawArticle);
     const upgrades = this.ensureArray(parsed.content_upgrades);
@@ -1008,9 +1214,15 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
     const quality = this.buildQualityMetrics(parsed.quality_metrics, preparedArticle, false);
     const heroPayload = this.normalizeHeroPayload(parsed.hero_image, research, seoMeta);
 
+    // Use research verification from extraction (not from JSON)
+    // Convert literal escape sequences (\n, \t) to actual characters
+    const unescaped = this.unescapeStringLiterals(researchVerification);
+    const researchLog = this.stripControlChars(unescaped);
+
     return {
       topic_id: research.topic_id,
       creation_date: new Date().toISOString().split('T')[0],
+      research_log: researchLog,
       seo_metadata: JSON.stringify(seoMeta),
       article_content: preparedArticle,
       content_upgrades: JSON.stringify(upgrades),
@@ -1049,6 +1261,7 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
     return {
       topic_id: research.topic_id,
       creation_date: new Date().toISOString().split('T')[0],
+      research_log: 'N/A - Fallback mode (JSON parsing failed)',
       seo_metadata: JSON.stringify(seoMeta),
       article_content: boundedArticle,
       content_upgrades: JSON.stringify(['Manual enhancements required']),
@@ -1699,6 +1912,18 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
   stripControlChars(text) {
     if (!text) return '';
     return text.replace(/[^\x09\x0A\x0D\x20-\uFFFF]/g, '');
+  }
+
+  /**
+   * Convert literal escape sequences (\n, \t, \r) to actual characters
+   * This handles cases where AI returns "\n" as literal text instead of newlines
+   */
+  unescapeStringLiterals(text) {
+    if (!text) return '';
+    return text
+      .replace(/\\n/g, '\n')   // Convert \n to actual newline
+      .replace(/\\r/g, '\r')   // Convert \r to carriage return
+      .replace(/\\t/g, '\t');  // Convert \t to tab
   }
 
   normalizeJsonString(text) {

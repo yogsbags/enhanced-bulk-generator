@@ -50,6 +50,7 @@ export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState<string>('derivatives')
   const [customTopic, setCustomTopic] = useState<string>('')
   const [customTitle, setCustomTitle] = useState<string>('')
+  const [contentOutline, setContentOutline] = useState<string>('')
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [editingRow, setEditingRow] = useState<{stageId: number, data: any, index: number} | null>(null)
 
@@ -126,7 +127,7 @@ export default function Home() {
       const response = await fetch('/api/workflow/stage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stageId, topicLimit, category: selectedCategory, customTopic, customTitle }),
+        body: JSON.stringify({ stageId, topicLimit, category: selectedCategory, customTopic, customTitle, contentOutline }),
       })
 
       if (!response.ok) {
@@ -188,7 +189,7 @@ export default function Home() {
       const response = await fetch('/api/workflow/execute', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topicLimit, category: selectedCategory, customTopic, customTitle }),
+        body: JSON.stringify({ topicLimit, category: selectedCategory, customTopic, customTitle, contentOutline }),
       })
 
       if (!response.ok) {
@@ -431,6 +432,37 @@ export default function Home() {
               <p className="text-xs text-gray-500 mt-1">
                 🚀 Bypass Stages 1-2 - Jump straight to deep research & content creation (Stage 3+)
               </p>
+            </div>
+          </div>
+
+          {/* Content Outline Row */}
+          <div className="grid grid-cols-1 gap-6 mb-6">
+            {/* Content Outline Input */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Content Outline (Optional):
+              </label>
+              <textarea
+                value={contentOutline}
+                onChange={(e) => setContentOutline(e.target.value)}
+                disabled={isRunning || executingStage !== null}
+                placeholder={"## Introduction\nBrief overview of derivatives trading\n\n## What are Derivatives?\n### Types of Derivatives\n- Futures\n- Options\n\n## How to Trade Derivatives\nStep-by-step guide\n\n## Risk Management\nImportant considerations\n\n## Conclusion\nKey takeaways"}
+                rows={12}
+                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none font-mono text-sm text-gray-800 disabled:bg-gray-100 disabled:cursor-not-allowed"
+              />
+              <div className="flex items-start gap-2 mt-2">
+                <div className="flex-1">
+                  <p className="text-xs text-gray-500">
+                    📝 Provide a custom content structure. AI will follow this exact outline when generating the article.
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    💡 Supports markdown headers (##, ###), bullet points, and plain text. Newlines are preserved as-is.
+                  </p>
+                </div>
+                <div className="text-xs text-gray-500 bg-gray-50 px-3 py-2 rounded border border-gray-200">
+                  {contentOutline.split('\n').length} lines • {contentOutline.length} chars
+                </div>
+              </div>
             </div>
           </div>
 

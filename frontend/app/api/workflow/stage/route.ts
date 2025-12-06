@@ -35,6 +35,7 @@ export async function POST(req: NextRequest) {
         const category = body.category || 'derivatives'
         const customTopic = body.customTopic || ''
         const customTitle = body.customTitle || ''
+        const contentOutline = body.contentOutline || ''
 
         if (!stageId || !STAGE_NAMES[stageId]) {
           throw new Error(`Invalid stage ID: ${stageId}`)
@@ -55,13 +56,19 @@ export async function POST(req: NextRequest) {
         if (customTitle) {
           sendEvent({ log: `🚀 Custom Title: "${customTitle}"` })
         }
+        if (contentOutline) {
+          const lineCount = contentOutline.split('\n').length
+          sendEvent({ log: `📝 Content Outline: ${lineCount} lines provided` })
+        }
         sendEvent({ stage: stageId, status: 'running', message: `Executing ${stageName}...` })
 
         // Execute stage with NODE_PATH for module resolution
         const parentNodeModules = path.join(process.cwd(), 'node_modules')
         const nodeEnv = {
           ...process.env,
-          NODE_PATH: parentNodeModules + (process.env.NODE_PATH ? ':' + process.env.NODE_PATH : '')
+          NODE_PATH: parentNodeModules + (process.env.NODE_PATH ? ':' + process.env.NODE_PATH : ''),
+          // Pass content outline via environment variable to preserve newlines and special chars
+          CONTENT_OUTLINE: contentOutline
         }
 
         const args = [mainJsPath, 'stage', stageName, '--auto-approve', '--topic-limit', topicLimit.toString(), '--category', category]
@@ -70,6 +77,9 @@ export async function POST(req: NextRequest) {
         }
         if (customTitle) {
           args.push('--custom-title', customTitle)
+        }
+        if (contentOutline) {
+          args.push('--content-outline-provided')
         }
         const nodeProcess = spawn('node', args, {
           cwd: workingDir,
