@@ -719,6 +719,70 @@ export default function Home() {
                         >
                           📥 Download CSV
                         </button>
+
+                        {/* Download HTML Button (for content stages 4-5) */}
+                        {(stage.id === 4 || stage.id === 5) && stageData[stage.id].data.some((row: any) => row.article_content) && (
+                          <button
+                            onClick={async () => {
+                              try {
+                                // Get the first row with article content
+                                const contentRow = stageData[stage.id].data.find((row: any) => row.article_content)
+
+                                if (!contentRow) {
+                                  alert('No article content found')
+                                  return
+                                }
+
+                                // Call the markdown-to-HTML API
+                                const response = await fetch('/api/convert/markdown-to-html', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    markdownContent: contentRow.article_content,
+                                    seoMetadata: contentRow.seo_metadata
+                                  })
+                                })
+
+                                if (!response.ok) {
+                                  const error = await response.json()
+                                  alert(`HTML conversion failed: ${error.error}`)
+                                  return
+                                }
+
+                                const result = await response.json()
+
+                                if (!result.success) {
+                                  alert('HTML conversion failed')
+                                  return
+                                }
+
+                                // Download the HTML
+                                const blob = new Blob([result.html], { type: 'text/html' })
+                                const url = window.URL.createObjectURL(blob)
+                                const a = document.createElement('a')
+                                a.href = url
+
+                                // Use topic_id or fallback name
+                                const filename = contentRow.topic_id
+                                  ? `${contentRow.topic_id}.html`
+                                  : `article-${Date.now()}.html`
+
+                                a.download = filename
+                                document.body.appendChild(a)
+                                a.click()
+                                window.URL.revokeObjectURL(url)
+                                document.body.removeChild(a)
+
+                                addLog(`✅ Downloaded HTML: ${filename}`)
+                              } catch (error) {
+                                alert('HTML download failed: ' + (error instanceof Error ? error.message : 'Unknown error'))
+                              }
+                            }}
+                            className="text-xs px-3 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors flex items-center gap-1"
+                          >
+                            📄 Download HTML
+                          </button>
+                        )}
                       </div>
                       <span className="text-xs text-gray-500">
                         ✅ {stageData[stage.id].summary.approved} approved
