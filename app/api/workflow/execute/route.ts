@@ -25,6 +25,7 @@ export async function POST(req: NextRequest) {
         const category = body.category || 'derivatives'
         const customTopic = body.customTopic || ''
         const customTitle = body.customTitle || ''
+        const contentOutline = body.contentOutline || ''
 
         // Check if we're in Netlify environment
         if (process.env.NETLIFY === 'true' || process.env.AWS_LAMBDA_FUNCTION_NAME) {
@@ -37,6 +38,10 @@ export async function POST(req: NextRequest) {
           }
           if (customTitle) {
             sendEvent({ log: `🚀 Custom Title: "${customTitle}"` })
+          }
+          if (contentOutline) {
+            const lineCount = contentOutline.split('\n').length
+            sendEvent({ log: `📝 Content Outline: ${lineCount} lines provided` })
           }
 
           try {
@@ -52,7 +57,7 @@ export async function POST(req: NextRequest) {
               headers: {
                 'Content-Type': 'application/json',
               },
-              body: JSON.stringify({ topicLimit, category, customTopic, customTitle }),
+              body: JSON.stringify({ topicLimit, category, customTopic, customTitle, contentOutline }),
             })
 
             sendEvent({ log: `📡 Response status: ${response.status} ${response.statusText}` })
@@ -106,6 +111,10 @@ export async function POST(req: NextRequest) {
           if (customTitle) {
             sendEvent({ log: `🚀 Custom Title: "${customTitle}"` })
           }
+          if (contentOutline) {
+            const lineCount = contentOutline.split('\n').length
+            sendEvent({ log: `📝 Content Outline: ${lineCount} lines provided` })
+          }
 
           // Execute main.js with 'full' command, topic limit, category, custom topic, and custom title
           const args = [mainJsPath, 'full', '--auto-approve', '--topic-limit', topicLimit.toString(), '--category', category]
@@ -115,12 +124,17 @@ export async function POST(req: NextRequest) {
           if (customTitle) {
             args.push('--custom-title', customTitle)
           }
+          if (contentOutline) {
+            args.push('--content-outline-provided')
+          }
 
           // Add parent node_modules to NODE_PATH for Vercel deployment
           const parentNodeModules = path.join(process.cwd(), 'node_modules')
           const nodeEnv = {
             ...process.env,
-            NODE_PATH: parentNodeModules + (process.env.NODE_PATH ? ':' + process.env.NODE_PATH : '')
+            NODE_PATH: parentNodeModules + (process.env.NODE_PATH ? ':' + process.env.NODE_PATH : ''),
+            // Pass content outline via environment variable to preserve newlines and special chars
+            CONTENT_OUTLINE: contentOutline
           }
 
           const nodeProcess = spawn('node', args, {
