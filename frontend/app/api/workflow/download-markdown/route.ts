@@ -9,7 +9,6 @@ import path from 'path'
  */
 function formatMarkdown(content: any, primaryKeyword: string | null = null): string {
   const { article_content, compliance } = content
-  const research_log = content.research_log || content.__research_verification || ''
 
   // Parse seo_metadata from JSON string
   let seo_metadata: any
@@ -29,12 +28,11 @@ function formatMarkdown(content: any, primaryKeyword: string | null = null): str
     markdown += `# ${seo_metadata.title}\n\n`
   }
 
-  // Add RESEARCH VERIFICATION section (BEFORE Summary)
-  if (research_log && research_log !== 'N/A - Fallback mode (JSON parsing failed)') {
-    markdown += `### RESEARCH VERIFICATION\n\n${research_log}\n\n---\n\n`
-  }
+  // Check if article_content already includes RESEARCH VERIFICATION section
+  // If it does, it will be included when we add article_content below
+  // If it doesn't, we don't need to add it separately since it should have been added during content creation
 
-  // Add article content (starts with ## Summary)
+  // Add article content (which should already include RESEARCH VERIFICATION if it was extracted)
   markdown += article_content || ''
 
   // Add compliance/disclaimer at the end
@@ -76,6 +74,9 @@ function formatMarkdown(content: any, primaryKeyword: string | null = null): str
   const faqs = extractFAQs(article_content)
   if (faqs.length > 0) {
     markdown += generateFAQSchema(faqs, canonicalUrl)
+  } else {
+    // Debug: Log if FAQs weren't found (for troubleshooting)
+    console.log('⚠️  No FAQs extracted from article content. FAQ section may be missing or in unexpected format.')
   }
 
   return markdown
@@ -83,19 +84,26 @@ function formatMarkdown(content: any, primaryKeyword: string | null = null): str
 
 /**
  * Extract FAQs from article content
+ * Handles multiple formats:
+ * 1. H3 format: ### Question text?
+ * 2. Q&A format: **Q1. Question text?** followed by A: answer
  */
 function extractFAQs(articleContent: string): Array<{ question: string; answer: string }> {
   const faqs: Array<{ question: string; answer: string }> = []
-  const faqRegex = /###\s+(.+?)\n\n?([\s\S]+?)(?=\n###|\n##|\n---|\n\n---|$)/g
 
-  // Check if there's a FAQ section
-  const faqSectionMatch = articleContent.match(/##\s+FAQs?.*?\n([\s\S]*?)(?=\n---|##\s+SEO Metadata|$)/i)
+  // Check if there's a FAQ section (various possible headings)
+  // Match FAQ section until: ---, ## SEO Metadata, ## Talk to, ## Conclusion, or end of content
+  // Use non-greedy match to capture until the first occurrence of these patterns
+  const faqSectionMatch = articleContent.match(/##\s+(?:FAQs?|Frequently Asked Questions|FAQ)[^\n]*\n([\s\S]*?)(?=\n---|\n##\s+(?:SEO Metadata|Talk to|Conclusion)|$)/i)
 
   if (faqSectionMatch) {
     const faqSection = faqSectionMatch[1]
+
+    // Try H3 format first (### Question)
+    const h3Regex = /###\s+(.+?)\n\n?([\s\S]+?)(?=\n###|\n##|\n---|\n\n---|$)/g
     let match
 
-    while ((match = faqRegex.exec(faqSection)) !== null) {
+    while ((match = h3Regex.exec(faqSection)) !== null) {
       const question = match[1].trim()
       const answer = match[2].trim().replace(/\n\n/g, ' ').replace(/\n/g, ' ')
 
@@ -104,6 +112,32 @@ function extractFAQs(articleContent: string): Array<{ question: string; answer: 
           question: question,
           answer: answer
         })
+      }
+    }
+
+    // If no H3 FAQs found, try Q&A format (**Q1. Question?** followed by A:)
+    if (faqs.length === 0) {
+      // Match **Q1. Question text?** followed by A: answer text
+      // Handles both single-line and multi-line answers
+      const qaRegex = /\*\*Q\d+\.\s*(.+?)\*\*\s*\n\s*A:\s*([\s\S]+?)(?=\n\*\*Q\d+\.|\n---|\n##|$)/g
+      let qaMatch
+
+      while ((qaMatch = qaRegex.exec(faqSection)) !== null) {
+        const question = qaMatch[1].trim()
+        // Clean up answer: remove extra newlines, preserve sentence structure
+        let answer = qaMatch[2].trim()
+          .replace(/\n{3,}/g, '\n\n')  // Replace 3+ newlines with 2
+          .replace(/\n\n/g, ' ')         // Replace double newlines with space
+          .replace(/\n/g, ' ')          // Replace single newlines with space
+          .replace(/\s+/g, ' ')         // Normalize multiple spaces
+          .trim()
+
+        if (question && answer && answer.length > 10) {  // Ensure answer has meaningful content
+          faqs.push({
+            question: question,
+            answer: answer
+          })
+        }
       }
     }
   }

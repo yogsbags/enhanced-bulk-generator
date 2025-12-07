@@ -575,11 +575,31 @@ class CSVDataManager {
       const nextId = maxId + index + 1;
       const paddedId = String(nextId).padStart(3, '0');
 
+      // Ensure all required fields are present and properly formatted
+      // article_content and content_upgrades must be explicitly preserved
+      const articleContent = item.article_content || '';
+      const contentUpgrades = item.content_upgrades || (typeof item.content_upgrades === 'object' ? JSON.stringify(item.content_upgrades) : '[]');
+
+      // Warn if critical fields are empty (but don't fail - might be intentional in some cases)
+      if (!articleContent && item.content_id) {
+        console.warn(`⚠️  Warning: article_content is empty for content_id: ${item.content_id || `CONTENT-${paddedId}`}`);
+      }
+      if (!contentUpgrades || contentUpgrades === '[]' || contentUpgrades === '') {
+        console.warn(`⚠️  Warning: content_upgrades is empty for content_id: ${item.content_id || `CONTENT-${paddedId}`}`);
+      }
+
       return {
         ...item,
         content_id: item.content_id || `CONTENT-${paddedId}`,
-        hero_image: item.hero_image || '',
-        sources: Array.isArray(item.sources) ? JSON.stringify(item.sources) : (item.sources || '[]'),
+        topic_id: item.topic_id || '',
+        creation_date: item.creation_date || new Date().toISOString().split('T')[0],
+        seo_metadata: item.seo_metadata || (typeof item.seo_metadata === 'object' ? JSON.stringify(item.seo_metadata) : '{}'),
+        article_content: articleContent,  // Explicitly preserve article_content
+        content_upgrades: contentUpgrades,  // Explicitly preserve content_upgrades
+        compliance: item.compliance || '',
+        quality_metrics: item.quality_metrics || (typeof item.quality_metrics === 'object' ? JSON.stringify(item.quality_metrics) : '{}'),
+        sources: Array.isArray(item.sources) ? JSON.stringify(item.sources) : (typeof item.sources === 'string' ? item.sources : (item.sources || '[]')),
+        hero_image: item.hero_image || (typeof item.hero_image === 'object' ? JSON.stringify(item.hero_image) : ''),
         approval_status: item.approval_status || 'Pending',
         created_at: timestamp
       };

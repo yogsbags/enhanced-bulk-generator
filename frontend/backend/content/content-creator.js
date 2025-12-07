@@ -1323,8 +1323,17 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
     const upgrades = this.ensureArray(parsed.content_upgrades);
     const sources = this.collectSources(parsed.sources, research);
 
-    // AI already includes Research Verification section in article_content
-    const preparedArticle = this.prepareArticleContent(rawArticle, {
+    // Check if article_content already has RESEARCH VERIFICATION section
+    const hasResearchVerification = /###\s*RESEARCH\s+VERIFICATION/i.test(rawArticle);
+
+    // If AI didn't include RESEARCH VERIFICATION in article_content, but we extracted it from raw response,
+    // prepend it to article_content so it's included in the saved content
+    let articleWithVerification = rawArticle;
+    if (!hasResearchVerification && researchVerification && researchVerification.trim()) {
+      articleWithVerification = `### RESEARCH VERIFICATION\n\n${researchVerification.trim()}\n\n---\n\n${rawArticle}`;
+    }
+
+    const preparedArticle = this.prepareArticleContent(articleWithVerification, {
       research,
       sources,
       seoMeta,
