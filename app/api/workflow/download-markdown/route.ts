@@ -86,7 +86,7 @@ function formatMarkdown(content: any, primaryKeyword: string | null = null): str
  */
 function extractFAQs(articleContent: string): Array<{ question: string; answer: string }> {
   const faqs: Array<{ question: string; answer: string }> = []
-  const faqRegex = /###\s+(.+?)\n\n?([\s\S]+?)(?=\n###|\n##|\n---|\n\n---|$)/gs
+  const faqRegex = /###\s+(.+?)\n\n?([\s\S]+?)(?=\n###|\n##|\n---|\n\n---|$)/g
 
   // Check if there's a FAQ section
   const faqSectionMatch = articleContent.match(/##\s+FAQs?.*?\n([\s\S]*?)(?=\n---|##\s+SEO Metadata|$)/i)
