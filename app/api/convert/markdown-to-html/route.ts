@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     const contentWithoutSeo = stripSeoMetadata(contentWithoutResearch)
 
     // Convert to HTML
-    let htmlContent = marked.parse(contentWithoutSeo)
+    let htmlContent = await marked.parse(contentWithoutSeo)
 
     // Post-process HTML for special styling
     htmlContent = postProcessHtml(htmlContent)
