@@ -795,6 +795,44 @@ export default function Home() {
                             📄 Download HTML
                           </button>
                         )}
+
+                        {/* Download Raw Content Button (for content stages 4-5) */}
+                        {(stage.id === 4 || stage.id === 5) && stageData[stage.id].data.some((row: any) => row.content_id && row.article_content) && (
+                          <button
+                            onClick={async () => {
+                              try {
+                                const contentRow = stageData[stage.id].data.find((row: any) => row.content_id && row.article_content)
+
+                                if (!contentRow || !contentRow.content_id) {
+                                  alert('No content ID found')
+                                  return
+                                }
+
+                                const response = await fetch(`/api/workflow/download-raw-markdown?contentId=${encodeURIComponent(contentRow.content_id)}`)
+                                if (!response.ok) {
+                                  const error = await response.json()
+                                  alert(`Download failed: ${error.error}`)
+                                  return
+                                }
+                                const blob = await response.blob()
+                                const url = window.URL.createObjectURL(blob)
+                                const a = document.createElement('a')
+                                a.href = url
+                                a.download = response.headers.get('Content-Disposition')?.split('filename=')[1]?.replace(/"/g, '') || 'article-raw.md'
+                                document.body.appendChild(a)
+                                a.click()
+                                window.URL.revokeObjectURL(url)
+                                document.body.removeChild(a)
+                                addLog(`✅ Downloaded Raw Content`)
+                              } catch (error) {
+                                alert('Raw content download failed: ' + (error instanceof Error ? error.message : 'Unknown error'))
+                              }
+                            }}
+                            className="text-xs px-3 py-1 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors flex items-center gap-1"
+                          >
+                            🔍 Download Raw Content
+                          </button>
+                        )}
                       </div>
                       <span className="text-xs text-gray-500">
                         ✅ {stageData[stage.id].summary.approved} approved
