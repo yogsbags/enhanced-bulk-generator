@@ -725,17 +725,33 @@ export default function Home() {
                           <button
                             onClick={async () => {
                               try {
-                                const contentRow = stageData[stage.id].data.find((row: any) => row.content_id && row.article_content)
+                                // Get the most recent content entry (last one, or by creation_date)
+                                const contentRows = stageData[stage.id].data.filter((row: any) => row.content_id && row.article_content)
+                                if (contentRows.length === 0) {
+                                  alert('No content ID found')
+                                  return
+                                }
+
+                                // Sort by creation_date descending, or use last entry
+                                const contentRow = contentRows.sort((a: any, b: any) => {
+                                  const dateA = a.creation_date ? new Date(a.creation_date).getTime() : 0
+                                  const dateB = b.creation_date ? new Date(b.creation_date).getTime() : 0
+                                  return dateB - dateA
+                                })[0] || contentRows[contentRows.length - 1]
 
                                 if (!contentRow || !contentRow.content_id) {
                                   alert('No content ID found')
                                   return
                                 }
 
+                                console.log(`📥 Downloading markdown for content_id: ${contentRow.content_id}, title: ${JSON.parse(contentRow.seo_metadata || '{}').title || 'N/A'}`)
                                 const response = await fetch(`/api/workflow/download-markdown?contentId=${encodeURIComponent(contentRow.content_id)}`)
                                 if (!response.ok) {
-                                  const error = await response.json()
-                                  alert(`Download failed: ${error.error}`)
+                                  const contentType = response.headers.get('content-type') || ''
+                                  const error = contentType.includes('application/json')
+                                    ? await response.json()
+                                    : { error: await response.text() }
+                                  alert(`Download failed: ${error.error || error.message || 'Unknown error'}`)
                                   return
                                 }
                                 const blob = await response.blob()
@@ -763,17 +779,33 @@ export default function Home() {
                           <button
                             onClick={async () => {
                               try {
-                                const contentRow = stageData[stage.id].data.find((row: any) => row.content_id && row.article_content)
+                                // Get the most recent content entry (last one, or by creation_date)
+                                const contentRows = stageData[stage.id].data.filter((row: any) => row.content_id && row.article_content)
+                                if (contentRows.length === 0) {
+                                  alert('No content ID found')
+                                  return
+                                }
+
+                                // Sort by creation_date descending, or use last entry
+                                const contentRow = contentRows.sort((a: any, b: any) => {
+                                  const dateA = a.creation_date ? new Date(a.creation_date).getTime() : 0
+                                  const dateB = b.creation_date ? new Date(b.creation_date).getTime() : 0
+                                  return dateB - dateA
+                                })[0] || contentRows[contentRows.length - 1]
 
                                 if (!contentRow || !contentRow.content_id) {
                                   alert('No content ID found')
                                   return
                                 }
 
+                                console.log(`📥 Downloading HTML for content_id: ${contentRow.content_id}, title: ${JSON.parse(contentRow.seo_metadata || '{}').title || 'N/A'}`)
                                 const response = await fetch(`/api/workflow/download-html?contentId=${encodeURIComponent(contentRow.content_id)}`)
                                 if (!response.ok) {
-                                  const error = await response.json()
-                                  alert(`Download failed: ${error.error}`)
+                                  const contentType = response.headers.get('content-type') || ''
+                                  const error = contentType.includes('application/json')
+                                    ? await response.json()
+                                    : { error: await response.text() }
+                                  alert(`Download failed: ${error.error || error.message || 'Unknown error'}`)
                                   return
                                 }
                                 const blob = await response.blob()
@@ -801,17 +833,33 @@ export default function Home() {
                           <button
                             onClick={async () => {
                               try {
-                                const contentRow = stageData[stage.id].data.find((row: any) => row.content_id && row.article_content)
+                                // Get the most recent content entry (last one, or by creation_date)
+                                const contentRows = stageData[stage.id].data.filter((row: any) => row.content_id && row.article_content)
+                                if (contentRows.length === 0) {
+                                  alert('No content ID found')
+                                  return
+                                }
+
+                                // Sort by creation_date descending, or use last entry
+                                const contentRow = contentRows.sort((a: any, b: any) => {
+                                  const dateA = a.creation_date ? new Date(a.creation_date).getTime() : 0
+                                  const dateB = b.creation_date ? new Date(b.creation_date).getTime() : 0
+                                  return dateB - dateA
+                                })[0] || contentRows[contentRows.length - 1]
 
                                 if (!contentRow || !contentRow.content_id) {
                                   alert('No content ID found')
                                   return
                                 }
 
+                                console.log(`📥 Downloading raw content for content_id: ${contentRow.content_id}, topic_id: ${contentRow.topic_id || 'N/A'}`)
                                 const response = await fetch(`/api/workflow/download-raw-markdown?contentId=${encodeURIComponent(contentRow.content_id)}`)
                                 if (!response.ok) {
-                                  const error = await response.json()
-                                  alert(`Download failed: ${error.error}`)
+                                  const contentType = response.headers.get('content-type') || ''
+                                  const error = contentType.includes('application/json')
+                                    ? await response.json()
+                                    : { error: await response.text() }
+                                  alert(`Download failed: ${error.error || error.message || 'Unknown error'}`)
                                   return
                                 }
                                 const blob = await response.blob()
