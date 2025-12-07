@@ -720,60 +720,72 @@ export default function Home() {
                           📥 Download CSV
                         </button>
 
-                        {/* Download HTML Button (for content stages 4-5) */}
-                        {(stage.id === 4 || stage.id === 5) && stageData[stage.id].data.some((row: any) => row.article_content) && (
+                        {/* Download Markdown Button (for content stages 4-5) */}
+                        {(stage.id === 4 || stage.id === 5) && stageData[stage.id].data.some((row: any) => row.content_id && row.article_content) && (
                           <button
                             onClick={async () => {
                               try {
-                                // Get the first row with article content
-                                const contentRow = stageData[stage.id].data.find((row: any) => row.article_content)
+                                const contentRow = stageData[stage.id].data.find((row: any) => row.content_id && row.article_content)
 
-                                if (!contentRow) {
-                                  alert('No article content found')
+                                if (!contentRow || !contentRow.content_id) {
+                                  alert('No content ID found')
                                   return
                                 }
 
-                                // Call the markdown-to-HTML API
-                                const response = await fetch('/api/convert/markdown-to-html', {
-                                  method: 'POST',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({
-                                    markdownContent: contentRow.article_content,
-                                    seoMetadata: contentRow.seo_metadata
-                                  })
-                                })
-
+                                const response = await fetch(`/api/workflow/download-markdown?contentId=${encodeURIComponent(contentRow.content_id)}`)
                                 if (!response.ok) {
                                   const error = await response.json()
-                                  alert(`HTML conversion failed: ${error.error}`)
+                                  alert(`Download failed: ${error.error}`)
                                   return
                                 }
-
-                                const result = await response.json()
-
-                                if (!result.success) {
-                                  alert('HTML conversion failed')
-                                  return
-                                }
-
-                                // Download the HTML
-                                const blob = new Blob([result.html], { type: 'text/html' })
+                                const blob = await response.blob()
                                 const url = window.URL.createObjectURL(blob)
                                 const a = document.createElement('a')
                                 a.href = url
-
-                                // Use topic_id or fallback name
-                                const filename = contentRow.topic_id
-                                  ? `${contentRow.topic_id}.html`
-                                  : `article-${Date.now()}.html`
-
-                                a.download = filename
+                                a.download = response.headers.get('Content-Disposition')?.split('filename=')[1]?.replace(/"/g, '') || 'article.md'
                                 document.body.appendChild(a)
                                 a.click()
                                 window.URL.revokeObjectURL(url)
                                 document.body.removeChild(a)
+                                addLog(`✅ Downloaded Markdown`)
+                              } catch (error) {
+                                alert('Markdown download failed: ' + (error instanceof Error ? error.message : 'Unknown error'))
+                              }
+                            }}
+                            className="text-xs px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors flex items-center gap-1"
+                          >
+                            📝 Download Markdown
+                          </button>
+                        )}
 
-                                addLog(`✅ Downloaded HTML: ${filename}`)
+                        {/* Download HTML Button (for content stages 4-5) */}
+                        {(stage.id === 4 || stage.id === 5) && stageData[stage.id].data.some((row: any) => row.content_id && row.article_content) && (
+                          <button
+                            onClick={async () => {
+                              try {
+                                const contentRow = stageData[stage.id].data.find((row: any) => row.content_id && row.article_content)
+
+                                if (!contentRow || !contentRow.content_id) {
+                                  alert('No content ID found')
+                                  return
+                                }
+
+                                const response = await fetch(`/api/workflow/download-html?contentId=${encodeURIComponent(contentRow.content_id)}`)
+                                if (!response.ok) {
+                                  const error = await response.json()
+                                  alert(`Download failed: ${error.error}`)
+                                  return
+                                }
+                                const blob = await response.blob()
+                                const url = window.URL.createObjectURL(blob)
+                                const a = document.createElement('a')
+                                a.href = url
+                                a.download = response.headers.get('Content-Disposition')?.split('filename=')[1]?.replace(/"/g, '') || 'article.html'
+                                document.body.appendChild(a)
+                                a.click()
+                                window.URL.revokeObjectURL(url)
+                                document.body.removeChild(a)
+                                addLog(`✅ Downloaded HTML`)
                               } catch (error) {
                                 alert('HTML download failed: ' + (error instanceof Error ? error.message : 'Unknown error'))
                               }
