@@ -28,6 +28,7 @@ class ContentCreator {
     };
 
     this.customTitle = config.customTitle || null;
+    this.customTopic = config.customTopic || null;
     this.openaiApiKey = process.env.OPENAI_API_KEY;
     this.groqApiKey = process.env.GROQ_API_KEY;
     this.geminiApiKey = process.env.GEMINI_API_KEY;
@@ -108,6 +109,27 @@ class ContentCreator {
 
         if (!customResearch) {
           throw new Error('Custom title research not found. Deep research must run first.');
+        }
+
+        // Override primary_keyword in research with current custom topic/title to ensure correct content
+        // Priority: custom_topic > custom_title
+        if (customResearch) {
+          const originalPrimaryKeyword = customResearch.primary_keyword;
+          let newPrimaryKeyword = null;
+
+          if (this.customTopic) {
+            // If custom_topic is provided, use it as primary_keyword
+            newPrimaryKeyword = this.customTopic;
+            console.log(`✅ Overriding research.primary_keyword from "${originalPrimaryKeyword}" to custom_topic: "${newPrimaryKeyword}"`);
+          } else if (this.customTitle) {
+            // If only custom_title is provided, use it as primary_keyword
+            newPrimaryKeyword = this.customTitle;
+            console.log(`✅ Overriding research.primary_keyword from "${originalPrimaryKeyword}" to custom_title: "${newPrimaryKeyword}"`);
+          }
+
+          if (newPrimaryKeyword) {
+            customResearch.primary_keyword = newPrimaryKeyword;
+          }
         }
 
         const content = await this.createArticle(customResearch);
@@ -210,6 +232,7 @@ class ContentCreator {
    */
   async getCustomTitleResearch() {
     console.log(`\n🔍 Looking for custom title research in topic-research.csv...`);
+    console.log(`📝 Current custom title: "${this.customTitle}"`);
 
     // Get all research entries
     const allResearch = this.csvManager.readCSV(this.csvManager.files.topicResearch);
@@ -219,21 +242,99 @@ class ContentCreator {
       return null;
     }
 
-    // Find the most recent CUSTOM-TITLE entry
-    const customTitleResearch = allResearch
+    // Find CUSTOM-TITLE entries
+    const customTitleEntries = allResearch
       .filter(item => item.topic_id && item.topic_id.startsWith('CUSTOM-TITLE-'))
       .sort((a, b) => {
         // Sort by topic_id descending (timestamp is in the ID)
         return b.topic_id.localeCompare(a.topic_id);
-      })[0];
+      });
 
-    if (!customTitleResearch) {
+    if (customTitleEntries.length === 0) {
       console.warn('⚠️  No custom title research found. Run deep-research stage first with --custom-title flag.');
       return null;
     }
 
-    console.log(`✅ Found custom title research: ${customTitleResearch.topic_id}`);
-    return customTitleResearch;
+    // Try to find a match for the current custom title/topic
+    // Note: If custom_topic is provided, primary_keyword in research CSV = custom_topic
+    // If only custom_title is provided, primary_keyword = extracted keyword from title
+    let matchingResearch = null;
+
+    // Determine what primary_keyword should be for matching
+    let expectedPrimaryKeyword = null;
+    if (this.customTopic) {
+      // If custom_topic is provided, primary_keyword should be the custom_topic
+      expectedPrimaryKeyword = this.customTopic.toLowerCase().trim();
+      console.log(`🔍 Matching by custom_topic: "${expectedPrimaryKeyword}"`);
+    } else if (this.customTitle) {
+      // Extract primary keyword from current custom title (same logic as deep-topic-researcher.js)
+      const extractPrimaryKeyword = (title) => {
+        const stopWords = ['the', 'a', 'an', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'best', 'top', 'guide', 'how', 'what', 'why', 'when', 'where'];
+        const words = title.toLowerCase().split(/\s+/);
+        const keywords = words.filter(word => !stopWords.includes(word));
+        return keywords.slice(0, 3).join(' ') || title.toLowerCase();
+      };
+      expectedPrimaryKeyword = extractPrimaryKeyword(this.customTitle).toLowerCase().trim();
+      console.log(`🔍 Matching by extracted keyword from custom_title: "${expectedPrimaryKeyword}"`);
+    }
+
+    if (expectedPrimaryKeyword) {
+      const normalizedCustomTitle = this.customTitle ? this.customTitle.toLowerCase().trim() : null;
+
+      matchingResearch = customTitleEntries.find(item => {
+        const itemPrimaryKeyword = (item.primary_keyword || '').toLowerCase().trim();
+        const itemTopicTitle = (item.topic_title || '').toLowerCase().trim(); // May not exist in CSV
+
+        // Strategy 1: Exact match on primary_keyword (most reliable since it's in CSV)
+        if (itemPrimaryKeyword === expectedPrimaryKeyword) {
+          return true;
+        }
+
+        // Strategy 2: Check if primary keywords are similar (fuzzy match)
+        if (itemPrimaryKeyword && expectedPrimaryKeyword) {
+          // Check if one contains the other (handles variations)
+          if (itemPrimaryKeyword.includes(expectedPrimaryKeyword) ||
+              expectedPrimaryKeyword.includes(itemPrimaryKeyword)) {
+            return true;
+          }
+        }
+
+        // Strategy 3: If topic_title exists and we have custom_title, match on it
+        if (normalizedCustomTitle && itemTopicTitle === normalizedCustomTitle) {
+          return true;
+        }
+
+        return false;
+      });
+    }
+
+    // If no match found, use the most recent one but warn
+    if (!matchingResearch) {
+      matchingResearch = customTitleEntries[0];
+      const searchTerm = this.customTopic || this.customTitle || 'N/A';
+      console.warn(`⚠️  WARNING: No exact match found for "${searchTerm}"`);
+      console.warn(`⚠️  Using most recent custom title research: ${matchingResearch.topic_id}`);
+      console.warn(`⚠️  Found research with topic_title: "${matchingResearch.topic_title || 'N/A'}"`);
+      console.warn(`⚠️  Found research with primary_keyword: "${matchingResearch.primary_keyword || 'N/A'}"`);
+      console.warn(`⚠️  Expected primary_keyword: "${expectedPrimaryKeyword || 'N/A'}"`);
+      console.warn(`⚠️  This may result in content for the wrong topic!`);
+      if (this.customTopic) {
+        console.warn(`⚠️  Please run deep-research stage first with the correct --custom-topic flag.`);
+      } else {
+        console.warn(`⚠️  Please run deep-research stage first with the correct --custom-title flag.`);
+      }
+    } else {
+      console.log(`✅ Found matching custom title research: ${matchingResearch.topic_id}`);
+      console.log(`✅ Matched primary_keyword: "${matchingResearch.primary_keyword || 'N/A'}"`);
+      if (this.customTopic) {
+        console.log(`✅ Current custom_topic: "${this.customTopic}"`);
+      }
+      if (this.customTitle) {
+        console.log(`✅ Current custom_title: "${this.customTitle}"`);
+      }
+    }
+
+    return matchingResearch;
   }
 
   /**
@@ -390,9 +491,42 @@ ${response}
     const currentFY = now.getMonth() >= 3 ? `FY ${currentYear}-${(currentYear + 1) % 100}` : `FY ${currentYear - 1}-${currentYear % 100}`;
     const currentAY = now.getMonth() >= 3 ? `AY ${currentYear + 1}-${(currentYear + 2) % 100}` : `AY ${currentYear}-${(currentYear + 1) % 100}`;
 
-    // 🚨 CUSTOM TITLE MODE: Build ultra-forceful enforcement if detected
+    // 🚨 CUSTOM TITLE/TOPIC MODE: Build ultra-forceful enforcement if detected
     const isCustomTitleMode = research.topic_id?.startsWith('CUSTOM-TITLE-');
-    const customTitleEnforcement = isCustomTitleMode ? `
+
+    // Enrich research with topic_title from topics CSV if not already present
+    // NOTE: This is a read-only enrichment for in-memory use only.
+    // topic_title is NOT in topicResearch CSV schema, so it won't be saved back to CSV.
+    // This is safe because: 1) We only read from topicResearch CSV, 2) writeCSV filters to schema columns
+    if (!research.topic_title && research.topic_id) {
+      const allTopics = this.csvManager.getAllTopics();
+      const matchingTopic = allTopics.find(t => t.topic_id === research.topic_id);
+      if (matchingTopic && matchingTopic.topic_title) {
+        research.topic_title = matchingTopic.topic_title;
+      }
+    }
+
+    // For title: customTitle > topic_title (from topic generation stage)
+    const effectiveTitle = this.customTitle || research.topic_title || null;
+
+    // For primary_keyword: customTopic > extract from title > research.primary_keyword
+    let effectivePrimaryKeyword;
+    if (this.customTopic) {
+      effectivePrimaryKeyword = this.customTopic;
+    } else if (effectiveTitle) {
+      // Extract primary keyword from title (same logic as deep-topic-researcher.js)
+      const extractPrimaryKeyword = (title) => {
+        const stopWords = ['the', 'a', 'an', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'best', 'top', 'guide', 'how', 'what', 'why', 'when', 'where'];
+        const words = title.toLowerCase().split(/\s+/);
+        const keywords = words.filter(word => !stopWords.includes(word));
+        return keywords.slice(0, 3).join(' ') || title.toLowerCase();
+      };
+      effectivePrimaryKeyword = extractPrimaryKeyword(effectiveTitle);
+    } else {
+      effectivePrimaryKeyword = research.primary_keyword || '';
+    }
+
+    const customTitleEnforcement = (isCustomTitleMode && effectiveTitle) ? `
 🚨🚨🚨 CRITICAL OVERRIDE - READ THIS FIRST 🚨🚨🚨
 
 **CUSTOM TITLE MODE ACTIVATED**
@@ -400,7 +534,7 @@ ${response}
 The user has provided a CUSTOM ARTICLE TITLE. This OVERRIDES all SEO optimization rules.
 
 **MANDATORY REQUIREMENT:**
-- Custom Title: "${this.customTitle}"
+- Title: "${effectiveTitle}"
 - You MUST use this EXACT title in seo_metadata.title field
 - DO NOT change capitalization
 - DO NOT add punctuation
@@ -412,11 +546,11 @@ The user has provided a CUSTOM ARTICLE TITLE. This OVERRIDES all SEO optimizatio
 ❌ FORBIDDEN: "What is Technical Analysis? A Strategic Guide for Indian Investors (FY 2025-26)"
 ❌ FORBIDDEN: "What is Technical Analysis: A Complete Guide"
 ❌ FORBIDDEN: "Technical Analysis Explained"
-✅ CORRECT: "${this.customTitle}" (EXACT COPY, no changes)
+✅ CORRECT: "${effectiveTitle}" (EXACT COPY, no changes)
 
-primary_keyword: "${research.primary_keyword}"
+primary_keyword: "${effectivePrimaryKeyword}"
 secondary_keywords: "${research.secondary_keywords}"
-focus_keyphrase: "${research.focus_keyphrase}"
+focus_keyphrase: "${effectivePrimaryKeyword}"
 slug: "${research.slug}"
 
 
@@ -487,8 +621,8 @@ OUTPUT RULES:
 
 **CRITICAL: Write naturally and focus on reader value. DO NOT force keywords or repeat phrases unnaturally.**
 
-${research.primary_keyword ? `
-**Primary Concept:** "${research.primary_keyword}"
+${effectivePrimaryKeyword ? `
+**Primary Concept:** "${effectivePrimaryKeyword}"
 
 **Natural Writing Guidelines:**
 - ✅ **SEO Title**: Include the concept naturally (seo_metadata.title field)
@@ -1904,20 +2038,66 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
    */
   normalizeSeoMetadata(meta, research, article = '') {
     const raw = this.safeParseJSON(meta, meta && typeof meta === 'object' ? meta : {});
-    const focus = raw.focus_keyphrase || research.primary_keyword || '';
 
-    // ⚠️ CUSTOM TITLE ENFORCEMENT: Override AI-generated title with user's custom title
+    // Enrich research with topic_title from topics CSV if not already present
+    // NOTE: This is a read-only enrichment for in-memory use only.
+    // topic_title is NOT in topicResearch CSV schema, so it won't be saved back to CSV.
+    // This is safe because: 1) We only read from topicResearch CSV, 2) writeCSV filters to schema columns
+    if (!research.topic_title && research.topic_id) {
+      const allTopics = this.csvManager.getAllTopics();
+      const matchingTopic = allTopics.find(t => t.topic_id === research.topic_id);
+      if (matchingTopic && matchingTopic.topic_title) {
+        research.topic_title = matchingTopic.topic_title;
+      }
+    }
+
+    // For title: customTitle > topic_title (from topic generation stage)
+    const effectiveTitle = this.customTitle || research.topic_title || null;
+
+    // For primary_keyword: customTopic > extract from title > research.primary_keyword
+    let effectivePrimaryKeyword;
+    if (this.customTopic) {
+      effectivePrimaryKeyword = this.customTopic;
+    } else if (effectiveTitle) {
+      // Extract primary keyword from title (same logic as deep-topic-researcher.js)
+      const extractPrimaryKeyword = (title) => {
+        const stopWords = ['the', 'a', 'an', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'best', 'top', 'guide', 'how', 'what', 'why', 'when', 'where'];
+        const words = title.toLowerCase().split(/\s+/);
+        const keywords = words.filter(word => !stopWords.includes(word));
+        return keywords.slice(0, 3).join(' ') || title.toLowerCase();
+      };
+      effectivePrimaryKeyword = extractPrimaryKeyword(effectiveTitle);
+    } else {
+      effectivePrimaryKeyword = research.primary_keyword || '';
+    }
+
+    const focus = raw.focus_keyphrase || effectivePrimaryKeyword || '';
+
+    // ⚠️ CUSTOM TITLE/TOPIC ENFORCEMENT: Override AI-generated title with user's custom title/topic
     let title;
-    if (research.topic_id?.startsWith('CUSTOM-TITLE-')) {
-      // This is a custom title scenario - use the exact custom title provided by the user
-      title = research.primary_keyword || research.topic_id || focus;
+    const isCustomTitleMode = research.topic_id?.startsWith('CUSTOM-TITLE-');
 
-      // Warn if AI ignored the custom title instruction
-      if (raw.title && raw.title !== research.primary_keyword) {
-        console.warn(`⚠️  AI generated title "${raw.title}" instead of using custom title "${research.primary_keyword}". Overriding with custom title.`);
+    if (isCustomTitleMode && effectiveTitle) {
+      // This is a custom title scenario - use the EXACT title (customTitle or topic_title)
+      title = effectiveTitle;
+
+      // Warn if AI ignored the title instruction
+      if (raw.title && raw.title !== effectiveTitle) {
+        console.warn(`⚠️  AI generated title "${raw.title}" instead of using expected title "${effectiveTitle}". Overriding with expected title.`);
       }
 
-      console.log(`✅ Custom title enforced: "${title}"`);
+      // Also warn if research.primary_keyword doesn't match current custom topic
+      if (this.customTopic && research.primary_keyword && research.primary_keyword !== this.customTopic) {
+        console.warn(`⚠️  WARNING: Research entry has primary_keyword "${research.primary_keyword}" but current custom_topic is "${this.customTopic}"`);
+        console.warn(`⚠️  This suggests the research entry is from a different custom topic run. Content may be incorrect!`);
+      }
+
+      console.log(`✅ Title enforced: "${title}"`);
+      if (this.customTopic) {
+        console.log(`✅ Primary keyword (from custom_topic): "${effectivePrimaryKeyword}"`);
+      } else if (effectiveTitle) {
+        console.log(`✅ Primary keyword (extracted from title): "${effectivePrimaryKeyword}"`);
+      }
     } else {
       // Normal workflow - use AI-generated title
       title = this.truncateTitle(raw.title || research.topic_id || focus);
