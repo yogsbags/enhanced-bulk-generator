@@ -251,7 +251,11 @@ class ContentCreator {
 
       try {
         const response = await this.callAI(prompt);
-        const content = this.parseContentResponse(response, research);
+
+        // 💾 SAVE RAW AI RESPONSE BEFORE PARSING (for debugging and backup)
+        const rawFilePath = await this.saveRawResponse(response, research, attempt);
+
+        const content = this.parseContentResponse(response, research, rawFilePath);
 
         if (!content) {
           feedback =
@@ -279,6 +283,92 @@ class ContentCreator {
     }
 
     return draft;
+  }
+
+  /**
+   * Save raw AI response to markdown file before parsing
+   * This preserves the original response for debugging if JSON parsing fails
+   */
+  async saveRawResponse(response, research, attempt = 1) {
+    try {
+      const fs = require('fs');
+      const path = require('path');
+
+      // Create raw-responses directory if it doesn't exist
+      const rawDir = path.join(__dirname, '../data/raw-responses');
+      if (!fs.existsSync(rawDir)) {
+        fs.mkdirSync(rawDir, { recursive: true });
+      }
+
+      // Generate filename with topic_id and timestamp
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const topicId = research.topic_id || 'unknown';
+      const filename = `${topicId}_attempt-${attempt}_${timestamp}.md`;
+      const filePath = path.join(rawDir, filename);
+
+      // Prepare markdown content with metadata
+      const metadata = `---
+Topic ID: ${topicId}
+Primary Keyword: ${research.primary_keyword || 'N/A'}
+Attempt: ${attempt}
+Timestamp: ${new Date().toISOString()}
+Content Length: ${response.length} characters
+---
+
+# RAW AI RESPONSE
+
+${response}
+`;
+
+      // Write to file
+      fs.writeFileSync(filePath, metadata, 'utf-8');
+      console.log(`💾 Raw response saved: ${filename}`);
+
+      return filePath;
+    } catch (error) {
+      // Don't fail content creation if raw response saving fails
+      console.warn(`⚠️  Failed to save raw response: ${error.message}`);
+      return null;
+    }
+  }
+
+  /**
+   * Extract article content from the saved raw markdown file
+   * This is used as an intermediate fallback when JSON parsing fails
+   */
+  extractContentFromRawMarkdown(rawFilePath) {
+    if (!rawFilePath) {
+      return null;
+    }
+
+    try {
+      const fs = require('fs');
+
+      // Check if file exists
+      if (!fs.existsSync(rawFilePath)) {
+        console.warn(`⚠️  Raw markdown file not found: ${rawFilePath}`);
+        return null;
+      }
+
+      // Read the file
+      const fileContent = fs.readFileSync(rawFilePath, 'utf-8');
+
+      // Extract content after metadata header
+      // The metadata ends with "---" followed by "# RAW AI RESPONSE"
+      const contentMatch = fileContent.match(/---\s*\n\n# RAW AI RESPONSE\s*\n\n([\s\S]+)/);
+
+      if (contentMatch && contentMatch[1]) {
+        const rawContent = contentMatch[1].trim();
+        console.log(`✅ Extracted ${rawContent.length} characters from raw markdown file`);
+        return rawContent;
+      }
+
+      console.warn(`⚠️  Could not extract content from raw markdown file`);
+      return null;
+    } catch (error) {
+      console.warn(`⚠️  Failed to read raw markdown file: ${error.message}`);
+      return null;
+    }
   }
 
   /**
@@ -731,9 +821,10 @@ For financial content, ALWAYS include:
 - **No Introduction H2**: After Summary, start with plain text paragraph (no heading)
 - **Key Takeaways**: BEFORE Conclusion, bullet list with "You can...", "Consider...", "Start with..."
 - **Action Plan**: BEFORE Conclusion, monthly timeline (Month 1-2: ..., Month 3-4: ...)
-- **Conclusion**: 100 words, 2-3 paragraphs, MUST include: "Ready to [action]? [Open your PL Capital account](https://instakyc.plindia.com/) and..."
-- **FAQs**: AFTER Conclusion, H3 format: "### What is [topic]?", "### How does [topic] work?", etc.
+- **Conclusion**: 100 words, 2-3 paragraphs, MUST include: "Ready to [action]? [Open your PL Capital account](https://instakyc.plindia.com/) and..." - This is the ONLY place for CTAs and links
+- **FAQs**: AFTER Conclusion, H3 format: "### What is [topic]?", "### How does [topic] work?", etc. - This is the FINAL section, nothing comes after
 - **FAQ Answers**: 30-40 words each, complete sentences, specific data (amounts, percentages, timelines)
+- **CRITICAL**: Article MUST END with FAQ section. NO external links, NO "Talk to Advisor" sections, NO additional resources after FAQs
 
 **WRITING STYLE - THE "WIKIPEDIA WITH SOUL" APPROACH:**
 
@@ -827,6 +918,10 @@ The goal: Readers trust your expertise (Wikipedia-level authority) AND bookmark 
 - ❌ FAQs before Conclusion
 - ❌ More than 5 FAQs
 - ❌ Conclusions longer than 100 words
+- ❌ External links sections (e.g., "Talk to a PL Capital Advisor", "Related Links", "Additional Resources")
+- ❌ Footer links to SIP Planner, Tax Savings Checklist, Income Tax Department, or any other external pages
+- ❌ Navigation links or resource links at the end of the article
+- ❌ ANY content after the FAQ section (article MUST end with FAQs)
 - ❌ Keyword stuffing or repetitive explanations
 - ❌ Fake statistics or invented data
 - ❌ FABRICATED STATISTICS: "India's household net-worth grew only 3% in 2023", unverified market data
@@ -883,6 +978,15 @@ The goal: Readers trust your expertise (Wikipedia-level authority) AND bookmark 
 - Real ₹ amounts and calculations
 - Pros/cons lists where applicable
 Total article MUST exceed 2,200 words. Articles under 2,000 words will be REJECTED.
+
+**🚨 FINAL REMINDER - ARTICLE STRUCTURE:**
+
+1. ✅ Conclusion MUST include CTA: "Ready to [action]? [Open your PL Capital account](https://instakyc.plindia.com/) and..."
+2. ✅ FAQs section is the FINAL section of the article
+3. ❌ NO external links sections after FAQs (e.g., "Talk to a PL Capital Advisor")
+4. ❌ NO footer links to SIP Planner, Tax Checklist, Income Tax Department, or any other pages
+5. ❌ NO "Related Links", "Additional Resources", or navigation sections
+6. ✅ Article MUST END with the FAQ section - NOTHING AFTER
 
 **JSON SCHEMA (REQUIRED OUTPUT FORMAT):**
 
@@ -1118,7 +1222,7 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
   /**
    * Parse AI response, repairing JSON when necessary
    */
-  parseContentResponse(response, research) {
+  parseContentResponse(response, research, rawFilePath = null) {
     const safeResponse = this.stripControlChars(response || '');
 
     // Extract RESEARCH VERIFICATION section
@@ -1134,6 +1238,18 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
       }
     }
 
+    // 🔄 JSON parsing failed - try extracting content from raw markdown file
+    console.log(`⚠️  JSON parsing failed for ${research.topic_id}. Attempting to extract from raw markdown...`);
+
+    const rawContent = this.extractContentFromRawMarkdown(rawFilePath);
+
+    if (rawContent) {
+      console.log(`✅ Using content extracted from raw markdown file`);
+      return this.buildFallbackContent(rawContent, research);
+    }
+
+    // 🚨 Both JSON parsing and raw extraction failed - use basic fallback
+    console.warn(`⚠️  Could not extract from raw markdown. Using basic fallback.`);
     return this.buildFallbackContent(safeResponse, research);
   }
 
@@ -1206,23 +1322,20 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
     const seoMeta = this.normalizeSeoMetadata(parsed.seo_metadata, research, rawArticle);
     const upgrades = this.ensureArray(parsed.content_upgrades);
     const sources = this.collectSources(parsed.sources, research);
+
+    // AI already includes Research Verification section in article_content
     const preparedArticle = this.prepareArticleContent(rawArticle, {
       research,
       sources,
       seoMeta,
     });
+
     const quality = this.buildQualityMetrics(parsed.quality_metrics, preparedArticle, false);
     const heroPayload = this.normalizeHeroPayload(parsed.hero_image, research, seoMeta);
-
-    // Use research verification from extraction (not from JSON)
-    // Convert literal escape sequences (\n, \t) to actual characters
-    const unescaped = this.unescapeStringLiterals(researchVerification);
-    const researchLog = this.stripControlChars(unescaped);
 
     return {
       topic_id: research.topic_id,
       creation_date: new Date().toISOString().split('T')[0],
-      research_log: researchLog,
       seo_metadata: JSON.stringify(seoMeta),
       article_content: preparedArticle,
       content_upgrades: JSON.stringify(upgrades),
@@ -1251,6 +1364,7 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
       sources,
       seoMeta,
     });
+
     const quality = this.buildQualityMetrics({}, preparedArticle, true);
     let boundedArticle = preparedArticle;
     if (preparedArticle.length > 12000) {
@@ -1261,7 +1375,6 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
     return {
       topic_id: research.topic_id,
       creation_date: new Date().toISOString().split('T')[0],
-      research_log: 'N/A - Fallback mode (JSON parsing failed)',
       seo_metadata: JSON.stringify(seoMeta),
       article_content: boundedArticle,
       content_upgrades: JSON.stringify(['Manual enhancements required']),
