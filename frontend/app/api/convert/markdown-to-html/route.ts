@@ -13,10 +13,6 @@ export const dynamic = 'force-dynamic'
 marked.setOptions({
   gfm: true, // GitHub Flavored Markdown
   breaks: false,
-  headerIds: true,
-  mangle: false,
-  smartLists: true,
-  smartypants: true,
 })
 
 export async function POST(req: NextRequest) {
