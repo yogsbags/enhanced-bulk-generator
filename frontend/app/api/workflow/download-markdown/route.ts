@@ -205,15 +205,26 @@ export async function GET(request: NextRequest) {
       trim: true
     })
 
-    // Find the content by ID
+    // Find the content by ID (exact match required)
     const content = records.find((r: any) => r.content_id === contentId)
 
     if (!content) {
+      console.error(`❌ Content not found in CSV: ${contentId}`)
+      console.log(`Available content_ids: ${records.filter((r: any) => r.content_id).map((r: any) => r.content_id).slice(0, 10).join(', ')}`)
       return NextResponse.json(
         { error: `Content not found: ${contentId}` },
         { status: 404 }
       )
     }
+
+    // Log which content is being downloaded for debugging
+    let seoMetaForLog: any = {}
+    try {
+      seoMetaForLog = JSON.parse(content.seo_metadata || '{}')
+    } catch (e) {
+      // Ignore
+    }
+    console.log(`✅ Downloading markdown for content_id: ${contentId}, title: "${seoMetaForLog.title || 'N/A'}"`)
 
     // Format markdown using inline formatter (includes SEO metadata, FAQ schema, etc.)
     const markdownContent = formatMarkdown(content, content.primary_keyword)
@@ -246,8 +257,16 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Markdown download error:', error)
     return NextResponse.json(
-      { error: 'Failed to download markdown file' },
-      { status: 500 }
+      {
+        error: 'Failed to download markdown file',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      },
+      {
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
     )
   }
 }

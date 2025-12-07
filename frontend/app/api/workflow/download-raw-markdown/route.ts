@@ -39,18 +39,34 @@ export async function GET(request: NextRequest) {
       trim: true
     })
 
-    // Find the content by ID
+    // Find the content by ID (exact match required)
     const content = records.find((r: any) => r.content_id === contentId)
 
     if (!content) {
+      console.error(`❌ Content not found in CSV: ${contentId}`)
       return NextResponse.json(
         { error: `Content not found: ${contentId}` },
-        { status: 404 }
+        {
+          status: 404,
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
       )
     }
 
+    // Log which content is being downloaded for debugging
+    let seoMetaForLog: any = {}
+    try {
+      seoMetaForLog = JSON.parse(content.seo_metadata || '{}')
+    } catch (e) {
+      // Ignore
+    }
+    console.log(`✅ Downloading raw content for content_id: ${contentId}, topic_id: ${content.topic_id || 'N/A'}, title: "${seoMetaForLog.title || 'N/A'}"`)
+
     // Get topic_id to find raw response file
     const topicId = content.topic_id || 'unknown'
+    const creationDate = content.creation_date || ''
 
     // Look for raw response files matching this topic_id
     const rawResponsesPaths = [
@@ -65,17 +81,53 @@ export async function GET(request: NextRequest) {
     for (const rawDir of rawResponsesPaths) {
       if (fs.existsSync(rawDir)) {
         try {
-          const files = fs.readdirSync(rawDir)
-          // Find files that start with the topic_id
-          const matchingFiles = files.filter((file: string) =>
-            file.startsWith(`${topicId}_`) && file.endsWith('.md')
+          const files = fs.readdirSync(rawDir).filter((f: string) => f.endsWith('.md'))
+
+          // Strategy 1: Find files that start with the topic_id
+          let matchingFiles = files.filter((file: string) =>
+            file.startsWith(`${topicId}_`)
           )
+
+          // Strategy 2: If no match, search by content_id or topic_id in file content
+          if (matchingFiles.length === 0) {
+            console.log(`⚠️  No files found starting with "${topicId}_", searching in file content...`)
+            for (const file of files) {
+              try {
+                const filePath = path.join(rawDir, file)
+                const fileContent = fs.readFileSync(filePath, 'utf-8')
+                // Check if file contains the topic_id or content_id in metadata
+                if (fileContent.includes(`Topic ID: ${topicId}`) ||
+                    fileContent.includes(`content_id: ${contentId}`) ||
+                    fileContent.includes(`"topic_id": "${topicId}"`) ||
+                    fileContent.includes(`"topic_id": "${content.topic_id}"`)) {
+                  matchingFiles.push(file)
+                  console.log(`✅ Found matching file by content search: ${file}`)
+                }
+              } catch (err) {
+                // Skip files that can't be read
+                continue
+              }
+            }
+          }
+
+          // Strategy 3: If still no match and creation_date exists, try to find files by date proximity
+          if (matchingFiles.length === 0 && creationDate) {
+            console.log(`⚠️  No files found by content search, trying date-based search for ${creationDate}...`)
+            // Extract date part (YYYY-MM-DD)
+            const datePart = creationDate.split('T')[0] || creationDate
+            matchingFiles = files.filter((file: string) => {
+              // Check if filename contains the date
+              return file.includes(datePart.replace(/-/g, '')) ||
+                     file.includes(datePart)
+            })
+          }
 
           if (matchingFiles.length > 0) {
             // Get the most recent file (sort by filename which includes timestamp)
             const sortedFiles = matchingFiles.sort().reverse()
             rawResponsePath = path.join(rawDir, sortedFiles[0])
             rawResponseContent = fs.readFileSync(rawResponsePath, 'utf-8')
+            console.log(`✅ Found raw response file: ${sortedFiles[0]}`)
             break
           }
         } catch (error) {
@@ -85,10 +137,49 @@ export async function GET(request: NextRequest) {
     }
 
     if (!rawResponseContent) {
+      // Provide helpful error message with available files
+      let availableFiles: string[] = []
+      let checkedDirs: string[] = []
+      for (const rawDir of rawResponsesPaths) {
+        if (fs.existsSync(rawDir)) {
+          checkedDirs.push(rawDir)
+          try {
+            const files = fs.readdirSync(rawDir).filter((f: string) => f.endsWith('.md'))
+            availableFiles = [...availableFiles, ...files]
+          } catch (e) {
+            // Ignore errors
+          }
+        }
+      }
+
+      // Try to extract dates from available files for comparison
+      const availableDates = availableFiles
+        .map(f => {
+          const dateMatch = f.match(/(\d{4}-\d{2}-\d{2})/)
+          return dateMatch ? dateMatch[1] : null
+        })
+        .filter(Boolean)
+        .slice(0, 5)
+
       return NextResponse.json(
         {
           error: `Raw response file not found for content_id: ${contentId}`,
-          message: `Searched for files starting with "${topicId}_" in raw-responses directories`
+          message: `The raw AI response file for this content was not found. This may be because:
+- The content was created before raw response saving was implemented
+- The raw response file was deleted or moved
+- The topic_id "${topicId}" doesn't match any raw response files`,
+          details: {
+            content_id: contentId,
+            topic_id: topicId,
+            creation_date: creationDate,
+            searched_directories: checkedDirs,
+            available_files_count: availableFiles.length,
+            available_files: availableFiles.slice(0, 10), // Show first 10 files
+            available_dates: availableDates,
+            suggestion: creationDate && availableDates.length > 0
+              ? `Content was created on ${creationDate}, but available raw files are from different dates. Raw response saving may have been added after this content was created.`
+              : 'Raw response files may not exist for older content. Only content created after raw response saving was implemented will have raw files available.'
+          }
         },
         { status: 404 }
       )
@@ -122,8 +213,16 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Raw markdown download error:', error)
     return NextResponse.json(
-      { error: 'Failed to download raw markdown file' },
-      { status: 500 }
+      {
+        error: 'Failed to download raw markdown file',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      },
+      {
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
     )
   }
 }
