@@ -1323,7 +1323,7 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
     const upgrades = this.ensureArray(parsed.content_upgrades);
     const sources = this.collectSources(parsed.sources, research);
 
-    // Check if article_content already has RESEARCH VERIFICATION section
+    // Check if article_content already has RESEARCH VERIFICATION section (more flexible pattern)
     const hasResearchVerification = /###\s*RESEARCH\s+VERIFICATION/i.test(rawArticle);
 
     // If AI didn't include RESEARCH VERIFICATION in article_content, but we extracted it from raw response,
@@ -1331,13 +1331,30 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
     let articleWithVerification = rawArticle;
     if (!hasResearchVerification && researchVerification && researchVerification.trim()) {
       articleWithVerification = `### RESEARCH VERIFICATION\n\n${researchVerification.trim()}\n\n---\n\n${rawArticle}`;
+      console.log(`✅ Added RESEARCH VERIFICATION to article_content for ${research.topic_id}`);
+    } else if (hasResearchVerification) {
+      console.log(`✅ RESEARCH VERIFICATION already present in article_content for ${research.topic_id}`);
     }
 
-    const preparedArticle = this.prepareArticleContent(articleWithVerification, {
+    let preparedArticle = this.prepareArticleContent(articleWithVerification, {
       research,
       sources,
       seoMeta,
     });
+
+    // Verify RESEARCH VERIFICATION is still present after preparation
+    const stillHasResearchVerification = /###\s*RESEARCH\s+VERIFICATION/i.test(preparedArticle);
+    if (!stillHasResearchVerification && (hasResearchVerification || (researchVerification && researchVerification.trim()))) {
+      console.warn(`⚠️  WARNING: RESEARCH VERIFICATION was removed during prepareArticleContent for ${research.topic_id}`);
+      // Re-add it if it was removed
+      const verificationToAdd = researchVerification && researchVerification.trim()
+        ? researchVerification.trim()
+        : this.extractResearchVerification(articleWithVerification);
+      if (verificationToAdd) {
+        preparedArticle = `### RESEARCH VERIFICATION\n\n${verificationToAdd.trim()}\n\n---\n\n${preparedArticle}`;
+        console.log(`✅ Re-added RESEARCH VERIFICATION after preparation`);
+      }
+    }
 
     const quality = this.buildQualityMetrics(parsed.quality_metrics, preparedArticle, false);
     const heroPayload = this.normalizeHeroPayload(parsed.hero_image, research, seoMeta);
@@ -1475,6 +1492,10 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
 
   sanitizeArticleContent(text) {
     if (!text) return '';
+
+    // Extract RESEARCH VERIFICATION section first to preserve it
+    const researchVerificationMatch = text.match(/(###\s*RESEARCH\s+VERIFICATION[\s\S]*?)(?=\n---|\n##|$)/i);
+    const researchVerificationSection = researchVerificationMatch ? researchVerificationMatch[1] : null;
     let content = text.replace(/\r/g, '');
 
     const placeholderPatterns = [
@@ -1492,10 +1513,19 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
     // Normalize bullet markers (convert en/em dashes to standard hyphen)
     content = content.replace(/^[ \t]*[–—]\s+/gm, '- ');
 
+    // Remove Quality Metrics and Content Upgrades sections (but preserve RESEARCH VERIFICATION)
     content = content.replace(/##\s*Quality\s+Metrics[\s\S]*?(?=\n#{2,}\s|$)/gi, '');
     content = content.replace(/##\s*Content\s+Upgrades[\s\S]*?(?=\n#{2,}\s|$)/gi, '');
     content = content.replace(/^\s{0,3}\*\*?\s*Quality\s+Metrics?:[\s\S]*?(?=\n{2,}|\n#+\s|$)/gim, '');
     content = content.replace(/^\s{0,3}\*\*?\s*Content\s+Upgrades?:[\s\S]*?(?=\n{2,}|\n#+\s|$)/gim, '');
+
+    // Remove RESEARCH VERIFICATION from content if it exists (we'll add it back at the start)
+    content = content.replace(/###\s*RESEARCH\s+VERIFICATION[\s\S]*?(?=\n---|\n##|$)/i, '');
+
+    // Re-add RESEARCH VERIFICATION at the beginning if it was extracted
+    if (researchVerificationSection) {
+      content = `${researchVerificationSection}\n\n---\n\n${content}`.replace(/\n{3,}/g, '\n\n');
+    }
 
     return content;
   }
@@ -1515,6 +1545,12 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
     }
 
     const firstLine = lines[0].trim();
+
+    // Don't remove RESEARCH VERIFICATION section (H3 heading)
+    if (/^###\s+RESEARCH\s+VERIFICATION/i.test(firstLine)) {
+      return content;
+    }
+
     if (!/^##\s+/i.test(firstLine)) {
       return content;
     }
