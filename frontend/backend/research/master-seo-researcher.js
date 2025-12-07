@@ -532,13 +532,31 @@ class MasterSEOResearcher {
 
             // Add web search for compound models (native capability)
             if (modelToTry.includes('groq/compound')) {
+              // Extract base domains from competitor list for include_domains
+              const competitorDomains = this.competitors.map(comp => {
+                // Extract base domain (remove paths, convert to lowercase, remove trailing slash)
+                let domain = comp.toLowerCase().trim();
+                // Remove protocol if present
+                domain = domain.replace(/^https?:\/\//, '');
+                // Remove path and query string
+                domain = domain.split('/')[0];
+                // Remove www. prefix
+                domain = domain.replace(/^www\./, '');
+                return domain;
+              });
+
+              // Remove duplicates and sort
+              const uniqueDomains = [...new Set(competitorDomains)].sort();
+
               // Add search settings for Indian WealthTech focus
+              // Include all competitor domains plus *.in for broader Indian content
               requestBody.search_settings = {
                 country: "india",
-                include_domains: ["*.in", "groww.in", "zerodha.com", "etmoney.com", "paytmmoney.com", "indmoney.com"],
-                exclude_domains: ["wikipedia.org", "*.wiki*"]
+                include_domains: ["*.in", ...uniqueDomains],
+                exclude_domains: ["wikipedia.org", "*.wiki*"],
+                max_results: 10  // Get more sources for comprehensive competitor analysis
               };
-              console.log('🌐 Web search enabled natively with India focus for competitor analysis');
+              console.log(`🌐 Web search enabled natively with India focus for competitor analysis (max_results: 10, ${uniqueDomains.length} competitor domains)`);
             }
 
             // Add browser search tool for supported models
