@@ -260,48 +260,73 @@ class ContentCreator {
     // If only custom_title is provided, primary_keyword = extracted keyword from title
     let matchingResearch = null;
 
-    // Determine what primary_keyword should be for matching
-    let expectedPrimaryKeyword = null;
+    // Extract primary keyword helper (same logic as deep-topic-researcher.js)
+    const extractPrimaryKeyword = (title) => {
+      const stopWords = ['the', 'a', 'an', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'best', 'top', 'guide', 'how', 'what', 'why', 'when', 'where'];
+      const words = title.toLowerCase().split(/\s+/);
+      const keywords = words.filter(word => !stopWords.includes(word));
+      return keywords.slice(0, 3).join(' ') || title.toLowerCase();
+    };
+
+    // Build list of possible keywords to match against
+    const possibleKeywords = [];
     if (this.customTopic) {
-      // If custom_topic is provided, primary_keyword should be the custom_topic
-      expectedPrimaryKeyword = this.customTopic.toLowerCase().trim();
-      console.log(`🔍 Matching by custom_topic: "${expectedPrimaryKeyword}"`);
-    } else if (this.customTitle) {
-      // Extract primary keyword from current custom title (same logic as deep-topic-researcher.js)
-      const extractPrimaryKeyword = (title) => {
-        const stopWords = ['the', 'a', 'an', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'best', 'top', 'guide', 'how', 'what', 'why', 'when', 'where'];
-        const words = title.toLowerCase().split(/\s+/);
-        const keywords = words.filter(word => !stopWords.includes(word));
-        return keywords.slice(0, 3).join(' ') || title.toLowerCase();
-      };
-      expectedPrimaryKeyword = extractPrimaryKeyword(this.customTitle).toLowerCase().trim();
-      console.log(`🔍 Matching by extracted keyword from custom_title: "${expectedPrimaryKeyword}"`);
+      possibleKeywords.push(this.customTopic.toLowerCase().trim());
+      console.log(`🔍 Matching by custom_topic: "${this.customTopic}"`);
+    }
+    if (this.customTitle) {
+      const extractedFromTitle = extractPrimaryKeyword(this.customTitle).toLowerCase().trim();
+      possibleKeywords.push(extractedFromTitle);
+      possibleKeywords.push(this.customTitle.toLowerCase().trim()); // Also try full title
+      console.log(`🔍 Also matching by extracted keyword from custom_title: "${extractedFromTitle}"`);
     }
 
-    if (expectedPrimaryKeyword) {
+    if (possibleKeywords.length > 0) {
       const normalizedCustomTitle = this.customTitle ? this.customTitle.toLowerCase().trim() : null;
 
       matchingResearch = customTitleEntries.find(item => {
         const itemPrimaryKeyword = (item.primary_keyword || '').toLowerCase().trim();
         const itemTopicTitle = (item.topic_title || '').toLowerCase().trim(); // May not exist in CSV
 
-        // Strategy 1: Exact match on primary_keyword (most reliable since it's in CSV)
-        if (itemPrimaryKeyword === expectedPrimaryKeyword) {
-          return true;
+        // Strategy 1: Exact match on primary_keyword with any of our possible keywords
+        for (const keyword of possibleKeywords) {
+          if (itemPrimaryKeyword === keyword) {
+            return true;
+          }
         }
 
         // Strategy 2: Check if primary keywords are similar (fuzzy match)
-        if (itemPrimaryKeyword && expectedPrimaryKeyword) {
-          // Check if one contains the other (handles variations)
-          if (itemPrimaryKeyword.includes(expectedPrimaryKeyword) ||
-              expectedPrimaryKeyword.includes(itemPrimaryKeyword)) {
-            return true;
+        // Check if any of our keywords overlap with the research's primary_keyword
+        for (const keyword of possibleKeywords) {
+          if (itemPrimaryKeyword && keyword) {
+            // Check if one contains the other (handles variations like "retirement planning wealth" vs "wealth maximization")
+            if (itemPrimaryKeyword.includes(keyword) || keyword.includes(itemPrimaryKeyword)) {
+              return true;
+            }
+            // Also check if they share significant words (for cases like "retirement planning wealth" vs "wealth maximization")
+            const itemWords = itemPrimaryKeyword.split(/\s+/);
+            const keywordWords = keyword.split(/\s+/);
+            const commonWords = itemWords.filter(word => keywordWords.includes(word) && word.length > 3);
+            if (commonWords.length > 0) {
+              return true;
+            }
           }
         }
 
         // Strategy 3: If topic_title exists and we have custom_title, match on it
         if (normalizedCustomTitle && itemTopicTitle === normalizedCustomTitle) {
           return true;
+        }
+
+        // Strategy 4: Extract keyword from research's primary_keyword and compare with custom_topic
+        // This handles cases where research has "retirement planning wealth" and we're looking for "wealth maximization"
+        if (this.customTopic && itemPrimaryKeyword) {
+          const researchWords = itemPrimaryKeyword.split(/\s+/);
+          const topicWords = this.customTopic.toLowerCase().trim().split(/\s+/);
+          const matchingWords = researchWords.filter(word => topicWords.includes(word) && word.length > 3);
+          if (matchingWords.length > 0) {
+            return true;
+          }
         }
 
         return false;
@@ -311,15 +336,15 @@ class ContentCreator {
     // If no match found, use the most recent one but warn
     if (!matchingResearch) {
       matchingResearch = customTitleEntries[0];
-      const searchTerm = this.customTopic || this.customTitle || 'N/A';
-      console.warn(`⚠️  WARNING: No exact match found for "${searchTerm}"`);
+      const searchTerms = possibleKeywords.length > 0 ? possibleKeywords.join('", "') : 'N/A';
+      console.warn(`⚠️  WARNING: No match found for keywords: "${searchTerms}"`);
       console.warn(`⚠️  Using most recent custom title research: ${matchingResearch.topic_id}`);
       console.warn(`⚠️  Found research with topic_title: "${matchingResearch.topic_title || 'N/A'}"`);
       console.warn(`⚠️  Found research with primary_keyword: "${matchingResearch.primary_keyword || 'N/A'}"`);
-      console.warn(`⚠️  Expected primary_keyword: "${expectedPrimaryKeyword || 'N/A'}"`);
+      console.warn(`⚠️  Searched for keywords: "${searchTerms}"`);
       console.warn(`⚠️  This may result in content for the wrong topic!`);
       if (this.customTopic) {
-        console.warn(`⚠️  Please run deep-research stage first with the correct --custom-topic flag.`);
+        console.warn(`⚠️  Please run deep-research stage first with --custom-topic "${this.customTopic}" and --custom-title "${this.customTitle || 'N/A'}"`);
       } else {
         console.warn(`⚠️  Please run deep-research stage first with the correct --custom-title flag.`);
       }
