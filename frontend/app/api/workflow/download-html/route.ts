@@ -8,19 +8,19 @@ import path from 'path'
  */
 function removeResearchVerification(markdown: string): string {
   if (!markdown) return ''
-  
+
   // Normalize escaped newlines first
   let content = markdown.replace(/\\n/g, '\n')
-  
+
   // Remove all RESEARCH VERIFICATION sections (including duplicates)
   // Match from ### RESEARCH VERIFICATION until: another ### RESEARCH VERIFICATION, ---, ##, or end
   content = content.replace(/###\s*RESEARCH\s+VERIFICATION[\s\S]*?(?=\n###\s*RESEARCH\s+VERIFICATION|\n---|\n##|$)/gi, '')
-  
+
   // Clean up any leftover separators or orphaned headers
   content = content.replace(/\n---\n---/g, '\n---')
   content = content.replace(/^\s*###\s*RESEARCH\s+VERIFICATION\s*$/gim, '') // Remove orphaned headers
   content = content.replace(/\n{3,}/g, '\n\n').trim()
-  
+
   return content
 }
 
@@ -32,7 +32,7 @@ function markdownToHtml(markdown: string, title: string = 'Article', metaDescrip
 
   // Remove RESEARCH VERIFICATION section before converting to HTML
   const cleanedMarkdown = removeResearchVerification(markdown)
-  
+
   let html = cleanedMarkdown
 
   // Convert headings
@@ -174,7 +174,7 @@ export async function GET(request: NextRequest) {
 
     // Get markdown content and metadata
     let markdownContent = content.article_content || ''
-    
+
     // Normalize escaped newlines from CSV storage
     if (typeof markdownContent === 'string') {
       markdownContent = markdownContent.replace(/\\n/g, '\n')
