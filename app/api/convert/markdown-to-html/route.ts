@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
 import { marked } from 'marked'
+import { NextRequest, NextResponse } from 'next/server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -112,13 +112,13 @@ function stripSeoMetadata(content: string): string {
  * Post-process HTML to add special styling
  */
 function postProcessHtml(html: string): string {
-  // Add special class to executive summary section
+  // Add special class to summary section
   html = html.replace(
-    /<h2>Executive Summary<\/h2>/i,
-    '<h2>Executive Summary</h2><div class="executive-summary">'
+    /<h2>Summary<\/h2>/i,
+    '<h2>Summary</h2><div class="executive-summary">'
   )
 
-  // Close executive summary div before next h2
+  // Close summary div before next h2
   html = html.replace(
     /(<div class="executive-summary">[\s\S]*?)<h2>/,
     '$1</div><h2>'
