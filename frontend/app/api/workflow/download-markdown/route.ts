@@ -4,6 +4,104 @@ import { NextRequest, NextResponse } from 'next/server'
 import path from 'path'
 
 /**
+ * Remove JSON metadata blocks from markdown (content_upgrades, compliance, quality_metrics, etc.)
+ * These are often appended by AI at the end of articles and should not appear in output
+ */
+function removeJsonMetadata(markdown: string): string {
+  if (!markdown) return ''
+
+  let content = markdown
+
+  // Strategy: Find where the actual article content ends and remove everything after
+  // JSON metadata typically appears after the article conclusion, FAQs, or final sections
+  
+  // First, try to find common article ending markers
+  const articleEndMarkers = [
+    /##\s*(?:Conclusion|Bottom\s+Line|Final\s+Thoughts|Summary|Takeaways|Next\s+Steps)/i,
+    /##\s*FAQs?\s*(?:on|about)?/i,
+    /---\s*$/m, // Horizontal rule at end
+    /Ready\s+to\s+execute/i,
+    /Open\s+your\s+PL\s+Capital\s+account/i
+  ]
+
+  let lastContentIndex = content.length
+  let foundEndMarker = false
+
+  // Look for article end markers and find content after them
+  for (const marker of articleEndMarkers) {
+    const matches = Array.from(content.matchAll(new RegExp(marker.source, 'g')))
+    if (matches.length > 0) {
+      // Find the last occurrence
+      const lastMatch = matches[matches.length - 1]
+      const afterMatch = content.substring(lastMatch.index! + lastMatch[0].length)
+      
+      // Check if JSON metadata appears after this marker
+      if (/["'][^"']+["']\s*:/.test(afterMatch)) {
+        // Find where JSON starts after this marker
+        const jsonStartMatch = afterMatch.match(/["'][^"']+["']\s*:/)
+        if (jsonStartMatch && jsonStartMatch.index !== undefined) {
+          lastContentIndex = lastMatch.index! + lastMatch[0].length + jsonStartMatch.index
+          foundEndMarker = true
+          break
+        }
+      }
+    }
+  }
+
+  // If we found an end marker with JSON after it, truncate there
+  if (foundEndMarker && lastContentIndex < content.length) {
+    content = content.substring(0, lastContentIndex).trim()
+  } else {
+    // Fallback: Remove JSON-like metadata blocks directly
+    // Remove specific known metadata fields
+    content = content.replace(/["']content_upgrades["']\s*:\s*\[[\s\S]*?\]/gi, '')
+    content = content.replace(/["']compliance["']\s*:\s*"[^"]*"/gi, '')
+    content = content.replace(/["']quality_metrics["']\s*:\s*\{[\s\S]*?\}/gi, '')
+    
+    // Remove any remaining JSON-like structures (quoted keys with values)
+    // This is more aggressive and catches any metadata fields
+    content = content.replace(/["'][^"']+["']\s*:\s*(?:\[[\s\S]*?\]|\{[\s\S]*?\}|"[^"]*"|\d+)/g, '')
+    
+    // Remove trailing commas, brackets, and braces
+    content = content.replace(/,\s*$/, '')
+    content = content.replace(/^\s*[\[\{]\s*$/, '')
+    content = content.replace(/\s*[\]\}]\s*$/, '')
+  }
+
+  // Clean up extra whitespace
+  content = content.replace(/\n{3,}/g, '\n\n').trim()
+
+  // Final pass: Remove any lines at the end that look like JSON metadata
+  const lines = content.split('\n')
+  let lastValidLineIndex = lines.length - 1
+  
+  // Work backwards to find the last line that's actual content
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const line = lines[i].trim()
+    if (!line) continue // Skip empty lines
+    
+    // If line looks like JSON metadata (quoted key with colon), this is where content ends
+    if (/^["'][^"']+["']\s*:/.test(line)) {
+      lastValidLineIndex = i - 1
+      break
+    }
+    
+    // If line looks like JSON structure start/end, also mark as end
+    if (/^[\[\{]\s*$/.test(line) || /^\s*[\]\}]\s*$/.test(line)) {
+      lastValidLineIndex = i - 1
+      break
+    }
+  }
+  
+  // Truncate to last valid line
+  if (lastValidLineIndex >= 0 && lastValidLineIndex < lines.length - 1) {
+    content = lines.slice(0, lastValidLineIndex + 1).join('\n').trim()
+  }
+
+  return content
+}
+
+/**
  * Format content as markdown file with SEO metadata
  * Replicates ContentExporter.formatMarkdown logic
  */
@@ -39,6 +137,10 @@ function formatMarkdown(content: any, primaryKeyword: string | null = null): str
     // Replace escaped newlines with actual newlines (but not double-escape)
     normalizedArticleContent = normalizedArticleContent.replace(/\\n/g, '\n')
   }
+
+  // Remove JSON metadata blocks (content_upgrades, compliance, quality_metrics, etc.)
+  // These should not appear in the markdown output
+  normalizedArticleContent = removeJsonMetadata(normalizedArticleContent)
 
   // Add article content (which should already include RESEARCH VERIFICATION if it was extracted)
   markdown += normalizedArticleContent
