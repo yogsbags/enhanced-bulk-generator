@@ -35,7 +35,7 @@ function removeJsonMetadata(markdown: string): string {
 
   // Strategy: Find where the actual article content ends and remove everything after
   // JSON metadata typically appears after the article conclusion, FAQs, or final sections
-  
+
   // First, try to find common article ending markers
   const articleEndMarkers = [
     /##\s*(?:Conclusion|Bottom\s+Line|Final\s+Thoughts|Summary|Takeaways|Next\s+Steps)/i,
@@ -55,7 +55,7 @@ function removeJsonMetadata(markdown: string): string {
       // Find the last occurrence
       const lastMatch = matches[matches.length - 1]
       const afterMatch = content.substring(lastMatch.index! + lastMatch[0].length)
-      
+
       // Check if JSON metadata appears after this marker
       if (/["'][^"']+["']\s*:/.test(afterMatch)) {
         // Find where JSON starts after this marker
@@ -78,11 +78,11 @@ function removeJsonMetadata(markdown: string): string {
     content = content.replace(/["']content_upgrades["']\s*:\s*\[[\s\S]*?\]/gi, '')
     content = content.replace(/["']compliance["']\s*:\s*"[^"]*"/gi, '')
     content = content.replace(/["']quality_metrics["']\s*:\s*\{[\s\S]*?\}/gi, '')
-    
+
     // Remove any remaining JSON-like structures (quoted keys with values)
     // This is more aggressive and catches any metadata fields
     content = content.replace(/["'][^"']+["']\s*:\s*(?:\[[\s\S]*?\]|\{[\s\S]*?\}|"[^"]*"|\d+)/g, '')
-    
+
     // Remove trailing commas, brackets, and braces
     content = content.replace(/,\s*$/, '')
     content = content.replace(/^\s*[\[\{]\s*$/, '')
@@ -95,31 +95,119 @@ function removeJsonMetadata(markdown: string): string {
   // Final pass: Remove any lines at the end that look like JSON metadata
   const lines = content.split('\n')
   let lastValidLineIndex = lines.length - 1
-  
+
   // Work backwards to find the last line that's actual content
   for (let i = lines.length - 1; i >= 0; i--) {
     const line = lines[i].trim()
     if (!line) continue // Skip empty lines
-    
+
     // If line looks like JSON metadata (quoted key with colon), this is where content ends
     if (/^["'][^"']+["']\s*:/.test(line)) {
       lastValidLineIndex = i - 1
       break
     }
-    
+
     // If line looks like JSON structure start/end, also mark as end
     if (/^[\[\{]\s*$/.test(line) || /^\s*[\]\}]\s*$/.test(line)) {
       lastValidLineIndex = i - 1
       break
     }
   }
-  
+
   // Truncate to last valid line
   if (lastValidLineIndex >= 0 && lastValidLineIndex < lines.length - 1) {
     content = lines.slice(0, lastValidLineIndex + 1).join('\n').trim()
   }
 
   return content
+}
+
+/**
+ * Convert Markdown tables to HTML tables
+ */
+function convertMarkdownTables(markdown: string): string {
+  if (!markdown) return ''
+
+  // Match markdown table pattern:
+  // | Header 1 | Header 2 |
+  // |:---|:---:|---:|
+  // | Cell 1 | Cell 2 |
+  // Match from header row through all data rows (until blank line or non-table line)
+  const tableRegex = /(\|[^\n]+\|\r?\n\|[:\s\-|]+\|\r?\n(?:\|[^\n]+\|\r?\n?)+)/g
+
+  return markdown.replace(tableRegex, (match) => {
+    const lines = match.trim().split(/\r?\n/).filter(line => line.trim() && line.includes('|'))
+    if (lines.length < 2) return match // Need at least header and separator
+
+    // Parse header row
+    const headerRow = lines[0]
+    const headerCells = headerRow.split('|').map(h => h.trim())
+    // Remove first and last empty cells (from leading/trailing |)
+    const headers = headerCells.slice(1, -1).filter(h => h.length > 0)
+    
+    // Parse separator row to determine alignment
+    const separatorRow = lines[1]
+    const separatorCells = separatorRow.split('|').map(s => s.trim())
+    const alignments: string[] = []
+    
+    separatorCells.forEach((sep, idx) => {
+      // Skip first and last empty cells
+      if (idx === 0 || idx === separatorCells.length - 1) return
+      if (sep.startsWith(':') && sep.endsWith(':')) {
+        alignments.push('center')
+      } else if (sep.endsWith(':')) {
+        alignments.push('right')
+      } else {
+        alignments.push('left')
+      }
+    })
+
+    // Build table HTML
+    let tableHtml = '<table>\n<thead>\n<tr>\n'
+    
+    headers.forEach((header, index) => {
+      const align = alignments[index] || 'left'
+      // Remove markdown bold/italic from headers, but preserve content
+      let cleanHeader = header
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .replace(/\/\/(.+?)\/\//g, '<em>$1</em>')
+        .replace(/\/([^\/\n]+?)\//g, '<em>$1</em>')
+      tableHtml += `  <th style="text-align: ${align}">${cleanHeader}</th>\n`
+    })
+    
+    tableHtml += '</tr>\n</thead>\n<tbody>\n'
+
+    // Parse data rows
+    for (let i = 2; i < lines.length; i++) {
+      const row = lines[i]
+      if (!row.includes('|')) continue
+      
+      const cells = row.split('|').map(c => c.trim())
+      // Remove first and last empty cells (from leading/trailing |)
+      const dataCells = cells.slice(1, -1)
+      
+      if (dataCells.length === 0) continue
+      
+      tableHtml += '<tr>\n'
+      dataCells.forEach((cell, index) => {
+        const align = alignments[index] || 'left'
+        // Process cell content: convert markdown formatting
+        let cellContent = cell
+          .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+          .replace(/\*(.+?)\*/g, '<em>$1</em>')
+          .replace(/\/\/(.+?)\/\//g, '<em>$1</em>')
+          .replace(/\/([^\/\n]+?)\//g, '<em>$1</em>')
+          .replace(/\\"/g, '"') // Fix escaped quotes
+          .replace(/\\'/g, "'") // Fix escaped single quotes
+        tableHtml += `  <td style="text-align: ${align}">${cellContent}</td>\n`
+      })
+      tableHtml += '</tr>\n'
+    }
+
+    tableHtml += '</tbody>\n</table>'
+    return tableHtml
+  })
 }
 
 /**
@@ -130,21 +218,47 @@ function markdownToHtml(markdown: string, title: string = 'Article', metaDescrip
 
   // Remove RESEARCH VERIFICATION section before converting to HTML
   let cleanedMarkdown = removeResearchVerification(markdown)
-  
+
   // Remove JSON metadata blocks (content_upgrades, compliance, quality_metrics, etc.)
   cleanedMarkdown = removeJsonMetadata(cleanedMarkdown)
 
+  // Clean up escaped quotes and other escape sequences
+  cleanedMarkdown = cleanedMarkdown.replace(/\\"/g, '"')
+  cleanedMarkdown = cleanedMarkdown.replace(/\\'/g, "'")
+  cleanedMarkdown = cleanedMarkdown.replace(/\\\\/g, '\\')
+
   let html = cleanedMarkdown
+
+  // Convert markdown tables FIRST (before other conversions that might interfere)
+  html = convertMarkdownTables(html)
 
   // Convert headings
   html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>')
   html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>')
   html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>')
 
-  // Convert bold and italic
+  // Convert bold and italic (standard markdown)
   html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
   html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
   html = html.replace(/\*(.+?)\*/g, '<em>$1</em>')
+
+  // Convert alternative italic syntax: /text/ or //text//
+  // Handle both /word/ and /phrase with spaces/
+  // First handle double slashes //text// (more specific, do first)
+  html = html.replace(/\/\/([^\/\n]+?)\/\//g, '<em>$1</em>')
+  // Then handle single slashes /text/ 
+  // Avoid converting if it's already inside HTML tags or looks like a URL/path
+  html = html.replace(/\/([^\/\n<>]+?)\//g, (match, content) => {
+    // Skip if it looks like a URL (starts with http/https) or path (contains :// or multiple slashes)
+    if (match.includes('://') || match.includes('www.') || content.includes('http')) {
+      return match
+    }
+    // Skip if already inside HTML tags
+    if (match.includes('<') || match.includes('>')) {
+      return match
+    }
+    return `<em>${content}</em>`
+  })
 
   // Convert links
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
@@ -165,14 +279,58 @@ function markdownToHtml(markdown: string, title: string = 'Article', metaDescrip
   html = html.replace(/^---$/gim, '<hr>')
 
   // Convert paragraphs (lines not already wrapped)
+  // Skip lines that are part of tables
   const lines = html.split('\n')
-  const processedLines = lines.map(line => {
-    line = line.trim()
-    if (!line) return '<br>'
-    if (line.startsWith('<')) return line // Already HTML
-    if (line.match(/^#{1,6} /)) return line // Heading
-    return '<p>' + line + '</p>'
-  })
+  const processedLines: string[] = []
+  let inTable = false
+  
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i].trim()
+    
+    // Track if we're inside a table
+    if (line.startsWith('<table>')) {
+      inTable = true
+      processedLines.push(line)
+      continue
+    }
+    if (line.startsWith('</table>')) {
+      inTable = false
+      processedLines.push(line)
+      continue
+    }
+    
+    // If inside table, pass through as-is
+    if (inTable) {
+      processedLines.push(line)
+      continue
+    }
+    
+    // Handle empty lines
+    if (!line) {
+      processedLines.push('<br>')
+      continue
+    }
+    
+    // Already HTML (including table tags, headings, lists, etc.)
+    if (line.startsWith('<')) {
+      processedLines.push(line)
+      continue
+    }
+    
+    // Headings (shouldn't reach here if already converted, but safety check)
+    if (line.match(/^#{1,6} /)) {
+      processedLines.push(line)
+      continue
+    }
+    
+    // Skip markdown table syntax that wasn't converted (shouldn't happen, but safety check)
+    if (line.match(/^\|.*\|$/)) {
+      continue // Skip unconverted table rows
+    }
+    
+    // Regular paragraph
+    processedLines.push('<p>' + line + '</p>')
+  }
 
   html = processedLines.join('\n')
 
@@ -204,6 +362,29 @@ function markdownToHtml(markdown: string, title: string = 'Article', metaDescrip
     a:hover { text-decoration: underline; }
     hr { border: none; border-top: 2px solid #eee; margin: 2em 0; }
     code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-family: 'Courier New', monospace; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.5em 0;
+      font-size: 0.95em;
+    }
+    table th,
+    table td {
+      border: 1px solid #ddd;
+      padding: 12px;
+      text-align: left;
+    }
+    table th {
+      background-color: #f8f9fa;
+      font-weight: 600;
+      color: #2c3e50;
+    }
+    table tr:nth-child(even) {
+      background-color: #f8f9fa;
+    }
+    table tr:hover {
+      background-color: #f1f3f5;
+    }
   </style>
 </head>
 <body>
