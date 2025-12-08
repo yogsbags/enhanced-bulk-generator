@@ -4,12 +4,36 @@ import { NextRequest, NextResponse } from 'next/server'
 import path from 'path'
 
 /**
+ * Remove RESEARCH VERIFICATION section from markdown (for HTML output)
+ */
+function removeResearchVerification(markdown: string): string {
+  if (!markdown) return ''
+  
+  // Normalize escaped newlines first
+  let content = markdown.replace(/\\n/g, '\n')
+  
+  // Remove all RESEARCH VERIFICATION sections (including duplicates)
+  // Match from ### RESEARCH VERIFICATION until: another ### RESEARCH VERIFICATION, ---, ##, or end
+  content = content.replace(/###\s*RESEARCH\s+VERIFICATION[\s\S]*?(?=\n###\s*RESEARCH\s+VERIFICATION|\n---|\n##|$)/gi, '')
+  
+  // Clean up any leftover separators or orphaned headers
+  content = content.replace(/\n---\n---/g, '\n---')
+  content = content.replace(/^\s*###\s*RESEARCH\s+VERIFICATION\s*$/gim, '') // Remove orphaned headers
+  content = content.replace(/\n{3,}/g, '\n\n').trim()
+  
+  return content
+}
+
+/**
  * Convert Markdown to HTML
  */
 function markdownToHtml(markdown: string, title: string = 'Article', metaDescription: string = ''): string {
   if (!markdown) return ''
 
-  let html = markdown
+  // Remove RESEARCH VERIFICATION section before converting to HTML
+  const cleanedMarkdown = removeResearchVerification(markdown)
+  
+  let html = cleanedMarkdown
 
   // Convert headings
   html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>')
@@ -149,7 +173,12 @@ export async function GET(request: NextRequest) {
     console.log(`✅ Downloading HTML for content_id: ${contentId}, title: "${seoMetaForLog.title || 'N/A'}"`)
 
     // Get markdown content and metadata
-    const markdownContent = content.article_content || ''
+    let markdownContent = content.article_content || ''
+    
+    // Normalize escaped newlines from CSV storage
+    if (typeof markdownContent === 'string') {
+      markdownContent = markdownContent.replace(/\\n/g, '\n')
+    }
 
     let seoMeta: any = {}
     try {
@@ -161,7 +190,7 @@ export async function GET(request: NextRequest) {
     const title = seoMeta.title || 'Article'
     const metaDescription = seoMeta.meta_description || ''
 
-    // Convert markdown to HTML
+    // Convert markdown to HTML (RESEARCH VERIFICATION will be removed in markdownToHtml)
     const htmlContent = markdownToHtml(markdownContent, title, metaDescription)
 
     // Generate filename from title
