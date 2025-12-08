@@ -144,12 +144,12 @@ function convertMarkdownTables(markdown: string): string {
     const headerCells = headerRow.split('|').map(h => h.trim())
     // Remove first and last empty cells (from leading/trailing |)
     const headers = headerCells.slice(1, -1).filter(h => h.length > 0)
-    
+
     // Parse separator row to determine alignment
     const separatorRow = lines[1]
     const separatorCells = separatorRow.split('|').map(s => s.trim())
     const alignments: string[] = []
-    
+
     separatorCells.forEach((sep, idx) => {
       // Skip first and last empty cells
       if (idx === 0 || idx === separatorCells.length - 1) return
@@ -164,7 +164,7 @@ function convertMarkdownTables(markdown: string): string {
 
     // Build table HTML
     let tableHtml = '<table>\n<thead>\n<tr>\n'
-    
+
     headers.forEach((header, index) => {
       const align = alignments[index] || 'left'
       // Remove markdown bold/italic from headers, but preserve content
@@ -175,20 +175,20 @@ function convertMarkdownTables(markdown: string): string {
         .replace(/\/([^\/\n]+?)\//g, '<em>$1</em>')
       tableHtml += `  <th style="text-align: ${align}">${cleanHeader}</th>\n`
     })
-    
+
     tableHtml += '</tr>\n</thead>\n<tbody>\n'
 
     // Parse data rows
     for (let i = 2; i < lines.length; i++) {
       const row = lines[i]
       if (!row.includes('|')) continue
-      
+
       const cells = row.split('|').map(c => c.trim())
       // Remove first and last empty cells (from leading/trailing |)
       const dataCells = cells.slice(1, -1)
-      
+
       if (dataCells.length === 0) continue
-      
+
       tableHtml += '<tr>\n'
       dataCells.forEach((cell, index) => {
         const align = alignments[index] || 'left'
@@ -211,6 +211,34 @@ function convertMarkdownTables(markdown: string): string {
 }
 
 /**
+ * Process LaTeX formulas in HTML content
+ * Converts LaTeX syntax to MathJax-compatible format
+ */
+function processLatexFormulas(html: string): string {
+  if (!html) return ''
+
+  // Handle inline math: $formula$ or \(formula\)
+  // Already in HTML, so we need to preserve existing formatting
+  // MathJax will handle $...$ and \(...\) automatically, but we can ensure proper spacing
+
+  // Ensure display math blocks are on separate lines for better rendering
+  // Convert $$...$$ blocks (if not already properly formatted)
+  html = html.replace(/\$\$([\s\S]*?)\$\$/g, (match, formula) => {
+    // Ensure formula is on its own line
+    const trimmed = formula.trim()
+    return `\n<div class="math-display">$$${trimmed}$$</div>\n`
+  })
+
+  // Convert \[...\] blocks
+  html = html.replace(/\\\[([\s\S]*?)\\\]/g, (match, formula) => {
+    const trimmed = formula.trim()
+    return `\n<div class="math-display">\\[${trimmed}\\]</div>\n`
+  })
+
+  return html
+}
+
+/**
  * Convert Markdown to HTML
  */
 function markdownToHtml(markdown: string, title: string = 'Article', metaDescription: string = ''): string {
@@ -226,6 +254,45 @@ function markdownToHtml(markdown: string, title: string = 'Article', metaDescrip
   cleanedMarkdown = cleanedMarkdown.replace(/\\"/g, '"')
   cleanedMarkdown = cleanedMarkdown.replace(/\\'/g, "'")
   cleanedMarkdown = cleanedMarkdown.replace(/\\\\/g, '\\')
+
+  // Preserve LaTeX formulas before markdown conversion
+  // Store LaTeX blocks temporarily to prevent markdown processing from interfering
+  const latexPlaceholders: { [key: string]: string } = {}
+  let placeholderIndex = 0
+
+  // Protect display math blocks ($$...$$ and \[...\])
+  cleanedMarkdown = cleanedMarkdown.replace(/\$\$([\s\S]*?)\$\$/g, (match, formula) => {
+    const key = `__LATEX_DISPLAY_${placeholderIndex}__`
+    latexPlaceholders[key] = match
+    placeholderIndex++
+    return key
+  })
+
+  cleanedMarkdown = cleanedMarkdown.replace(/\\\[([\s\S]*?)\\\]/g, (match, formula) => {
+    const key = `__LATEX_DISPLAY_${placeholderIndex}__`
+    latexPlaceholders[key] = match
+    placeholderIndex++
+    return key
+  })
+
+  // Protect inline math ($...$ and \(...\)) - but be careful not to match URLs
+  cleanedMarkdown = cleanedMarkdown.replace(/(?<!\$)\$(?!\$)([^$\n]+?)\$(?!\$)/g, (match, formula) => {
+    // Skip if it looks like a URL or path
+    if (match.includes('://') || match.includes('www.')) {
+      return match
+    }
+    const key = `__LATEX_INLINE_${placeholderIndex}__`
+    latexPlaceholders[key] = match
+    placeholderIndex++
+    return key
+  })
+
+  cleanedMarkdown = cleanedMarkdown.replace(/\\\(([\s\S]*?)\\\)/g, (match, formula) => {
+    const key = `__LATEX_INLINE_${placeholderIndex}__`
+    latexPlaceholders[key] = match
+    placeholderIndex++
+    return key
+  })
 
   let html = cleanedMarkdown
 
@@ -246,7 +313,7 @@ function markdownToHtml(markdown: string, title: string = 'Article', metaDescrip
   // Handle both /word/ and /phrase with spaces/
   // First handle double slashes //text// (more specific, do first)
   html = html.replace(/\/\/([^\/\n]+?)\/\//g, '<em>$1</em>')
-  // Then handle single slashes /text/ 
+  // Then handle single slashes /text/
   // Avoid converting if it's already inside HTML tags or looks like a URL/path
   html = html.replace(/\/([^\/\n<>]+?)\//g, (match, content) => {
     // Skip if it looks like a URL (starts with http/https) or path (contains :// or multiple slashes)
@@ -283,10 +350,10 @@ function markdownToHtml(markdown: string, title: string = 'Article', metaDescrip
   const lines = html.split('\n')
   const processedLines: string[] = []
   let inTable = false
-  
+
   for (let i = 0; i < lines.length; i++) {
     let line = lines[i].trim()
-    
+
     // Track if we're inside a table
     if (line.startsWith('<table>')) {
       inTable = true
@@ -298,41 +365,49 @@ function markdownToHtml(markdown: string, title: string = 'Article', metaDescrip
       processedLines.push(line)
       continue
     }
-    
+
     // If inside table, pass through as-is
     if (inTable) {
       processedLines.push(line)
       continue
     }
-    
+
     // Handle empty lines
     if (!line) {
       processedLines.push('<br>')
       continue
     }
-    
+
     // Already HTML (including table tags, headings, lists, etc.)
     if (line.startsWith('<')) {
       processedLines.push(line)
       continue
     }
-    
+
     // Headings (shouldn't reach here if already converted, but safety check)
     if (line.match(/^#{1,6} /)) {
       processedLines.push(line)
       continue
     }
-    
+
     // Skip markdown table syntax that wasn't converted (shouldn't happen, but safety check)
     if (line.match(/^\|.*\|$/)) {
       continue // Skip unconverted table rows
     }
-    
+
     // Regular paragraph
     processedLines.push('<p>' + line + '</p>')
   }
 
   html = processedLines.join('\n')
+
+  // Restore LaTeX formulas from placeholders
+  Object.keys(latexPlaceholders).forEach(key => {
+    html = html.replace(key, latexPlaceholders[key])
+  })
+
+  // Process LaTeX formulas for proper MathJax rendering
+  html = processLatexFormulas(html)
 
   // Add basic HTML structure
   return `<!DOCTYPE html>
@@ -342,6 +417,22 @@ function markdownToHtml(markdown: string, title: string = 'Article', metaDescrip
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${title}</title>
   <meta name="description" content="${metaDescription}">
+  <!-- MathJax for LaTeX rendering -->
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+        processEscapes: true,
+        processEnvironments: true
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+    };
+  </script>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
@@ -384,6 +475,14 @@ function markdownToHtml(markdown: string, title: string = 'Article', metaDescrip
     }
     table tr:hover {
       background-color: #f1f3f5;
+    }
+    .math-display {
+      margin: 1.5em 0;
+      text-align: center;
+      overflow-x: auto;
+    }
+    .math-display mjx-container {
+      display: inline-block;
     }
   </style>
 </head>
