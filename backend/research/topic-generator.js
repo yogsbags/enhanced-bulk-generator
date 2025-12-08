@@ -502,7 +502,7 @@ class TopicGenerator {
             messages: [
               {
                 role: 'system',
-                content: 'You are an Expert Content Strategist specializing in Indian WealthTech. Generate strategic content topics based on user input.'
+                content: 'You are an Expert Content Strategist specializing in Indian WealthTech. Generate HIGH-QUALITY, SPECIFIC, ACTIONABLE content topics based on user input. Focus on creating compelling, SEO-optimized titles that include primary keywords naturally and provide clear value propositions. Avoid generic topics - be specific and strategic.'
               },
               {
                 role: 'user',
@@ -614,76 +614,102 @@ class TopicGenerator {
    */
   buildCustomTopicPrompt(customTopicTitle, topicCount = 1) {
     const categoryInstruction = this.selectedCategory
-      ? `The topic should be in the "${this.selectedCategory}" category.`
-      : 'Auto-detect the most appropriate category.';
+      ? `The topic MUST be in the "${this.selectedCategory}" category.`
+      : 'Auto-detect the most appropriate category based on the topic.';
 
-    return `Generate ${topicCount} strategic content topic(s) based on this user-provided topic title: "${customTopicTitle}"
+    return `You are an Expert Content Strategist for Indian WealthTech. Generate ${topicCount} HIGH-QUALITY, STRATEGIC content topic(s) based on this user-provided topic: "${customTopicTitle}"
 
 ${categoryInstruction}
+
+🎯 QUALITY REQUIREMENTS (CRITICAL):
+- topic_title MUST be compelling, specific, and SEO-optimized (50-60 chars max)
+- Include the user-provided topic "${customTopicTitle}" naturally in the title
+- Use power words: "Complete", "Ultimate", "Step-by-Step", "Comprehensive", "Best", "Top"
+- Include year (2025) when relevant for time-sensitive content
+- Make it ACTIONABLE and SPECIFIC - avoid generic titles
+- primary_keyword should be extracted from the topic title, not just copied
 
 TOPIC GENERATION REQUIREMENTS:
 
 For EACH of the ${topicCount} topic(s), provide:
 
-1. topic_id: "TOPIC-YYYYMMDD-XXX" (sequential)
-2. research_gap_id: "CUSTOM-GAP" (since this bypasses Stage 1 research)
-3. content_type: [blog|ymyl|listicle|news] (auto-detect based on topic)
-4. topic_title: Generate a compelling, SEO-optimized blog title based on the keyword "${customTopicTitle}" (e.g., "Nifty Options strategies: Complete Guide for Indians 2025" or  "What are Options Trading Strategies? Complete Guide for Beginners 2025", NOT just the primary keyword.
-5. category: [mutual_funds|tax_planning|stock_market|retirement_planning|insurance|personal_finance|investment_strategies|derivatives] (auto-detect)
-6. primary_keyword: Main target keyword extracted from the title
-7. secondary_keywords: 3-5 related keywords (comma-separated string)
-8. search_volume: Estimated monthly search volume
-9. keyword_difficulty: 0-100 score
-10. priority: [High|Medium|Low]
-11. topic_type: [quick_win|authority_builder|competitive_strike] (auto-detect based on topic)
-12. target_competitor: Which competitor we're outranking
-13. our_competitive_advantage: Specific plan to beat competitor
-14. word_count_target: Recommended length (2000-3000 words)
-15. expert_required: [true|false]
-16. estimated_ranking_time: Days to rank
-17. estimated_monthly_traffic: Expected traffic when ranked
-18. internal_linking_opportunities: Related topics for clustering (comma-separated)
-19. content_upgrade_idea: Lead magnet idea
-20. regulatory_requirements: Compliance needs (comma-separated)
-21. approval_status: "Pending"
+1. research_gap_id: "CUSTOM-GAP" (since this bypasses Stage 1 research)
+2. content_type: [blog|ymyl|listicle|news] (auto-detect based on topic - blog for educational, ymyl for investment advice)
+3. topic_title: 
+   - Generate a compelling, SEO-optimized blog title based on "${customTopicTitle}"
+   - Format: "[Primary Keyword] [Year]: [Value Proposition]" or "[Action] [Primary Keyword] [Year]"
+   - Examples: "Nifty Options Strategies: Complete Guide for Beginners in 2025", "Best ELSS Funds 2025: Top Tax-Saving Equity Schemes for Indian Investors"
+   - MUST be 50-60 characters, include the primary keyword, and be specific
+   - AVOID generic titles like "Investment Guide" or "Wealth Management Tips"
+4. category: [mutual_funds|tax_planning|stock_market|retirement_planning|insurance|personal_finance|investment_strategies|derivatives] (auto-detect)
+5. primary_keyword: Extract main target keyword from topic_title (should match "${customTopicTitle}" or be closely related)
+6. secondary_keywords: 3-5 related keywords (comma-separated string) - include variations, long-tail keywords, and related terms
+7. search_volume: Realistic estimated monthly search volume (1000-15000 range, based on keyword competitiveness)
+8. keyword_difficulty: 0-100 score (estimate based on competition - 20-40 for niche, 40-60 for competitive, 60+ for very competitive)
+9. priority: [High|Medium|Low] - High if search_volume >8000 or difficulty <30, Medium if 3000-8000, Low otherwise
+10. topic_type: [quick_win|authority_builder|competitive_strike] (quick_win if difficulty <35, authority_builder if volume >8000, competitive_strike if targeting specific competitor)
+11. target_competitor: Which competitor we're outranking (Groww, Zerodha, ETMoney, PaytmMoney, etc.)
+12. our_competitive_advantage: Specific, actionable plan to beat competitor (e.g., "2025 data, interactive calculator, expert quotes, video comparisons")
+13. word_count_target: Recommended length (2000-3000 words for comprehensive guides, 1500-2000 for quick wins)
+14. expert_required: [true|false] - true for YMYL content, investment advice, or complex topics
+15. estimated_ranking_time: Days to rank (30-45 for quick wins, 60-90 for authority builders)
+16. estimated_monthly_traffic: Expected traffic when ranked (calculate as 60-70% of search_volume)
+17. internal_linking_opportunities: 3-5 related topic slugs for clustering (comma-separated, e.g., "related-guide,calculator-tool,basics")
+18. content_upgrade_idea: Specific, actionable lead magnet (e.g., "Interactive Calculator", "Downloadable Checklist PDF", "Video Tutorial Series")
+19. regulatory_requirements: Compliance needs (comma-separated) - typically "SEBI disclaimer,Risk warning" for investment content
+20. approval_status: "Pending"
 
-OUTPUT FORMAT
+OUTPUT FORMAT:
 - Return a JSON object with a single key "topics" containing the array of topic objects.
 - No markdown, no comments, no explanations.
+- topic_id will be auto-generated, so you can omit it or use placeholder
 
+EXAMPLE (High Quality):
 {
   "topics": [
     {
-      "topic_id": "TOPIC-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-001",
       "research_gap_id": "CUSTOM-GAP",
-      "content_type": "blog",
-      "topic_title": "Options Trading Strategies: Complete Guide for Beginners in 2025",
+      "content_type": "ymyl",
+      "topic_title": "Nifty Options Strategies: Complete Guide for Beginners in 2025",
       "category": "derivatives",
-      "primary_keyword": "options trading strategies",
-      "secondary_keywords": "related,keywords,here",
-      "search_volume": 5000,
-      "keyword_difficulty": 35,
+      "primary_keyword": "nifty options strategies",
+      "secondary_keywords": "nifty options trading,options strategies for beginners,weekly options nifty,options trading guide 2025",
+      "search_volume": 8500,
+      "keyword_difficulty": 32,
       "priority": "High",
       "topic_type": "authority_builder",
-      "target_competitor": "Groww",
-      "our_competitive_advantage": "Comprehensive guide with expert insights",
+      "target_competitor": "Zerodha",
+      "our_competitive_advantage": "2025 lot size updates, interactive strategy calculator, backtesting examples, expert trader interviews",
       "word_count_target": 2500,
       "expert_required": "true",
       "estimated_ranking_time": 60,
-      "estimated_monthly_traffic": 3500,
-      "internal_linking_opportunities": "related-topics,guides,calculators",
-      "content_upgrade_idea": "Interactive calculator or checklist",
-      "regulatory_requirements": "SEBI disclaimer,Risk warning",
+      "estimated_monthly_traffic": 5950,
+      "internal_linking_opportunities": "options-basics,derivatives-guide,strategy-calculator,nifty-trading",
+      "content_upgrade_idea": "Interactive Options Strategy Backtesting Tool with P&L Calculator",
+      "regulatory_requirements": "SEBI disclaimer,Risk warning,Derivatives trading risks",
       "approval_status": "Pending"
     }
   ]
 }
 
+❌ BAD TOPIC TITLE EXAMPLES (DO NOT GENERATE):
+- "${customTopicTitle}" (just the keyword, no enhancement)
+- "Investment Guide" (too generic)
+- "Wealth Management Tips" (not specific)
+- "Financial Planning" (no value proposition)
+
+✅ GOOD TOPIC TITLE EXAMPLES:
+- "Best ELSS Funds 2025: Top Tax-Saving Equity Schemes for Indian Investors"
+- "Nifty Options Strategies: Complete Guide for Beginners in 2025"
+- "Section 80C Deductions 2025: Step-by-Step Guide to Maximize Tax Savings"
+- "Bank Nifty Weekly Options Trading: Tuesday Expiry Strategy Guide 2025"
+
 CRITICAL:
 - Generate exactly ${topicCount} topic(s)
 - Return ONLY the JSON object described above
 - No markdown formatting, no explanations
-- topic_title MUST be a compelling blog title (e.g., "Wealth Maximization: 7 Proven Strategies for 2025"), NOT just the keyword "${customTopicTitle}"
+- topic_title MUST be compelling, specific (50-60 chars), and include "${customTopicTitle}" naturally
+- primary_keyword should match or be closely related to "${customTopicTitle}"
 - Validate JSON structure before returning`;
   }
 
@@ -724,7 +750,7 @@ CRITICAL:
             requestBody = {
               contents: [{
                 parts: [{
-                  text: `You are an Expert Content Strategist specializing in topic selection for competitive SEO dominance in Indian WealthTech. Transform research insights into actionable, battle-ready content topics.\n\n${prompt}`
+                  text: `You are an Expert Content Strategist specializing in topic selection for competitive SEO dominance in Indian WealthTech. Your role is to transform research insights into HIGH-QUALITY, SPECIFIC, ACTIONABLE content topics that directly address research gaps. Focus on creating compelling, SEO-optimized titles that include primary keywords naturally and provide clear value propositions. Avoid generic topics - be specific and strategic.\n\n${prompt}`
                 }]
               }],
               generationConfig: {
@@ -746,7 +772,7 @@ CRITICAL:
               messages: [
                 {
                   role: 'system',
-                  content: 'You are an Expert Content Strategist specializing in topic selection for competitive SEO dominance in Indian WealthTech. Transform research insights into actionable, battle-ready content topics.'
+                  content: 'You are an Expert Content Strategist specializing in topic selection for competitive SEO dominance in Indian WealthTech. Your role is to transform research insights into HIGH-QUALITY, SPECIFIC, ACTIONABLE content topics that directly address research gaps. Focus on creating compelling, SEO-optimized titles that include primary keywords naturally and provide clear value propositions. Avoid generic topics - be specific and strategic.'
                 },
                 {
                   role: 'user',
@@ -842,6 +868,15 @@ CRITICAL:
             const topics = this.parseTopicsPayload(cleanResponse, modelToTry);
 
             console.log(`✅ AI topic generation completed with ${modelToTry} (${content.length} characters)`);
+            console.log(`📊 Generated ${topics.length} topics`);
+
+            // Log sample topics for quality check
+            if (topics.length > 0) {
+              console.log(`\n📝 Sample generated topics (first 3):`);
+              topics.slice(0, 3).forEach((topic, idx) => {
+                console.log(`   ${idx + 1}. "${topic.topic_title || 'N/A'}" (${topic.primary_keyword || 'N/A'})`);
+              });
+            }
 
             topics.forEach(topic => {
               topic.model_used = modelToTry;
@@ -1069,62 +1104,75 @@ CRITICAL:
       ? `\n\n⚠️ CRITICAL: Generate ALL ${topicCount} topics EXCLUSIVELY from the "${this.selectedCategory}" category. DO NOT include topics from other categories like tax_planning, mutual_funds, stock_market, etc. ONLY focus on "${this.selectedCategory}" content gaps provided in the research data.`
       : '';
 
-    return `Generate ${topicCount} strategic content topics from approved research data.${categoryInstruction}
+    return `You are an Expert Content Strategist for Indian Broking and WealthTech. Generate ${topicCount} HIGH-QUALITY, STRATEGIC content topics directly from the approved research gaps below.${categoryInstruction}
 
-RESEARCH CONTEXT:
+🎯 QUALITY REQUIREMENTS (CRITICAL):
+- Each topic MUST directly map to a specific research gap from the provided data
+- topic_title MUST be compelling, specific, and SEO-optimized (50-60 chars max)
+- Use the gap_title and primary_keyword from research gaps as the foundation, but enhance them
+- Topics should be ACTIONABLE and SPECIFIC - avoid generic titles like "Investment Guide" or "Wealth Management Tips"
+- Include year (2025) when relevant for time-sensitive content
+- Use power words: "Complete", "Ultimate", "Step-by-Step", "Comprehensive", "Best", "Top"
+- Ensure topics address the competitor_weakness and leverage our_competitive_edge from research gaps
+
+RESEARCH CONTEXT (APPROVED GAPS):
 ${JSON.stringify({ approved_gaps: gapsContext }, null, 2)}
 
-SELECTION STRATEGY:
-1. QUICK WINS: Low difficulty, decent volume, can rank in 30-60 days
-2. AUTHORITY BUILDERS: High volume, build topical clusters, 3-6 month ranking
-3. COMPETITIVE STRIKES: Target competitor weaknesses, steal their traffic
+📊 SELECTION STRATEGY:
+1. QUICK WINS (${this.topicStrategy.quickWins} topics): Low difficulty (<35), decent volume (>3000), can rank in 30-60 days
+2. AUTHORITY BUILDERS (${this.topicStrategy.authorityBuilders} topics): High volume (>8000), build topical clusters, 3-6 month ranking
+3. COMPETITIVE STRIKES (${this.topicStrategy.competitiveStrikes} topics): Target specific competitor weaknesses, steal their traffic
 
-TOPIC GENERATION REQUIREMENTS:
+📝 TOPIC GENERATION REQUIREMENTS:
 
-For EACH of the ${topicCount} topics, provide:
+For EACH of the ${topicCount} topics, you MUST:
 
-1. topic_id: "TOPIC-YYYYMMDD-XXX" (sequential)
-2. research_gap_id: Link to specific gap from research (e.g., "GAP-001")
-3. content_type: [blog|ymyl|listicle|news]
-4. topic_title: Compelling, click-worthy, SEO-optimized (<60 chars)
-5. category: [mutual_funds|tax_planning|stock_market|retirement_planning|insurance|personal_finance|investment_strategies]
-6. primary_keyword: Main target keyword
-7. secondary_keywords: Array of 3-5 related keywords (comma-separated string)
-8. search_volume: Monthly search volume
-9. keyword_difficulty: 0-100 score
-10. priority: [High|Medium|Low]
-11. topic_type: [quick_win|authority_builder|competitive_strike]
-12. target_competitor: Which competitor we're outranking
-13. our_competitive_advantage: Specific plan to beat competitor
-14. word_count_target: Recommended length
-15. expert_required: [true|false]
-16. estimated_ranking_time: Days to rank
-17. estimated_monthly_traffic: Expected traffic when ranked
-18. internal_linking_opportunities: Array of related topics for clustering (comma-separated)
-19. content_upgrade_idea: Lead magnet idea (calculator, checklist, template)
-20. regulatory_requirements: Array of compliance needs (comma-separated)
-21. approval_status: "Pending"
+1. **research_gap_id**: MUST link to a specific gap from the research data above (e.g., "GAP-001")
+2. **topic_title**:
+   - Base it on the gap_title from the research gap, but make it MORE compelling
+   - Format: "[Primary Keyword] [Year]: [Value Proposition]" or "[Action] [Primary Keyword] [Year]"
+   - Examples: "Index Funds vs Mutual Funds 2025: Complete Comparison Guide", "Best ELSS Funds 2025: Top Tax-Saving Equity Schemes"
+   - AVOID generic titles like "Wealth Management Guide" or "Investment Strategies"
+   - MUST include the primary_keyword naturally in the title
+3. **primary_keyword**: Use EXACTLY the primary_keyword from the research gap (don't modify it)
+4. **category**: Use the topic_area from the research gap (mutual_funds, tax_planning, stock_market, etc.)
+5. **content_type**: Use the content_type_recommendation from the research gap (blog, ymyl, listicle, news)
+6. **secondary_keywords**: Use the secondary_keywords from the research gap, add 1-2 related terms
+7. **search_volume**: Use the search_volume from the research gap
+8. **keyword_difficulty**: Use the keyword_difficulty from the research gap
+9. **priority**: Calculate based on search_volume (>8000=High, 3000-8000=Medium, <3000=Low) and keyword_difficulty (<30=High, 30-50=Medium, >50=Low)
+10. **topic_type**: Use quick_win/authority_builder flags from research gap, or infer from difficulty/volume
+11. **target_competitor**: Extract from competitor_weakness field in research gap
+12. **our_competitive_advantage**: Use the our_competitive_edge from research gap, make it specific and actionable
+13. **word_count_target**: Use the word_count_target from research gap
+14. **expert_required**: Use the expert_required from research gap
+15. **estimated_ranking_time**: Use the estimated_ranking_time from research gap
+16. **estimated_monthly_traffic**: Calculate as 60-70% of search_volume (realistic ranking expectation)
+17. **internal_linking_opportunities**: Generate 3-5 related topic slugs based on category and primary_keyword
+18. **content_upgrade_idea**: Create specific, actionable lead magnet (calculator, checklist, template, PDF guide)
+19. **regulatory_requirements**: Use the regulatory_compliance from research gap
 
-CONTENT TYPE DISTRIBUTION:
+CONTENT TYPE DISTRIBUTION (TARGET):
 - Blog posts: ${this.contentTypeDistribution.blog} topics (educational, how-to guides)
 - YMYL guides: ${this.contentTypeDistribution.ymyl} topics (investment advice, financial planning)
 - Listicles: ${this.contentTypeDistribution.listicle} topics (Top X, best of lists)
 - News articles: ${this.contentTypeDistribution.news} topics (regulatory updates, market news)
 
-OUTPUT FORMAT
-- Return a JSON object with a single key \"topics\" containing the array of topic objects.
+OUTPUT FORMAT:
+- Return a JSON object with a single key "topics" containing the array of topic objects.
 - No markdown, no comments, no explanations.
+- topic_id will be auto-generated, so you can omit it or use placeholder "TOPIC-YYYYMMDD-XXX"
 
+EXAMPLE (High Quality):
 {
   "topics": [
     {
-      "topic_id": "TOPIC-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-001",
       "research_gap_id": "GAP-001",
       "content_type": "ymyl",
-      "topic_title": "Index Funds vs Mutual Funds 2025: Complete Comparison Guide",
+      "topic_title": "Index Funds vs Mutual Funds 2025: Complete Comparison Guide for Indian Investors",
       "category": "mutual_funds",
       "primary_keyword": "index funds vs mutual funds",
-      "secondary_keywords": "best index funds 2025,index fund calculator,passive investing india",
+      "secondary_keywords": "best index funds 2025,index fund calculator,passive investing india,index fund returns 2025",
       "search_volume": 12000,
       "keyword_difficulty": 28,
       "priority": "High",
@@ -1134,8 +1182,8 @@ OUTPUT FORMAT
       "word_count_target": 2500,
       "expert_required": "true",
       "estimated_ranking_time": 60,
-      "estimated_monthly_traffic": 8500,
-      "internal_linking_opportunities": "passive-investing-guide,sip-calculator,mutual-fund-taxation",
+      "estimated_monthly_traffic": 8400,
+      "internal_linking_opportunities": "passive-investing-guide,sip-calculator,mutual-fund-taxation,index-fund-basics",
       "content_upgrade_idea": "Interactive Index Fund vs Mutual Fund Calculator with expense ratio comparison",
       "regulatory_requirements": "SEBI disclaimer,Risk warning,Past performance disclaimer",
       "approval_status": "Pending"
@@ -1143,11 +1191,24 @@ OUTPUT FORMAT
   ]
 }
 
-CRITICAL:
+❌ BAD TOPIC TITLE EXAMPLES (DO NOT GENERATE):
+- "Investment Guide" (too generic)
+- "Wealth Management Tips" (not specific)
+- "Financial Planning" (no value proposition)
+- "Stock Market Analysis" (too broad)
+
+✅ GOOD TOPIC TITLE EXAMPLES:
+- "Best ELSS Funds 2025: Top Tax-Saving Equity Schemes for Indian Investors"
+- "Nifty Options Strategies: Complete Guide for Beginners in 2025"
+- "Section 80C Deductions 2025: Step-by-Step Guide to Maximize Tax Savings"
+- "Bank Nifty Weekly Options Trading: Tuesday Expiry Strategy Guide 2025"
+
+CRITICAL RULES:
 - Generate exactly ${topicCount} topics (no more, no less)
-- Return ONLY the JSON object described above
-- No markdown formatting, no explanations
-- Ensure all topics link back to research gaps
+- Each topic MUST map to a unique research gap (don't duplicate gap_ids)
+- Use data DIRECTLY from research gaps - don't invent new keywords or volumes
+- topic_title MUST be compelling, specific, and include the primary_keyword
+- Return ONLY the JSON object - no markdown, no explanations, no comments
 - Validate JSON structure before returning`;
   }
 
@@ -1155,18 +1216,73 @@ CRITICAL:
    * Validate and enhance generated topics
    */
   validateAndEnhanceTopics(topics, approvedGaps) {
+    // Create a map of research gaps for quick lookup
+    const gapMap = new Map();
+    approvedGaps.forEach(gap => {
+      gapMap.set(gap.gap_id, gap);
+    });
+
     const enhancedTopics = topics.map((topic, index) => {
       // Note: topic_id will be auto-generated by csvManager.saveGeneratedTopics()
       // Remove any existing topic_id to ensure incremental generation
       delete topic.topic_id;
 
       // Validate required fields
-      const required = ['topic_title', 'content_type', 'category', 'primary_keyword'];
+      const required = ['topic_title', 'content_type', 'category', 'primary_keyword', 'research_gap_id'];
       required.forEach(field => {
         if (!topic[field]) {
           throw new Error(`Topic ${index + 1} missing required field: ${field}`);
         }
       });
+
+      // Validate that research_gap_id exists in approved gaps
+      if (topic.research_gap_id && topic.research_gap_id !== 'CUSTOM-GAP') {
+        const linkedGap = gapMap.get(topic.research_gap_id);
+        if (!linkedGap) {
+          console.warn(`⚠️  Topic ${index + 1} references non-existent research_gap_id: ${topic.research_gap_id}`);
+        } else {
+          // Enhance topic with data from research gap if missing
+          if (!topic.search_volume && linkedGap.search_volume) {
+            topic.search_volume = linkedGap.search_volume;
+          }
+          if (!topic.keyword_difficulty && linkedGap.keyword_difficulty) {
+            topic.keyword_difficulty = linkedGap.keyword_difficulty;
+          }
+          if (!topic.word_count_target && linkedGap.word_count_target) {
+            topic.word_count_target = linkedGap.word_count_target;
+          }
+          if (!topic.estimated_ranking_time && linkedGap.estimated_ranking_time) {
+            topic.estimated_ranking_time = linkedGap.estimated_ranking_time;
+          }
+        }
+      }
+
+      // Validate topic_title quality
+      if (topic.topic_title) {
+        const title = topic.topic_title.toLowerCase();
+        // Check for generic/low-quality patterns
+        const genericPatterns = [
+          /^(investment|financial|wealth|money|guide|tips|strategies)$/,
+          /^(complete|ultimate|best|top)\s+(guide|tips|strategies)$/,
+          /^.*\s+(guide|tips|strategies)\s*$/
+        ];
+        
+        const isTooGeneric = genericPatterns.some(pattern => pattern.test(title)) && 
+                            topic.topic_title.length < 40;
+        
+        if (isTooGeneric) {
+          console.warn(`⚠️  Topic ${index + 1} has generic title: "${topic.topic_title}" - Consider making it more specific`);
+        }
+
+        // Ensure primary_keyword is in title (case-insensitive)
+        if (topic.primary_keyword) {
+          const keywordLower = topic.primary_keyword.toLowerCase();
+          const titleLower = topic.topic_title.toLowerCase();
+          if (!titleLower.includes(keywordLower)) {
+            console.warn(`⚠️  Topic ${index + 1} title doesn't include primary_keyword: "${topic.topic_title}" vs "${topic.primary_keyword}"`);
+          }
+        }
+      }
 
       // Ensure secondary_keywords is a string
       if (Array.isArray(topic.secondary_keywords)) {
@@ -1191,6 +1307,27 @@ CRITICAL:
 
     // Validate topic distribution
     this.validateTopicDistribution(enhancedTopics);
+
+    // Log quality metrics
+    console.log('\n📊 TOPIC QUALITY METRICS:');
+    const titlesWithKeyword = enhancedTopics.filter(t => {
+      const titleLower = (t.topic_title || '').toLowerCase();
+      const keywordLower = (t.primary_keyword || '').toLowerCase();
+      return titleLower.includes(keywordLower);
+    }).length;
+    console.log(`   ✅ Titles with primary_keyword: ${titlesWithKeyword}/${enhancedTopics.length}`);
+    
+    const avgTitleLength = Math.round(
+      enhancedTopics.reduce((sum, t) => sum + (t.topic_title || '').length, 0) / enhancedTopics.length
+    );
+    console.log(`   📏 Average title length: ${avgTitleLength} chars (target: 50-60)`);
+    
+    const specificTitles = enhancedTopics.filter(t => {
+      const title = (t.topic_title || '').toLowerCase();
+      return title.length >= 40 && 
+             !/^(investment|financial|wealth|money|guide|tips|strategies)$/.test(title);
+    }).length;
+    console.log(`   ✅ Specific titles (not generic): ${specificTitles}/${enhancedTopics.length}`);
 
     return enhancedTopics;
   }
