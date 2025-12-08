@@ -213,21 +213,21 @@ class ContentValidator {
       result,
       !hasH1,
       weight,
-      'No H1 title at article start (should start with ## Executive Summary)',
+      'No H1 title at article start (should start with ## Summary)',
       'H1 heading found at article start - remove it'
     );
 
-    // Rule 2: Executive Summary is first H2
+    // Rule 2: Summary is first H2
     const firstH2Match = article.match(/^##\s+([^\n]+)/m);
     const firstH2Text = firstH2Match ? firstH2Match[1].trim() : '';
-    const isExecutiveSummaryFirst = /Executive\s+Summary/i.test(firstH2Text);
+    const isSummaryFirst = /^Summary$/i.test(firstH2Text);
 
     this.addValidationCheck(
       result,
-      isExecutiveSummaryFirst,
+      isSummaryFirst,
       weight,
-      'Executive Summary is the first H2 heading',
-      `First H2 is "${firstH2Text}" instead of "Executive Summary"`
+      'Summary is the first H2 heading',
+      `First H2 is "${firstH2Text}" instead of "Summary"`
     );
 
     // Rule 3: No "Introduction" H2 heading
@@ -236,7 +236,7 @@ class ContentValidator {
       result,
       !hasIntroductionH2,
       weight,
-      'No "Introduction" H2 heading (use plain text after Executive Summary)',
+      'No "Introduction" H2 heading (use plain text after Summary)',
       'Found "## Introduction" heading - should be plain text paragraphs'
     );
 
@@ -718,8 +718,8 @@ class ContentValidator {
 
     // Add context about the 39 critical guidelines
     prompt += `## COMPLIANCE GUIDELINES:\n\n`;
-    prompt += `1. **Structure**: Start with "## Executive Summary" (no H1), followed by plain text intro paragraphs\n`;
-    prompt += `2. **Required Sections** (in this order): Executive Summary → Main content → Key Takeaways → Action Plan → Conclusion → FAQ\n`;
+    prompt += `1. **Structure**: Start with "## Summary" (no H1), followed by plain text intro paragraphs\n`;
+    prompt += `2. **Required Sections** (in this order): Summary → Main content → Key Takeaways → Action Plan → Conclusion → FAQ\n`;
     prompt += `3. **Word Count**: Must be 2000-2500 words\n`;
     prompt += `4. **No Competitor Names**: Remove all mentions of Zerodha, Upstox, Angel One, ICICI Direct, Groww\n`;
     prompt += `5. **CTA Link**: Include https://instakyc.plindia.com/ or https://www.plindia.com\n`;

@@ -1073,7 +1073,7 @@ The goal: Readers trust your expertise (Wikipedia-level authority) AND bookmark 
 **PROHIBITED:**
 
 - ❌ Competitor names: Zerodha, Upstox, Angel One, ICICI Direct, Groww
-- ❌ "## Introduction" heading (use plain text after Executive Summary)
+- ❌ "## Introduction" heading (use plain text after Summary)
 - ❌ FAQs before Conclusion
 - ❌ More than 5 FAQs
 - ❌ Conclusions longer than 100 words
@@ -1122,7 +1122,7 @@ The goal: Readers trust your expertise (Wikipedia-level authority) AND bookmark 
 
 **WORD COUNT DISTRIBUTION (MANDATORY 2,400+ words total - DO NOT submit articles under 2,200 words):**
 
-- Executive Summary: 50-80 words
+- Summary: 50-80 words
 - Introduction paragraph (no heading): 50-80 words
 - Main H2 sections (2-8 sections): 1,800-2,000 words (250-350 words each with detailed examples, tables, data)
 - Key Takeaways: 100-150 words
