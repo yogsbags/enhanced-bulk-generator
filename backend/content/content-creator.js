@@ -650,7 +650,12 @@ ${effectivePrimaryKeyword ? `
 **Primary Concept:** "${effectivePrimaryKeyword}"
 
 **Natural Writing Guidelines:**
-- ✅ **SEO Title**: Include the concept naturally (seo_metadata.title field)
+- ✅ **SEO Title** (seo_metadata.title field):
+  - MUST be 50-60 characters (optimal for search results)
+  - MUST include the focus keyphrase naturally
+  - MUST be different from the article title (topic_title)
+  - Should be compelling and click-worthy
+  - Examples: "Nifty Options Trading Guide | Complete Strategy 2025" (58 chars), "Bank Nifty Weekly Options: Expert Trading Guide" (52 chars)
 - ✅ **Meta Description**: Mention the core concept in a compelling way
 - ✅ **URL Slug**: Use the concept (hyphenated, lowercase)
 - ✅ **Introduction**: Introduce the topic naturally in the opening paragraph
@@ -1155,7 +1160,7 @@ JSON SCHEMA:
 {
   "topic_id": "string",
   "seo_metadata": {
-    "title": ${isCustomTitleMode ? `"${research.primary_keyword}" (EXACT COPY - NO MODIFICATIONS ALLOWED)` : `"string <= 60 characters containing the focus keyphrase"`},
+    "title": ${isCustomTitleMode ? `"${research.primary_keyword}" (EXACT COPY - NO MODIFICATIONS ALLOWED)` : `"string 50-60 characters (OPTIMAL), MUST contain the focus keyphrase naturally, MUST be different from topic_title"`},
     "meta_description": "string 140-160 characters with a CTA and focus keyphrase",
     "focus_keyphrase": "string",
     "secondary_keywords": ["string", "string", "string"]
@@ -2133,8 +2138,9 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
         console.log(`✅ Primary keyword (extracted from title): "${effectivePrimaryKeyword}"`);
       }
     } else {
-      // Normal workflow - use AI-generated title
-      title = this.truncateTitle(raw.title || research.topic_id || focus);
+      // Normal workflow - use AI-generated title and enforce SEO guidelines
+      const rawTitle = raw.title || research.topic_id || focus;
+      title = this.normalizeSeoTitle(rawTitle, focus, research.topic_title);
     }
 
     const metaDescription = this.buildMetaDescription(raw.meta_description, article, focus);
@@ -2190,13 +2196,189 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
       .filter(Boolean).length;
   }
 
+  /**
+   * Normalize SEO title to follow best practices:
+   * - 50-60 characters (optimal for search results)
+   * - Includes focus keyphrase naturally
+   * - Different from article title (topic_title)
+   * - Truncates intelligently if too long
+   */
+  normalizeSeoTitle(rawTitle, focusKeyphrase, articleTitle) {
+    if (!rawTitle) {
+      // Generate a basic title from focus keyphrase if nothing provided
+      if (focusKeyphrase) {
+        return this.generateSeoTitleFromKeyword(focusKeyphrase, articleTitle);
+      }
+      return 'Financial Investment Guide';
+    }
+
+    let title = rawTitle.trim();
+
+    // Ensure title is different from article title (case-insensitive)
+    if (articleTitle && title.toLowerCase().trim() === articleTitle.toLowerCase().trim()) {
+      console.warn(`⚠️  SEO title matches article title "${articleTitle}". Modifying to be different.`);
+      // Add a descriptive prefix or suffix to differentiate
+      if (title.length < 45) {
+        title = `${title} | Complete Guide`;
+      } else {
+        // Replace last few words with a variation
+        const words = title.split(' ');
+        if (words.length > 3) {
+          words[words.length - 1] = 'Guide';
+          title = words.join(' ');
+        } else {
+          title = `${title} Guide`;
+        }
+      }
+    }
+
+    // Ensure focus keyphrase is included (if provided and title doesn't have it)
+    if (focusKeyphrase && focusKeyphrase.length > 0) {
+      const titleLower = title.toLowerCase();
+      const focusLower = focusKeyphrase.toLowerCase();
+
+      // Check if any significant word from focus keyphrase is in title
+      const focusWords = focusLower.split(/\s+/).filter(w => w.length > 3); // Words longer than 3 chars
+      const hasFocusKeyword = focusWords.some(word => titleLower.includes(word));
+
+      if (!hasFocusKeyword && title.length < 50) {
+        // Try to naturally incorporate the keyphrase
+        const words = title.split(' ');
+        if (words.length < 6) {
+          // Add keyphrase naturally
+          title = `${title} ${focusKeyphrase}`;
+        } else {
+          // Replace a generic word with keyphrase
+          const genericWords = ['Guide', 'Complete', 'Best', 'Top', 'How'];
+          for (const generic of genericWords) {
+            if (title.includes(generic)) {
+              title = title.replace(new RegExp(`\\b${generic}\\b`, 'i'), focusKeyphrase);
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    // Enforce 50-60 character limit (optimal SEO length)
+    if (title.length > 60) {
+      console.warn(
+        `⚠️  SEO title exceeds 60 characters ("${title.length}" chars): "${title}". Truncating intelligently.`
+      );
+      title = this.truncateTitleIntelligently(title, 60, focusKeyphrase);
+    } else if (title.length < 50) {
+      // If too short, try to expand naturally (but don't force it)
+      if (title.length < 40 && focusKeyphrase) {
+        // Only expand if significantly short and we have a keyphrase
+        const expanded = this.expandTitleNaturally(title, focusKeyphrase, 50);
+        if (expanded.length <= 60) {
+          title = expanded;
+        }
+      }
+    }
+
+    return title;
+  }
+
+  /**
+   * Generate SEO title from focus keyphrase when no title is provided
+   */
+  generateSeoTitleFromKeyword(keyphrase, articleTitle) {
+    // Create variations that are different from article title
+    const variations = [
+      `${keyphrase} | Complete Guide for Indian Investors`,
+      `${keyphrase}: Strategy & Analysis Guide`,
+      `${keyphrase} Explained | Investment Guide`,
+      `Understanding ${keyphrase} | Expert Guide`,
+    ];
+
+    // Find one that's different from article title and within 50-60 chars
+    for (const variation of variations) {
+      if (variation.length >= 50 && variation.length <= 60) {
+        if (!articleTitle || variation.toLowerCase() !== articleTitle.toLowerCase()) {
+          return variation;
+        }
+      }
+    }
+
+    // Fallback: simple version
+    return keyphrase.length <= 60 ? keyphrase : keyphrase.substring(0, 57) + '...';
+  }
+
+  /**
+   * Truncate title intelligently at word boundaries, preserving focus keyphrase
+   */
+  truncateTitleIntelligently(title, maxLength, focusKeyphrase) {
+    if (title.length <= maxLength) return title;
+
+    // If focus keyphrase is in the title, try to keep it
+    if (focusKeyphrase && title.toLowerCase().includes(focusKeyphrase.toLowerCase())) {
+      const keyphraseIndex = title.toLowerCase().indexOf(focusKeyphrase.toLowerCase());
+      const keyphraseEnd = keyphraseIndex + focusKeyphrase.length;
+
+      // If keyphrase is near the end, truncate before it and add it back
+      if (keyphraseEnd > maxLength - 10) {
+        const beforeKeyphrase = title.substring(0, keyphraseIndex).trim();
+        const truncated = this.truncateAtWordBoundary(beforeKeyphrase, maxLength - focusKeyphrase.length - 3);
+        return `${truncated} ${focusKeyphrase}`.substring(0, maxLength);
+      }
+    }
+
+    // Otherwise, truncate at word boundary
+    return this.truncateAtWordBoundary(title, maxLength);
+  }
+
+  /**
+   * Truncate at word boundary, adding ellipsis if needed
+   */
+  truncateAtWordBoundary(text, maxLength) {
+    if (text.length <= maxLength) return text;
+
+    // Try to truncate at last space before maxLength
+    let truncated = text.substring(0, maxLength - 3);
+    const lastSpace = truncated.lastIndexOf(' ');
+
+    if (lastSpace > maxLength * 0.7) {
+      // If we found a space in a reasonable position, use it
+      truncated = truncated.substring(0, lastSpace);
+    }
+
+    return truncated.trim() + '...';
+  }
+
+  /**
+   * Expand title naturally to reach target length
+   */
+  expandTitleNaturally(title, focusKeyphrase, targetLength) {
+    if (title.length >= targetLength) return title;
+
+    const needed = targetLength - title.length;
+    const additions = [
+      ' | Complete Guide',
+      ' | Expert Analysis',
+      ' | Investment Guide',
+      ' | Strategy Guide',
+      ' for Indian Investors',
+    ];
+
+    for (const addition of additions) {
+      const expanded = title + addition;
+      if (expanded.length >= targetLength && expanded.length <= 60) {
+        return expanded;
+      }
+    }
+
+    return title; // Return original if can't expand naturally
+  }
+
   truncateTitle(title) {
     if (!title) return '';
     const cleaned = title.trim();
     if (cleaned.length > 60) {
       console.warn(
-        `⚠️  Generated title exceeds 60 characters ("${cleaned.length}" chars): "${cleaned}". Keeping full title for display.`
+        `⚠️  Generated title exceeds 60 characters ("${cleaned.length}" chars): "${cleaned}". Truncating.`
       );
+      return this.truncateTitleIntelligently(cleaned, 60);
     }
     return cleaned;
   }

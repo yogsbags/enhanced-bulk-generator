@@ -174,11 +174,14 @@ class ContentValidator {
     const seoMeta = this.safeParseJSON(content.seo_metadata, {});
     const qualityMetrics = this.safeParseJSON(content.quality_metrics, {});
 
+    // Extract article title (from first H1 or topic_title)
+    const articleTitle = this.extractArticleTitle(article, content);
+
     // Run all validation categories
     this.validateStructure(article, result);
     this.validateContentQuality(article, content, result);
     this.validateCompliance(article, result);
-    this.validateSEO(seoMeta, article, result);
+    this.validateSEO(seoMeta, article, result, articleTitle);
     this.validateFormatting(article, result);
 
     // Calculate final score
@@ -484,9 +487,33 @@ class ContentValidator {
   }
 
   /**
+   * Extract article title from content or metadata
+   */
+  extractArticleTitle(article, content) {
+    // Try to extract from first H1 in article
+    const h1Match = article.match(/^#\s+([^\n]+)/m);
+    if (h1Match) {
+      return h1Match[1].trim();
+    }
+
+    // Fallback to topic_title from content
+    if (content.topic_title) {
+      return content.topic_title.trim();
+    }
+
+    // Fallback to first H2 if no H1
+    const h2Match = article.match(/^##\s+([^\n]+)/m);
+    if (h2Match) {
+      return h2Match[1].trim();
+    }
+
+    return null;
+  }
+
+  /**
    * Validate SEO metadata (HIGH)
    */
-  validateSEO(seoMeta, article, result) {
+  validateSEO(seoMeta, article, result, articleTitle = null) {
     const weight = this.ruleWeights.HIGH;
 
     // Rule 1: Meta title length (50-60 characters)
@@ -501,6 +528,18 @@ class ContentValidator {
       `Meta title length optimal (50-60 chars): ${titleLength} chars`,
       `Meta title length ${titleLength} chars (target: 50-60)`
     );
+
+    // Rule 1.5: Article title and SEO title must be different
+    if (articleTitle && title) {
+      const titlesAreDifferent = articleTitle.toLowerCase().trim() !== title.toLowerCase().trim();
+      this.addValidationCheck(
+        result,
+        titlesAreDifferent,
+        weight,
+        'Article title and SEO title are different',
+        `Article title "${articleTitle}" and SEO title "${title}" are the same - they must be different`
+      );
+    }
 
     // Rule 2: Meta description length (140-160 characters)
     const description = seoMeta.meta_description || '';
@@ -727,7 +766,8 @@ class ContentValidator {
     prompt += `7. **FAQ**: Exactly 5 FAQ questions in H3 format (###), placed AFTER Conclusion\n`;
     prompt += `8. **Dates**: Use "November 2025" not "January 2025"\n`;
     prompt += `9. **No Absolute Claims**: Avoid "X% probability" or "success rate of Y%" without qualifiers\n`;
-    prompt += `10. **Formatting**: Use bullets, numbered lists, and tables for variety\n\n`;
+    prompt += `10. **Formatting**: Use bullets, numbered lists, and tables for variety\n`;
+    prompt += `11. **Title Difference**: The article title (from topic_title or first heading) MUST be different from the SEO meta title (seo_metadata.title)\n\n`;
 
     // Add SEO context if relevant
     if (seoMeta.focus_keyphrase) {
