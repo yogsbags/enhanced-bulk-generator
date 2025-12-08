@@ -32,8 +32,16 @@ function formatMarkdown(content: any, primaryKeyword: string | null = null): str
   // If it does, it will be included when we add article_content below
   // If it doesn't, we don't need to add it separately since it should have been added during content creation
 
+  // Normalize article_content: handle escaped newlines from CSV storage
+  // CSV may store newlines as literal \n strings, so convert them to actual newlines
+  let normalizedArticleContent = article_content || ''
+  if (typeof normalizedArticleContent === 'string') {
+    // Replace escaped newlines with actual newlines (but not double-escape)
+    normalizedArticleContent = normalizedArticleContent.replace(/\\n/g, '\n')
+  }
+
   // Add article content (which should already include RESEARCH VERIFICATION if it was extracted)
-  markdown += article_content || ''
+  markdown += normalizedArticleContent
 
   // Add compliance/disclaimer at the end
   if (compliance) {
@@ -70,13 +78,15 @@ function formatMarkdown(content: any, primaryKeyword: string | null = null): str
   const canonicalUrl = `https://www.plindia.com/blog/${slug}`
   markdown += `### SEO Optimized URL\n\`\`\`\n${canonicalUrl}\n\`\`\`\n\n`
 
-  // Extract and add FAQ schema if FAQs exist
-  const faqs = extractFAQs(article_content)
+  // Extract and add FAQ schema if FAQs exist (use normalized content)
+  const faqs = extractFAQs(normalizedArticleContent)
   if (faqs.length > 0) {
     markdown += generateFAQSchema(faqs, canonicalUrl)
+    console.log(`✅ Extracted ${faqs.length} FAQs and added FAQ schema`)
   } else {
     // Debug: Log if FAQs weren't found (for troubleshooting)
     console.log('⚠️  No FAQs extracted from article content. FAQ section may be missing or in unexpected format.')
+    console.log('Article content preview (last 500 chars):', normalizedArticleContent.slice(-500))
   }
 
   return markdown
@@ -91,32 +101,48 @@ function formatMarkdown(content: any, primaryKeyword: string | null = null): str
 function extractFAQs(articleContent: string): Array<{ question: string; answer: string }> {
   const faqs: Array<{ question: string; answer: string }> = []
 
+  if (!articleContent) {
+    return faqs
+  }
+
   // Check if there's a FAQ section (various possible headings)
   // Match FAQ section until: ---, ## SEO Metadata, ## Talk to, ## Conclusion, or end of content
-  // Use non-greedy match to capture until the first occurrence of these patterns
-  const faqSectionMatch = articleContent.match(/##\s+(?:FAQs?|Frequently Asked Questions|FAQ)[^\n]*\n([\s\S]*?)(?=\n---|\n##\s+(?:SEO Metadata|Talk to|Conclusion)|$)/i)
+  // Updated pattern to handle "FAQs on [Topic]" format and be more flexible
+  const faqSectionMatch = articleContent.match(/##\s+(?:FAQs?\s+on\s+[^\n]*|FAQs?|Frequently Asked Questions|FAQ)[^\n]*\n([\s\S]*?)(?=\n---|\n##\s+(?:SEO Metadata|Talk to|Conclusion)|$)/i)
 
   if (faqSectionMatch) {
     const faqSection = faqSectionMatch[1]
+    console.log(`✅ Found FAQ section, length: ${faqSection.length} chars`)
 
     // Try H3 format first (### Question)
-    const h3Regex = /###\s+(.+?)\n\n?([\s\S]+?)(?=\n###|\n##|\n---|\n\n---|$)/g
+    // Updated regex to handle answers that may span multiple paragraphs
+    const h3Regex = /###\s+(.+?)\n+([\s\S]+?)(?=\n###\s+|\n##\s+|\n---|$)/g
     let match
 
     while ((match = h3Regex.exec(faqSection)) !== null) {
       const question = match[1].trim()
-      const answer = match[2].trim().replace(/\n\n/g, ' ').replace(/\n/g, ' ')
+      let answer = match[2].trim()
 
-      if (question && answer) {
+      // Clean up answer: normalize whitespace but preserve sentence structure
+      answer = answer
+        .replace(/\n{3,}/g, '\n\n')  // Replace 3+ newlines with 2
+        .replace(/\n\n/g, ' ')         // Replace double newlines with space
+        .replace(/\n/g, ' ')          // Replace single newlines with space
+        .replace(/\s+/g, ' ')         // Normalize multiple spaces
+        .trim()
+
+      if (question && answer && answer.length > 10) {  // Ensure answer has meaningful content
         faqs.push({
           question: question,
           answer: answer
         })
+        console.log(`  ✓ Extracted FAQ: "${question.substring(0, 50)}..."`)
       }
     }
 
     // If no H3 FAQs found, try Q&A format (**Q1. Question?** followed by A:)
     if (faqs.length === 0) {
+      console.log('  ⚠️  No H3 FAQs found, trying Q&A format...')
       // Match **Q1. Question text?** followed by A: answer text
       // Handles both single-line and multi-line answers
       const qaRegex = /\*\*Q\d+\.\s*(.+?)\*\*\s*\n\s*A:\s*([\s\S]+?)(?=\n\*\*Q\d+\.|\n---|\n##|$)/g
@@ -137,8 +163,16 @@ function extractFAQs(articleContent: string): Array<{ question: string; answer: 
             question: question,
             answer: answer
           })
+          console.log(`  ✓ Extracted FAQ: "${question.substring(0, 50)}..."`)
         }
       }
+    }
+  } else {
+    console.log('⚠️  FAQ section not found in article content')
+    // Debug: show what sections we can find
+    const sectionMatches = articleContent.match(/##\s+[^\n]+/g)
+    if (sectionMatches) {
+      console.log('  Found sections:', sectionMatches.slice(-5).join(', '))
     }
   }
 

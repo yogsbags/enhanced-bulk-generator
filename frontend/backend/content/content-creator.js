@@ -1652,8 +1652,10 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
   sanitizeArticleContent(text) {
     if (!text) return '';
 
-    // Extract RESEARCH VERIFICATION section first to preserve it
-    const researchVerificationMatch = text.match(/(###\s*RESEARCH\s+VERIFICATION[\s\S]*?)(?=\n---|\n##|$)/i);
+    // Extract the FIRST RESEARCH VERIFICATION section only (stop before second occurrence or ##)
+    // Match from ### RESEARCH VERIFICATION until: another ### RESEARCH VERIFICATION, ---, ##, or end
+    // Use a more precise pattern that stops at the second header if it exists
+    const researchVerificationMatch = text.match(/(###\s*RESEARCH\s+VERIFICATION[\s\S]*?)(?=\n###\s*RESEARCH\s+VERIFICATION|\n---|\n##|$)/i);
     const researchVerificationSection = researchVerificationMatch ? researchVerificationMatch[1] : null;
     let content = text.replace(/\r/g, '');
 
@@ -1678,12 +1680,19 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
     content = content.replace(/^\s{0,3}\*\*?\s*Quality\s+Metrics?:[\s\S]*?(?=\n{2,}|\n#+\s|$)/gim, '');
     content = content.replace(/^\s{0,3}\*\*?\s*Content\s+Upgrades?:[\s\S]*?(?=\n{2,}|\n#+\s|$)/gim, '');
 
-    // Remove RESEARCH VERIFICATION from content if it exists (we'll add it back at the start)
-    content = content.replace(/###\s*RESEARCH\s+VERIFICATION[\s\S]*?(?=\n---|\n##|$)/i, '');
+    // Remove ALL occurrences of RESEARCH VERIFICATION from content (including duplicates)
+    // This will remove both the first section and any duplicate headers
+    content = content.replace(/###\s*RESEARCH\s+VERIFICATION[\s\S]*?(?=\n###\s*RESEARCH\s+VERIFICATION|\n---|\n##|$)/gi, '');
 
-    // Re-add RESEARCH VERIFICATION at the beginning if it was extracted
+    // Clean up any leftover separators or orphaned headers
+    content = content.replace(/\n---\n---/g, '\n---');
+    content = content.replace(/^\s*###\s*RESEARCH\s+VERIFICATION\s*$/gim, ''); // Remove orphaned headers
+    content = content.replace(/\n{3,}/g, '\n\n').trim();
+
+    // Re-add RESEARCH VERIFICATION at the beginning if it was extracted (only the first one)
     if (researchVerificationSection) {
-      content = `${researchVerificationSection}\n\n---\n\n${content}`.replace(/\n{3,}/g, '\n\n');
+      const cleanedVerification = researchVerificationSection.trim();
+      content = `${cleanedVerification}\n\n---\n\n${content}`.replace(/\n{3,}/g, '\n\n');
     }
 
     return content;
