@@ -14,7 +14,7 @@ function removeJsonMetadata(markdown: string): string {
 
   // Strategy: Find where the actual article content ends and remove everything after
   // JSON metadata typically appears after the article conclusion, FAQs, or final sections
-  
+
   // First, try to find common article ending markers
   const articleEndMarkers = [
     /##\s*(?:Conclusion|Bottom\s+Line|Final\s+Thoughts|Summary|Takeaways|Next\s+Steps)/i,
@@ -34,7 +34,7 @@ function removeJsonMetadata(markdown: string): string {
       // Find the last occurrence
       const lastMatch = matches[matches.length - 1]
       const afterMatch = content.substring(lastMatch.index! + lastMatch[0].length)
-      
+
       // Check if JSON metadata appears after this marker
       if (/["'][^"']+["']\s*:/.test(afterMatch)) {
         // Find where JSON starts after this marker
@@ -57,11 +57,11 @@ function removeJsonMetadata(markdown: string): string {
     content = content.replace(/["']content_upgrades["']\s*:\s*\[[\s\S]*?\]/gi, '')
     content = content.replace(/["']compliance["']\s*:\s*"[^"]*"/gi, '')
     content = content.replace(/["']quality_metrics["']\s*:\s*\{[\s\S]*?\}/gi, '')
-    
+
     // Remove any remaining JSON-like structures (quoted keys with values)
     // This is more aggressive and catches any metadata fields
     content = content.replace(/["'][^"']+["']\s*:\s*(?:\[[\s\S]*?\]|\{[\s\S]*?\}|"[^"]*"|\d+)/g, '')
-    
+
     // Remove trailing commas, brackets, and braces
     content = content.replace(/,\s*$/, '')
     content = content.replace(/^\s*[\[\{]\s*$/, '')
@@ -74,25 +74,25 @@ function removeJsonMetadata(markdown: string): string {
   // Final pass: Remove any lines at the end that look like JSON metadata
   const lines = content.split('\n')
   let lastValidLineIndex = lines.length - 1
-  
+
   // Work backwards to find the last line that's actual content
   for (let i = lines.length - 1; i >= 0; i--) {
     const line = lines[i].trim()
     if (!line) continue // Skip empty lines
-    
+
     // If line looks like JSON metadata (quoted key with colon), this is where content ends
     if (/^["'][^"']+["']\s*:/.test(line)) {
       lastValidLineIndex = i - 1
       break
     }
-    
+
     // If line looks like JSON structure start/end, also mark as end
     if (/^[\[\{]\s*$/.test(line) || /^\s*[\]\}]\s*$/.test(line)) {
       lastValidLineIndex = i - 1
       break
     }
   }
-  
+
   // Truncate to last valid line
   if (lastValidLineIndex >= 0 && lastValidLineIndex < lines.length - 1) {
     content = lines.slice(0, lastValidLineIndex + 1).join('\n').trim()

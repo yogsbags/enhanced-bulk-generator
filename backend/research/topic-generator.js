@@ -502,7 +502,7 @@ class TopicGenerator {
             messages: [
               {
                 role: 'system',
-                content: 'You are an Expert Content Strategist specializing in Indian WealthTech. Generate HIGH-QUALITY, SPECIFIC, ACTIONABLE content topics based on user input. Focus on creating compelling, SEO-optimized titles that include primary keywords naturally and provide clear value propositions. Avoid generic topics - be specific and strategic.'
+                content: 'You are an Expert Content Strategist specializing in Indian Broking and WealthTech. Generate HIGH-QUALITY, SPECIFIC, ACTIONABLE content topics based on user input. Focus on creating compelling, SEO-optimized titles that include primary keywords naturally and provide clear value propositions. Avoid generic topics - be specific and strategic.'
               },
               {
                 role: 'user',
@@ -635,7 +635,7 @@ For EACH of the ${topicCount} topic(s), provide:
 
 1. research_gap_id: "CUSTOM-GAP" (since this bypasses Stage 1 research)
 2. content_type: [blog|ymyl|listicle|news] (auto-detect based on topic - blog for educational, ymyl for investment advice)
-3. topic_title: 
+3. topic_title:
    - Generate a compelling, SEO-optimized blog title based on "${customTopicTitle}"
    - Format: "[Primary Keyword] [Year]: [Value Proposition]" or "[Action] [Primary Keyword] [Year]"
    - Examples: "Nifty Options Strategies: Complete Guide for Beginners in 2025", "Best ELSS Funds 2025: Top Tax-Saving Equity Schemes for Indian Investors"
@@ -1266,10 +1266,10 @@ CRITICAL RULES:
           /^(complete|ultimate|best|top)\s+(guide|tips|strategies)$/,
           /^.*\s+(guide|tips|strategies)\s*$/
         ];
-        
-        const isTooGeneric = genericPatterns.some(pattern => pattern.test(title)) && 
+
+        const isTooGeneric = genericPatterns.some(pattern => pattern.test(title)) &&
                             topic.topic_title.length < 40;
-        
+
         if (isTooGeneric) {
           console.warn(`⚠️  Topic ${index + 1} has generic title: "${topic.topic_title}" - Consider making it more specific`);
         }
@@ -1316,15 +1316,15 @@ CRITICAL RULES:
       return titleLower.includes(keywordLower);
     }).length;
     console.log(`   ✅ Titles with primary_keyword: ${titlesWithKeyword}/${enhancedTopics.length}`);
-    
+
     const avgTitleLength = Math.round(
       enhancedTopics.reduce((sum, t) => sum + (t.topic_title || '').length, 0) / enhancedTopics.length
     );
     console.log(`   📏 Average title length: ${avgTitleLength} chars (target: 50-60)`);
-    
+
     const specificTitles = enhancedTopics.filter(t => {
       const title = (t.topic_title || '').toLowerCase();
-      return title.length >= 40 && 
+      return title.length >= 40 &&
              !/^(investment|financial|wealth|money|guide|tips|strategies)$/.test(title);
     }).length;
     console.log(`   ✅ Specific titles (not generic): ${specificTitles}/${enhancedTopics.length}`);
