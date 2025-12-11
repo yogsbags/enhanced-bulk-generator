@@ -82,7 +82,7 @@ class ContentCreator {
             top_p: 0.92,
             frequency_penalty: 0.3,
             presence_penalty: 0.1,
-            max_tokens: 8000,
+            max_tokens: 16000, // Increased from 8000 to handle long-form articles with research verification + SEO metadata
             response_format: { type: 'json_object' }
           }
         }
