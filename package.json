@@ -13,7 +13,8 @@
     "init": "node main.js init",
     "test": "node test-google-apis.js",
     "test:google-apis": "node test-google-apis.js",
-    "convert-html": "node scripts/markdown-to-html-converter.js"
+    "convert-html": "node scripts/markdown-to-html-converter.js",
+    "link-html": "node scripts/add-internal-links.js"
   },
   "keywords": [
     "ai",

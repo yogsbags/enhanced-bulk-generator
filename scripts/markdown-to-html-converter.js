@@ -29,8 +29,28 @@ class MarkdownToHtmlConverter {
    * Extract SEO metadata section from markdown content
    */
   extractSeoMetadata(content) {
-    const seoMetadataRegex = /\n---\n\n## SEO Metadata([\s\S]*)$/i;
-    const match = content.match(seoMetadataRegex);
+    const headingRegex = /^\s*##\s*SEO Metadata/im;
+    const headingIndex = content.search(headingRegex);
+    if (headingIndex === -1) {
+      return '';
+    }
+    return content.slice(headingIndex).trim();
+  }
+
+  /**
+   * Generic helper to pull the contents of a fenced code block that follows a given heading
+   */
+  extractCodeBlockAfterHeading(seoContent, heading) {
+    if (!seoContent) {
+      return '';
+    }
+
+    const pattern =
+      '###\\s*' +
+      heading +
+      '[\\s\\S]*?```[^\\n]*\\n([\\s\\S]*?)\\n```';
+    const regex = new RegExp(pattern, 'i');
+    const match = seoContent.match(regex);
     return match ? match[1].trim() : '';
   }
 
@@ -38,24 +58,22 @@ class MarkdownToHtmlConverter {
    * Extract SEO meta title from SEO metadata section
    */
   extractMetaTitle(seoContent) {
-    const titleMatch = seoContent.match(/###\s*SEO Meta Title[\s\S]*?```\s*\n([^\n]+)\n```/);
-    return titleMatch ? titleMatch[1].trim() : '';
+    return this.extractCodeBlockAfterHeading(seoContent, 'SEO Meta Title');
   }
 
   /**
    * Extract SEO meta description from SEO metadata section
    */
   extractMetaDescription(seoContent) {
-    const descMatch = seoContent.match(/###\s*SEO Meta Description[\s\S]*?```\s*\n([^\n]+)\n```/);
-    return descMatch ? descMatch[1].trim() : '';
+    return this.extractCodeBlockAfterHeading(seoContent, 'SEO Meta Description');
   }
 
   /**
    * Extract canonical URL from SEO metadata section
    */
   extractCanonicalUrl(seoContent) {
-    const urlMatch = seoContent.match(/###\s*SEO Optimized URL[\s\S]*?```\s*\n(https?:\/\/[^\n]+)\n```/);
-    return urlMatch ? urlMatch[1].trim() : '';
+    const url = this.extractCodeBlockAfterHeading(seoContent, 'SEO Optimized URL');
+    return url.startsWith('http') ? url : '';
   }
 
   /**
@@ -93,9 +111,22 @@ class MarkdownToHtmlConverter {
    * Remove SEO metadata section from markdown content
    */
   stripSeoMetadata(content) {
-    // Find the SEO Metadata section and remove everything after it
-    const seoMetadataRegex = /\n---\n\n## SEO Metadata[\s\S]*$/i;
-    return content.replace(seoMetadataRegex, '').trim();
+    const headingRegex = /^\s*##\s*SEO Metadata/im;
+    const match = content.match(headingRegex);
+    if (!match) {
+      return content.trim();
+    }
+    return content.slice(0, match.index).trim();
+  }
+
+  /**
+   * Remove research verification section from markdown content
+   * Removes everything from "RESEARCH VERIFICATION" heading to the first horizontal rule
+   */
+  stripResearchVerification(content) {
+    // Match "### RESEARCH VERIFICATION" or similar heading followed by content until "---"
+    const researchRegex = /^###?\s*RESEARCH VERIFICATION[\s\S]*?^---\s*$/im;
+    return content.replace(researchRegex, '').trim();
   }
 
   /**
@@ -125,10 +156,9 @@ class MarkdownToHtmlConverter {
       '&': '&amp;',
       '<': '&lt;',
       '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#039;'
+      '"': '&quot;'
     };
-    return text.replace(/[&<>"']/g, m => map[m]);
+    return text.replace(/[&<>"]/g, m => map[m]);
   }
 
   /**
@@ -192,8 +222,11 @@ class MarkdownToHtmlConverter {
       // Generate SEO metadata block
       const seoMetadataBlock = this.generateSeoMetadataBlock(metaTitle, metaDescription, canonicalUrl);
 
+      // Strip research verification section first
+      let contentWithoutResearch = this.stripResearchVerification(markdownContent);
+
       // Strip SEO metadata from content
-      const contentWithoutSeo = this.stripSeoMetadata(markdownContent);
+      const contentWithoutSeo = this.stripSeoMetadata(contentWithoutResearch);
 
       // Convert to HTML
       let htmlContent = marked.parse(contentWithoutSeo);
@@ -283,4 +316,3 @@ if (require.main === module) {
 }
 
 module.exports = MarkdownToHtmlConverter;
-
