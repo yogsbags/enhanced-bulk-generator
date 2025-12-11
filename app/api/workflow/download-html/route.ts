@@ -423,8 +423,8 @@ function markdownToHtml(markdown: string, title: string = 'Article', metaDescrip
   <script>
     window.MathJax = {
       tex: {
-        inlineMath: [['$', '$'], ['\\(', '\\)']],
-        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+        inlineMath: [['$', '$'], ['\\\\(', '\\\\)']],
+        displayMath: [['$$', '$$'], ['\\\\[', '\\\\]']],
         processEscapes: true,
         processEnvironments: true
       },
