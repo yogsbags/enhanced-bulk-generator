@@ -1362,7 +1362,7 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
           temperature: 0.6,
           topP: 0.92,
           topK: 40,
-          maxOutputTokens: 8192,
+          maxOutputTokens: 16000, // Increased from 8192; Gemini 3 Pro supports up to 32,768
           responseMimeType: 'application/json',
         },
         tools: [{ googleSearch: {} }],
