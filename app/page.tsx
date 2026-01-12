@@ -725,19 +725,15 @@ export default function Home() {
                           <button
                             onClick={async () => {
                               try {
-                                // Get the most recent content entry (last one, or by creation_date)
+                                // Get the most recent content entry (last one in the array)
                                 const contentRows = stageData[stage.id].data.filter((row: any) => row.content_id && row.article_content)
                                 if (contentRows.length === 0) {
                                   alert('No content ID found')
                                   return
                                 }
 
-                                // Sort by creation_date descending, or use last entry
-                                const contentRow = contentRows.sort((a: any, b: any) => {
-                                  const dateA = a.creation_date ? new Date(a.creation_date).getTime() : 0
-                                  const dateB = b.creation_date ? new Date(b.creation_date).getTime() : 0
-                                  return dateB - dateA
-                                })[0] || contentRows[contentRows.length - 1]
+                                // Use the last entry (most recently generated content)
+                                const contentRow = contentRows[contentRows.length - 1]
 
                                 if (!contentRow || !contentRow.content_id) {
                                   alert('No content ID found')
@@ -779,19 +775,15 @@ export default function Home() {
                           <button
                             onClick={async () => {
                               try {
-                                // Get the most recent content entry (last one, or by creation_date)
+                                // Get the most recent content entry (last one in the array)
                                 const contentRows = stageData[stage.id].data.filter((row: any) => row.content_id && row.article_content)
                                 if (contentRows.length === 0) {
                                   alert('No content ID found')
                                   return
                                 }
 
-                                // Sort by creation_date descending, or use last entry
-                                const contentRow = contentRows.sort((a: any, b: any) => {
-                                  const dateA = a.creation_date ? new Date(a.creation_date).getTime() : 0
-                                  const dateB = b.creation_date ? new Date(b.creation_date).getTime() : 0
-                                  return dateB - dateA
-                                })[0] || contentRows[contentRows.length - 1]
+                                // Use the last entry (most recently generated content)
+                                const contentRow = contentRows[contentRows.length - 1]
 
                                 if (!contentRow || !contentRow.content_id) {
                                   alert('No content ID found')
@@ -833,19 +825,15 @@ export default function Home() {
                           <button
                             onClick={async () => {
                               try {
-                                // Get the most recent content entry (last one, or by creation_date)
+                                // Get the most recent content entry (last one in the array)
                                 const contentRows = stageData[stage.id].data.filter((row: any) => row.content_id && row.article_content)
                                 if (contentRows.length === 0) {
                                   alert('No content ID found')
                                   return
                                 }
 
-                                // Sort by creation_date descending, or use last entry
-                                const contentRow = contentRows.sort((a: any, b: any) => {
-                                  const dateA = a.creation_date ? new Date(a.creation_date).getTime() : 0
-                                  const dateB = b.creation_date ? new Date(b.creation_date).getTime() : 0
-                                  return dateB - dateA
-                                })[0] || contentRows[contentRows.length - 1]
+                                // Use the last entry (most recently generated content)
+                                const contentRow = contentRows[contentRows.length - 1]
 
                                 if (!contentRow || !contentRow.content_id) {
                                   alert('No content ID found')
