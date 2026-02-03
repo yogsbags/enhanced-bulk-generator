@@ -88,16 +88,33 @@ async function uploadToImgbb(imageBuffer, filename, apiKey = process.env.IMGBB_A
 async function downloadImage(url, filename) {
   if (!url) return null;
 
-  const response = await fetch(url);
+  let response;
+  try {
+    response = await fetch(url);
+  } catch (err) {
+    console.warn(`   ⚠️  Image download failed (network): ${err.message}`);
+    return null;
+  }
   if (!response.ok) {
-    throw new Error(`Image download failed: ${response.status} ${response.statusText}`);
+    console.warn(`   ⚠️  Image download failed: ${response.status} ${response.statusText}`);
+    return null;
   }
 
-  const buffer = await response.buffer();
+  let buffer;
+  try {
+    buffer = await response.buffer();
+  } catch (err) {
+    console.warn(`   ⚠️  Image buffer failed: ${err.message}`);
+    return null;
+  }
   const safeName = filename.replace(/[^a-z0-9-]+/gi, '-').toLowerCase();
 
+  if (!buffer || buffer.length === 0) return null;
+
   // Resize and compress image using sharp (in-memory)
-  const resizedBuffer = await sharp(buffer)
+  let resizedBuffer;
+  try {
+    resizedBuffer = await sharp(buffer)
     .png({
       quality: 85,           // Quality: 0-100 (85 is good balance)
       compressionLevel: 9,   // Max compression: 0-9
@@ -108,6 +125,10 @@ async function downloadImage(url, filename) {
       position: 'center'
     })
     .toBuffer();           // Returns buffer instead of writing to disk
+  } catch (err) {
+    console.warn(`   ⚠️  Image resize failed: ${err.message}`);
+    return null;
+  }
 
   // Primary: Upload to imgbb for permanent CDN hosting
   let hostedUrl = null;

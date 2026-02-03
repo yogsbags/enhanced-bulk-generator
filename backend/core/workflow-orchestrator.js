@@ -534,8 +534,12 @@ class WorkflowOrchestrator {
 
       console.log(`\n📝 Saved ${newRecords.length} drafts to data/created-content.csv`);
 
-      // Sync to Google Sheets
-      await this.syncToGoogleSheets('created-content');
+      // Sync to Google Sheets (non-fatal: don't fail Stage 4 if sync fails)
+      try {
+        await this.syncToGoogleSheets('created-content');
+      } catch (syncErr) {
+        console.warn('⚠️  Google Sheets sync failed (content already saved to CSV):', syncErr.message);
+      }
 
       await this.sleep(this.config.delayBetweenStages);
       return true;

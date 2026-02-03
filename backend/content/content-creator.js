@@ -1348,39 +1348,66 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
   }
 
   /**
-   * Call Google Gemini model for content generation
+   * Call Google Gemini model for content generation.
+   * Retries on transient network errors (Failed to fetch, ECONNRESET, ETIMEDOUT) for long-running content generation.
    */
   async callGeminiModel(modelName, prompt) {
     if (!this.geminiApiKey) {
       throw new Error('GEMINI_API_KEY not configured');
     }
 
-    try {
-      const model = this.genAI.getGenerativeModel({
-        model: modelName,
-        generationConfig: {
-          temperature: 0.6,
-          topP: 0.92,
-          topK: 40,
-          maxOutputTokens: 16000, // Increased from 8192; Gemini 3 Pro supports up to 32,768
-          responseMimeType: 'application/json',
-        },
-        tools: [{ googleSearch: {} }],
-        systemInstruction: 'You are a senior financial content strategist. Always respond with valid JSON following the provided schema. Never include markdown code fences or explanatory text - ONLY return the JSON object.',
-      });
+    const maxRetries = 2;
+    const retryDelayMs = 15000; // 15s between retries for long-running requests
 
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const content = response.text();
+    const isRetryable = (err) => {
+      const msg = (err && err.message) ? String(err.message).toLowerCase() : '';
+      return (
+        msg.includes('failed to fetch') ||
+        msg.includes('econnreset') ||
+        msg.includes('etimedout') ||
+        msg.includes('network') ||
+        msg.includes('socket hang up') ||
+        msg.includes('aborted')
+      );
+    };
 
-      if (!content) {
-        throw new Error('Gemini returned an empty response');
+    let lastError;
+    for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
+      try {
+        const model = this.genAI.getGenerativeModel({
+          model: modelName,
+          generationConfig: {
+            temperature: 0.6,
+            topP: 0.92,
+            topK: 40,
+            maxOutputTokens: 16000, // Increased from 8192; Gemini 3 Pro supports up to 32,768
+            responseMimeType: 'application/json',
+          },
+          tools: [{ googleSearch: {} }],
+          systemInstruction: 'You are a senior financial content strategist. Always respond with valid JSON following the provided schema. Never include markdown code fences or explanatory text - ONLY return the JSON object.',
+        });
+
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const content = response.text();
+
+        if (!content) {
+          throw new Error('Gemini returned an empty response');
+        }
+
+        return content;
+      } catch (error) {
+        lastError = error;
+        if (attempt <= maxRetries && isRetryable(error)) {
+          console.warn(`⚠️  Gemini request failed (attempt ${attempt}/${maxRetries + 1}): ${error.message}. Retrying in ${retryDelayMs / 1000}s...`);
+          await new Promise((r) => setTimeout(r, retryDelayMs));
+          continue;
+        }
+        throw new Error(`Gemini API error: ${error.message}`);
       }
-
-      return content;
-    } catch (error) {
-      throw new Error(`Gemini API error: ${error.message}`);
     }
+
+    throw new Error(`Gemini API error: ${lastError && lastError.message ? lastError.message : 'Unknown error'}`);
   }
 
   /**
@@ -1986,78 +2013,91 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
       return content;
     }
 
-    if (content.__heroApplied) {
-      return content;
-    }
+    try {
+      if (content.__heroApplied) {
+        return content;
+      }
 
-    const seoMeta = content.__seo || this.safeParseJSON(content.seo_metadata, {});
-    const cacheKey = research.topic_id || content.topic_id;
+      const seoMeta = content.__seo || this.safeParseJSON(content.seo_metadata, {});
+      const cacheKey = research.topic_id || content.topic_id;
 
-    let hero = content.__hero || this.safeParseJSON(content.hero_image, null);
-    if (hero && ['generated', 'provided'].includes(hero.status)) {
+      let hero = content.__hero || this.safeParseJSON(content.hero_image, null);
+      if (hero && ['generated', 'provided'].includes(hero.status)) {
+        content.hero_image = JSON.stringify(hero);
+        content.__heroApplied = true;
+        return content;
+      }
+
+      if (!hero && cacheKey && this.heroImageCache.has(cacheKey)) {
+        const cached = this.heroImageCache.get(cacheKey);
+        if (cached && ['generated', 'provided'].includes(cached.status)) {
+          hero = cached;
+        }
+      }
+
+      if (!hero && this.shouldGenerateHeroImage()) {
+        const prompt = this.buildHeroImagePrompt(content, research);
+        const alt = this.buildHeroAltText(
+          seoMeta?.title || research.topic_title || research.topic_id,
+          seoMeta?.focus_keyphrase || research.primary_keyword
+        );
+
+        try {
+          const generated = await generateHeroImage({
+            prompt,
+            topicId: cacheKey,
+            title: seoMeta?.title || research.topic_title || research.topic_id,
+            focusKeyword: seoMeta?.focus_keyphrase || research.primary_keyword || '',
+            saveToDisk: true,
+          });
+
+          if (generated && ['generated', 'provided'].includes(generated.status || 'generated')) {
+            hero = {
+              topic_id: cacheKey,
+              status: generated.status || 'generated',
+              provider: generated.provider || 'openai-dall-e-3',
+              url: generated.url || null,
+              local_path: generated.localPath || generated.local_path || null,
+              prompt: generated.prompt || prompt,
+              alt: generated.alt || alt,
+              generated_at: generated.generated_at || new Date().toISOString(),
+              metadata: generated.metadata || {},
+            };
+          }
+
+          if (!hero && generated && generated.status === 'skipped') {
+            hero = this.buildHeroPlaceholder(research, seoMeta, 'skipped');
+          }
+        } catch (error) {
+          console.warn(`⚠️  Hero image generation failed for ${cacheKey || research.topic_research_id}: ${error.message}`);
+        }
+      }
+
+      if (!hero) {
+        const reason = this.shouldGenerateHeroImage() ? 'generation_failed' : 'images_disabled';
+        hero = this.buildHeroPlaceholder(research, seoMeta, reason);
+      }
+
+      if (cacheKey) {
+        this.heroImageCache.set(cacheKey, hero);
+      }
+
+      content.__hero = hero;
       content.hero_image = JSON.stringify(hero);
       content.__heroApplied = true;
       return content;
-    }
-
-    if (!hero && cacheKey && this.heroImageCache.has(cacheKey)) {
-      const cached = this.heroImageCache.get(cacheKey);
-      if (cached && ['generated', 'provided'].includes(cached.status)) {
-        hero = cached;
+    } catch (error) {
+      // Never fail Stage 4 due to hero image (e.g. "Failed to fetch" from image download/upload)
+      console.warn(`⚠️  Hero image step failed (content will still be saved): ${error.message}`);
+      if (content && !content.__heroApplied) {
+        const seoMeta = (content.__seo || this.safeParseJSON(content.seo_metadata, {}));
+        const hero = this.buildHeroPlaceholder(research, seoMeta, 'generation_failed');
+        content.__hero = hero;
+        content.hero_image = JSON.stringify(hero);
+        content.__heroApplied = true;
       }
+      return content;
     }
-
-    if (!hero && this.shouldGenerateHeroImage()) {
-      const prompt = this.buildHeroImagePrompt(content, research);
-      const alt = this.buildHeroAltText(
-        seoMeta?.title || research.topic_title || research.topic_id,
-        seoMeta?.focus_keyphrase || research.primary_keyword
-      );
-
-      try {
-        const generated = await generateHeroImage({
-          prompt,
-          topicId: cacheKey,
-          title: seoMeta?.title || research.topic_title || research.topic_id,
-          focusKeyword: seoMeta?.focus_keyphrase || research.primary_keyword || '',
-          saveToDisk: true,
-        });
-
-        if (generated && ['generated', 'provided'].includes(generated.status || 'generated')) {
-          hero = {
-            topic_id: cacheKey,
-            status: generated.status || 'generated',
-            provider: generated.provider || 'openai-dall-e-3',
-            url: generated.url || null,
-            local_path: generated.localPath || generated.local_path || null,
-            prompt: generated.prompt || prompt,
-            alt: generated.alt || alt,
-            generated_at: generated.generated_at || new Date().toISOString(),
-            metadata: generated.metadata || {},
-          };
-        }
-
-        if (!hero && generated && generated.status === 'skipped') {
-          hero = this.buildHeroPlaceholder(research, seoMeta, 'skipped');
-        }
-      } catch (error) {
-        console.warn(`⚠️  Hero image generation failed for ${cacheKey || research.topic_research_id}: ${error.message}`);
-      }
-    }
-
-    if (!hero) {
-      const reason = this.shouldGenerateHeroImage() ? 'generation_failed' : 'images_disabled';
-      hero = this.buildHeroPlaceholder(research, seoMeta, reason);
-    }
-
-    if (cacheKey) {
-      this.heroImageCache.set(cacheKey, hero);
-    }
-
-    content.__hero = hero;
-    content.hero_image = JSON.stringify(hero);
-    content.__heroApplied = true;
-    return content;
   }
 
   /**
