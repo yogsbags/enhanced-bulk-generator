@@ -80,7 +80,8 @@ export async function GET(request: NextRequest) {
       trim: true
     })
 
-    // Multiple content IDs → return ZIP of raw markdown files
+    // Multiple content IDs → return ZIP; single ID → fall through to single-file below
+    let singleIdFromList: string | null = null
     if (contentIdsParam) {
       const ids = contentIdsParam.split(',').map((id: string) => id.trim()).filter(Boolean)
       if (ids.length === 0) {
@@ -89,61 +90,67 @@ export async function GET(request: NextRequest) {
           { status: 400 }
         )
       }
-
-      const contents = ids
-        .map((id: string) => records.find((r: any) => r.content_id === id))
-        .filter(Boolean) as any[]
-
-      if (contents.length === 0) {
-        return NextResponse.json(
-          { error: `No content found for IDs: ${ids.join(', ')}` },
-          { status: 404 }
-        )
+      if (ids.length === 1) {
+        singleIdFromList = ids[0]
       }
 
-      const zip = new JSZip()
-      for (const content of contents) {
-        let rawContent = getRawContentForRecord(content, content.content_id)
-        if (!rawContent) {
-          rawContent = (content.article_content || '').replace(/\\n/g, '\n')
-        }
-        let seoMeta: any = {}
-        try {
-          seoMeta = JSON.parse(content.seo_metadata || '{}')
-        } catch (e) {
-          // Ignore
-        }
-        const sanitizedTitle = (seoMeta.title || content.topic_id || content.content_id || 'article')
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, '-')
-          .replace(/^-+|-+$/g, '')
-        zip.file(`${sanitizedTitle}-raw.md`, rawContent ?? '')
-      }
+      if (ids.length > 1) {
+        const contents = ids
+          .map((id: string) => records.find((r: any) => r.content_id === id))
+          .filter(Boolean) as any[]
 
-      const zipBuffer = await zip.generateAsync({ type: 'uint8array' })
-      return new NextResponse(zipBuffer as unknown as BodyInit, {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/zip',
-          'Content-Disposition': 'attachment; filename="articles-raw-markdown.zip"',
-          'Cache-Control': 'no-cache',
-        },
-      })
+        if (contents.length === 0) {
+          return NextResponse.json(
+            { error: `No content found for IDs: ${ids.join(', ')}` },
+            { status: 404 }
+          )
+        }
+
+        const zip = new JSZip()
+        for (const content of contents) {
+          let rawContent = getRawContentForRecord(content, content.content_id)
+          if (!rawContent) {
+            rawContent = (content.article_content || '').replace(/\\n/g, '\n')
+          }
+          let seoMeta: any = {}
+          try {
+            seoMeta = JSON.parse(content.seo_metadata || '{}')
+          } catch (e) {
+            // Ignore
+          }
+          const sanitizedTitle = (seoMeta.title || content.topic_id || content.content_id || 'article')
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '')
+          zip.file(`${sanitizedTitle}-raw.md`, rawContent ?? '')
+        }
+
+        const zipBuffer = await zip.generateAsync({ type: 'uint8array' })
+        return new NextResponse(zipBuffer as unknown as BodyInit, {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/zip',
+            'Content-Disposition': 'attachment; filename="articles-raw-markdown.zip"',
+            'Cache-Control': 'no-cache',
+          },
+        })
+      }
     }
 
-    if (!contentId) {
+    const effectiveContentId = contentId || singleIdFromList
+    if (!effectiveContentId) {
       return NextResponse.json(
         { error: 'contentId or contentIds parameter is required' },
         { status: 400 }
       )
     }
 
-    const content = records.find((r: any) => r.content_id === contentId)
+    const content = records.find((r: any) => r.content_id === effectiveContentId)
 
     if (!content) {
-      console.error(`❌ Content not found in CSV: ${contentId}`)
+      console.error(`❌ Content not found in CSV: ${effectiveContentId}`)
       return NextResponse.json(
-        { error: `Content not found: ${contentId}` },
+        { error: `Content not found: ${effectiveContentId}` },
         {
           status: 404,
           headers: {
@@ -159,9 +166,9 @@ export async function GET(request: NextRequest) {
     } catch (e) {
       // Ignore
     }
-    console.log(`✅ Downloading raw content for content_id: ${contentId}, topic_id: ${content.topic_id || 'N/A'}, title: "${seoMetaForLog.title || 'N/A'}"`)
+    console.log(`✅ Downloading raw content for content_id: ${effectiveContentId}, topic_id: ${content.topic_id || 'N/A'}, title: "${seoMetaForLog.title || 'N/A'}"`)
 
-    let rawResponseContent: string | null = getRawContentForRecord(content, contentId)
+    let rawResponseContent: string | null = getRawContentForRecord(content, effectiveContentId)
 
     if (!rawResponseContent) {
       rawResponseContent = (content.article_content || '').replace(/\\n/g, '\n')
@@ -181,9 +188,9 @@ export async function GET(request: NextRequest) {
         }
         return NextResponse.json(
           {
-            error: `Raw response file not found for content_id: ${contentId}`,
+            error: `Raw response file not found for content_id: ${effectiveContentId}`,
             message: 'No raw response file or article content available.',
-            details: { content_id: contentId, topic_id: content.topic_id, searched_directories: checkedDirs, available_files_count: availableFiles.length }
+            details: { content_id: effectiveContentId, topic_id: content.topic_id, searched_directories: checkedDirs, available_files_count: availableFiles.length }
           },
           { status: 404 }
         )

@@ -1,14 +1,127 @@
+import {
+    appendJobLog,
+    createJob,
+    setJobCompleted,
+    setJobFailed,
+    updateJob,
+} from '@/lib/workflow-job-store'
 import { spawn } from 'child_process'
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import path from 'path'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300 // 5 minutes (Vercel Pro plan)
 
-export async function POST(req: NextRequest) {
-  const encoder = new TextEncoder()
+/** Detect stage updates from backend stdout and update job state */
+function applyStageUpdatesFromLine(
+  line: string,
+  jobId: string,
+  currentStage: { value: number }
+) {
+  const lowerLine = line.toLowerCase()
+  if (lowerLine.includes('🎯 executing stage: research')) {
+    currentStage.value = 1
+    updateJob(jobId, { stage: 1, message: 'Analyzing competitors...' })
+  } else if (lowerLine.includes('✅ research stage completed') || lowerLine.includes('✅ stage 1 complete')) {
+    updateJob(jobId, { stage: 1, message: 'Research gaps identified' })
+  } else if (lowerLine.includes('🎯 executing stage: topics')) {
+    currentStage.value = 2
+    updateJob(jobId, { stage: 2, message: 'Generating strategic topics...' })
+  } else if (lowerLine.includes('✅ topic generation completed') || lowerLine.includes('✅ stage 2 complete')) {
+    updateJob(jobId, { stage: 2, message: 'Topics generated' })
+  } else if (lowerLine.includes('🎯 executing stage: deep-research')) {
+    currentStage.value = 3
+    updateJob(jobId, { stage: 3, message: 'Deep competitor analysis...' })
+  } else if (lowerLine.includes('✅ deep research completed') || lowerLine.includes('✅ stage 3 complete')) {
+    updateJob(jobId, { stage: 3, message: 'Research completed' })
+  } else if (lowerLine.includes('🎯 executing stage: content')) {
+    currentStage.value = 4
+    updateJob(jobId, { stage: 4, message: 'Creating E-E-A-T content...' })
+  } else if (lowerLine.includes('✅ content creation completed') || lowerLine.includes('✅ stage 4 complete')) {
+    updateJob(jobId, { stage: 4, message: 'Content created' })
+  } else if (lowerLine.includes('🎯 executing stage: seo')) {
+    currentStage.value = 5
+    updateJob(jobId, { stage: 5, message: 'Optimizing SEO metadata...' })
+  } else if (lowerLine.includes('✅ seo optimization completed') || lowerLine.includes('✅ stage 5 complete')) {
+    updateJob(jobId, { stage: 5, message: 'SEO optimized' })
+  } else if (lowerLine.includes('🎯 executing stage: publication')) {
+    currentStage.value = 6
+    updateJob(jobId, { stage: 6, message: 'Publishing to WordPress + Sanity...' })
+  } else if (lowerLine.includes('✅ publication completed') || lowerLine.includes('✅ stage 6 complete')) {
+    updateJob(jobId, { stage: 6, message: 'Content published' })
+  } else if (lowerLine.includes('🎯 executing stage: completion') || (lowerLine.includes('📍 stage 7:') && lowerLine.includes('completion'))) {
+    currentStage.value = 7
+    updateJob(jobId, { stage: 7, message: 'Finalizing workflow...' })
+  } else if (lowerLine.includes('workflow complete') || lowerLine.includes('finished')) {
+    updateJob(jobId, { stage: 7, message: 'Workflow completed!' })
+  } else if ((lowerLine.includes('❌ stage') || lowerLine.includes('fatal') || lowerLine.includes('process exited with code') || lowerLine.includes('workflow failed')) && !lowerLine.includes('0 error')) {
+    updateJob(jobId, { stage: currentStage.value || 1, message: 'Error occurred - check logs' })
+  }
+}
 
+export async function POST(req: NextRequest) {
+  const body = await req.json().catch(() => ({}))
+  const usePolling = body.usePolling === true
+  const isServerless = process.env.VERCEL === '1' || process.env.NETLIFY === 'true' || process.env.AWS_LAMBDA_FUNCTION_NAME
+
+  // Polling mode: start job in background and return immediately (avoids corporate proxy timeouts).
+  // Used on Railway, local, and any long-running Node host. Skipped only on true serverless
+  // (Vercel/Netlify/Lambda) where the process would be killed after the response is sent.
+  if (usePolling && !isServerless) {
+    const topicLimit = body.topicLimit || 1
+    const category = body.category || 'derivatives'
+    const customTopic = body.customTopic || ''
+    const customTitle = body.customTitle || ''
+    const contentOutline = body.contentOutline || ''
+    const jobId = createJob()
+    const mainJsPath = path.join(process.cwd(), 'backend', 'main.js')
+    const workingDir = path.join(process.cwd(), 'backend')
+    const parentNodeModules = path.join(process.cwd(), 'node_modules')
+    const nodeEnv = {
+      ...process.env,
+      NODE_PATH: parentNodeModules + (process.env.NODE_PATH ? ':' + process.env.NODE_PATH : ''),
+      CONTENT_OUTLINE: contentOutline,
+    }
+    const args = [mainJsPath, 'full', '--auto-approve', '--topic-limit', topicLimit.toString(), '--category', category]
+    if (customTopic) args.push('--custom-topic', customTopic)
+    if (customTitle) args.push('--custom-title', customTitle)
+    if (contentOutline) args.push('--content-outline-provided')
+
+    appendJobLog(jobId, '🔧 Initializing workflow (polling mode – no connection timeout)...')
+    appendJobLog(jobId, `📊 Topic Limit: ${topicLimit}`)
+    appendJobLog(jobId, `📂 Category: ${category}`)
+    const nodeProcess = spawn('node', args, { cwd: workingDir, env: nodeEnv })
+    const currentStage = { value: 0 }
+
+    nodeProcess.stdout.on('data', (data: Buffer) => {
+      const lines = data.toString().split('\n').filter((l: string) => l.trim())
+      for (const line of lines) {
+        appendJobLog(jobId, line)
+        applyStageUpdatesFromLine(line, jobId, currentStage)
+      }
+    })
+    nodeProcess.stderr.on('data', (data: Buffer) => {
+      appendJobLog(jobId, `⚠️  ${data.toString()}`)
+    })
+    nodeProcess.on('close', (code) => {
+      if (code === 0) {
+        appendJobLog(jobId, '🎉 Process completed successfully!')
+        if (currentStage.value < 7) updateJob(jobId, { stage: 7, message: 'Workflow completed!' })
+        setJobCompleted(jobId)
+      } else {
+        appendJobLog(jobId, `❌ Process exited with code ${code}`)
+        setJobFailed(jobId, `Process exited with code ${code}`)
+      }
+    })
+    nodeProcess.on('error', (err) => {
+      appendJobLog(jobId, `❌ Process error: ${err.message}`)
+      setJobFailed(jobId, err.message)
+    })
+    return NextResponse.json({ jobId })
+  }
+
+  const encoder = new TextEncoder()
   const stream = new ReadableStream({
     async start(controller) {
       const sendEvent = (data: any) => {
@@ -19,8 +132,6 @@ export async function POST(req: NextRequest) {
       let currentStage = 0
 
       try {
-        // Parse request body to get topic limit, category, custom topic, and custom title
-        const body = await req.json()
         const topicLimit = body.topicLimit || 1
         const category = body.category || 'derivatives'
         const customTopic = body.customTopic || ''
