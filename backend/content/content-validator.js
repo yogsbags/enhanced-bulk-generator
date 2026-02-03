@@ -427,15 +427,15 @@ class ContentValidator {
   validateCompliance(article, result) {
     const weight = this.ruleWeights.CRITICAL;
 
-    // Rule 1: Date references (November 2025, FY 2025-26, AY 2026-27)
-    const hasJanuary2025 = /january\s+2025/gi.test(article);
+    // Rule 1: Date references should not use obviously stale hardcoded months/years
+    const hasStaleDate = /(january\s+20\d{2}|february\s+20\d{2})/gi.test(article);
 
     this.addValidationCheck(
       result,
-      !hasJanuary2025,
+      !hasStaleDate,
       weight,
-      'No January 2025 references (use November 2025)',
-      'Found "January 2025" references - should use November 2025'
+      'No obviously stale hardcoded month/year references',
+      'Found potentially stale month/year references – update to the latest verified date context'
     );
 
     // Rule 2: No absolute probability claims
@@ -478,11 +478,11 @@ class ContentValidator {
       result.warnings.push('Important Notes section present but no asterisks found in article');
     }
 
-    // Rule 5: Future date references
-    const hasFutureDateRef = /as\s+of\s+(nov|november)\s+2025/gi.test(article);
+    // Rule 5: Future date-style references should use cautionary language
+    const hasAsOfRef = /as\s+of\s+(jan|january|feb|february|mar|march|apr|april|may|jun|june|jul|july|aug|august|sep|sept|september|oct|october|nov|november|dec|december)\s+20\d{2}/gi.test(article);
 
-    if (hasFutureDateRef) {
-      result.warnings.push('Found "as of Nov 2025" - use "subject to NSE revisions" instead');
+    if (hasAsOfRef) {
+      result.warnings.push('Found "as of [month] [year]" – prefer phrasing like "subject to [authority] revisions" with clear source attribution');
     }
   }
 
@@ -764,7 +764,7 @@ class ContentValidator {
     prompt += `5. **CTA Link**: Include https://instakyc.plindia.com/ or https://www.plindia.com\n`;
     prompt += `6. **Sentence Length**: Keep sentences under 15 words average\n`;
     prompt += `7. **FAQ**: Exactly 5 FAQ questions in H3 format (###), placed AFTER Conclusion\n`;
-    prompt += `8. **Dates**: Use "November 2025" not "January 2025"\n`;
+    prompt += `8. **Dates**: Avoid stale hardcoded months/years (e.g., old budgets); always align dates with the latest verified data and add "subject to [authority] revisions" where appropriate\n`;
     prompt += `9. **No Absolute Claims**: Avoid "X% probability" or "success rate of Y%" without qualifiers\n`;
     prompt += `10. **Formatting**: Use bullets, numbered lists, and tables for variety\n`;
     prompt += `11. **Title Difference**: The article title (from topic_title or first heading) MUST be different from the SEO meta title (seo_metadata.title)\n\n`;

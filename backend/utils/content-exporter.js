@@ -552,7 +552,7 @@ if (require.main === module) {
   const testContent = {
     content_id: 'CONTENT-001',
     topic_id: 'TOPIC-001',
-    creation_date: '2025-12-07',
+    creation_date: new Date().toISOString().split('T')[0],
     seo_metadata: JSON.stringify({
       title: 'Test Article',
       meta_description: 'This is a test article',

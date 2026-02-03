@@ -564,11 +564,11 @@ The user has provided a CUSTOM ARTICLE TITLE. This OVERRIDES all SEO optimizatio
 - DO NOT change capitalization
 - DO NOT add punctuation
 - DO NOT add descriptive words
-- DO NOT add "Guide", "Strategic", "for Indian Investors", "FY 2025-26", or ANY other text
+- DO NOT add "Guide", "Strategic", "for Indian Investors", financial year ranges (e.g., "FY 20XX-YY"), or ANY other text
 - DO NOT apply SEO best practices to this title
 
 **EXAMPLES:**
-❌ FORBIDDEN: "What is Technical Analysis? A Strategic Guide for Indian Investors (FY 2025-26)"
+❌ FORBIDDEN: "What is Technical Analysis? A Strategic Guide for Indian Investors (with financial year label)"
 ❌ FORBIDDEN: "What is Technical Analysis: A Complete Guide"
 ❌ FORBIDDEN: "Technical Analysis Explained"
 ✅ CORRECT: "${effectiveTitle}" (EXACT COPY, no changes)
@@ -617,13 +617,13 @@ OUTPUT RULES:
    \`\`\`
    ### RESEARCH VERIFICATION
 
-   e.g. Searched: "STCG tax rate India November 2025 Budget"
-   → Found: 20% as per Finance Act 2025
+   e.g. Searched: "STCG tax rate India ${currentMonth} ${currentYear} Budget"
+   → Found: 20% as per latest Finance Act
 
-   e.g. Searched: "Nifty lot size November 2025 NSE"
+   e.g. Searched: "Nifty lot size ${currentMonth} ${currentYear} NSE"
    → Found: 75 units per NSE specifications
 
-   e.g. Searched: "Bank Nifty weekly expiry 2025 NSE"
+   e.g. Searched: "Bank Nifty weekly expiry ${currentMonth} ${currentYear} NSE"
    → Found: Continues every Wednesday per NSE circular Nov 2024
    \`\`\`
 
@@ -655,7 +655,7 @@ ${effectivePrimaryKeyword ? `
   - MUST include the focus keyphrase naturally
   - MUST be different from the article title (topic_title)
   - Should be compelling and click-worthy
-  - Examples: "Nifty Options Trading Guide | Complete Strategy 2025" (58 chars), "Bank Nifty Weekly Options: Expert Trading Guide" (52 chars)
+  - Examples: "Nifty Options Trading Guide | Complete Strategy ${currentYear}" (58 chars), "Bank Nifty Weekly Options: Expert Trading Guide" (52 chars)
 - ✅ **Meta Description**: Mention the core concept in a compelling way
 - ✅ **URL Slug**: Use the concept (hyphenated, lowercase)
 - ✅ **Introduction**: Introduce the topic naturally in the opening paragraph
@@ -917,7 +917,7 @@ For financial content, ALWAYS include:
 25. ✅ QUANTITATIVE CLAIMS (volumes, participation, user counts):
    - ❌ AVOID specific unverifiable numbers: "12 lakh traders", "5.7 crore contracts"
    - ✅ USE general qualifiers: "Lakhs of traders", "Approximately X crore", "Industry estimates suggest..."
-   - ✅ IF using specific numbers, cite source: "As per NSE data (Nov 2025), approximately X contracts..."
+  - ✅ IF using specific numbers, cite source: "As per NSE data (${currentMonth} ${currentYear}), approximately X contracts..."
    - Add asterisk (*) and explain in Important Notes if source unavailable
 
 26. ✅ REGULATORY DATA (lot sizes, margins, limits, ratios):
@@ -1036,8 +1036,8 @@ The goal: Readers trust your expertise (Wikipedia-level authority) AND bookmark 
 - TARGET: 80% of sentences MUST be ≤15 words
 - Break compound sentences with periods, NOT commas/semicolons
 - Transformation examples:
-  ❌ WRONG: "As of November 2025, data from NPS Trust reveals a distinct divergence: while 1-year returns have moderated to single digits due to recent market consolidation, 5-year CAGRs remain robust at 20-22%." (42 words)
-  ✅ RIGHT: "November 2025 data from NPS Trust shows a divergence. One-year returns have moderated to single digits due to market consolidation. However, 5-year CAGRs remain robust at 20-22%." (3 sentences, 11+14+10 words each)
+  ❌ WRONG: "As of November ${currentYear}, data from NPS Trust reveals a distinct divergence: while 1-year returns have moderated to single digits due to recent market consolidation, 5-year CAGRs remain robust at 20-22%." (42 words)
+  ✅ RIGHT: "November ${currentYear} data from NPS Trust shows a divergence. One-year returns have moderated to single digits due to market consolidation. However, 5-year CAGRs remain robust at 20-22%." (3 sentences, 11+14+10 words each)
 
   ❌ WRONG: "Recent market volatility has tested investor patience, but the structural low-cost advantage of NPS (Expense Ratios capped at 0.09%) continues to compound wealth effectively over the long term." (28 words)
   ✅ RIGHT: "Recent market volatility has tested investor patience. But NPS has a structural advantage. Expense ratios are capped at 0.09%. This compounds wealth effectively long-term." (4 sentences, 7+8+7+6 words each)
@@ -1104,7 +1104,7 @@ The goal: Readers trust your expertise (Wikipedia-level authority) AND bookmark 
 - ❌ Probability/success rates stated as facts ("65% probability", "60-65% success rate")
 - ❌ Unsourced historical claims ("Historical data shows...", "Studies indicate...")
 - ❌ Absolute ROI claims (frame as "Example Return" not "Return on Investment")
-- ❌ Future-date references like "as of Nov 2025" (just use "subject to NSE revisions")
+- ❌ Future-date references like "as of [month] [year]" without qualifiers (use phrasing like "subject to [authority] revisions" instead)
 - ❌ Heavy Greek formulas (use practical "Understanding Risk Factors" approach)
 - ❌ ARTICLES UNDER 2,000 WORDS - Every article must be minimum 2,200 words with substantive content
 
@@ -2139,7 +2139,8 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
       }
     } else {
       // Normal workflow - use AI-generated title and enforce SEO guidelines
-      const rawTitle = raw.title || research.topic_id || focus;
+      // Don't use topic_id as fallback - it's not a valid SEO title
+      const rawTitle = raw.title || research.primary_keyword || focus || research.topic_title;
       title = this.normalizeSeoTitle(rawTitle, focus, research.topic_title);
     }
 
@@ -2213,6 +2214,10 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
     }
 
     let title = rawTitle.trim();
+
+    // Remove any topic ID prefixes (e.g., "TA-001 ", "CUSTOM-TITLE-123 ")
+    // Pattern: alphanumeric with dashes followed by space at the start
+    title = title.replace(/^[A-Z0-9-]+\s+/i, '');
 
     // Ensure title is different from article title (case-insensitive)
     if (articleTitle && title.toLowerCase().trim() === articleTitle.toLowerCase().trim()) {

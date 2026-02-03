@@ -1,9 +1,0 @@
-#!/usr/bin/env node
-
-/**
- * Master SEO Researcher for Enhanced Bulk Generator
- * Uses Groq/compound model to analyze competitors and identify content gaps
- * Implements N8N Workflow 1: Master SEO Research
- */
-
-// Resolve module paths for Vercel deployment
