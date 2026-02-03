@@ -1,5 +1,6 @@
 import { parse } from 'csv-parse/sync'
 import fs from 'fs'
+import JSZip from 'jszip'
 import { NextRequest, NextResponse } from 'next/server'
 import path from 'path'
 
@@ -309,15 +310,8 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
     const contentId = searchParams.get('contentId')
+    const contentIdsParam = searchParams.get('contentIds')
 
-    if (!contentId) {
-      return NextResponse.json(
-        { error: 'contentId parameter is required' },
-        { status: 400 }
-      )
-    }
-
-    // Construct path to created-content.csv
     const possiblePaths = [
       path.join(process.cwd(), 'backend', 'data', 'created-content.csv'),
       path.join(process.cwd(), '..', 'data', 'created-content.csv'),
@@ -333,7 +327,6 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Read and parse CSV
     const fileContent = fs.readFileSync(csvPath, 'utf-8')
     const records = parse(fileContent, {
       columns: true,
@@ -341,7 +334,61 @@ export async function GET(request: NextRequest) {
       trim: true
     })
 
-    // Find the content by ID (exact match required)
+    // Multiple content IDs → return ZIP of markdown files
+    if (contentIdsParam) {
+      const ids = contentIdsParam.split(',').map((id: string) => id.trim()).filter(Boolean)
+      if (ids.length === 0) {
+        return NextResponse.json(
+          { error: 'contentIds must contain at least one ID' },
+          { status: 400 }
+        )
+      }
+
+      const contents = ids
+        .map((id: string) => records.find((r: any) => r.content_id === id))
+        .filter(Boolean) as any[]
+
+      if (contents.length === 0) {
+        return NextResponse.json(
+          { error: `No content found for IDs: ${ids.join(', ')}` },
+          { status: 404 }
+        )
+      }
+
+      const zip = new JSZip()
+      for (const content of contents) {
+        const markdownContent = formatMarkdown(content, content.primary_keyword)
+        let seoMeta: any = {}
+        try {
+          seoMeta = JSON.parse(content.seo_metadata || '{}')
+        } catch (e) {
+          // Ignore
+        }
+        const sanitizedTitle = (seoMeta.title || content.topic_id || content.content_id || 'article')
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '')
+        zip.file(`${sanitizedTitle}.md`, markdownContent)
+      }
+
+      const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' })
+      return new NextResponse(zipBuffer, {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/zip',
+          'Content-Disposition': 'attachment; filename="articles-markdown.zip"',
+          'Cache-Control': 'no-cache',
+        },
+      })
+    }
+
+    if (!contentId) {
+      return NextResponse.json(
+        { error: 'contentId or contentIds parameter is required' },
+        { status: 400 }
+      )
+    }
+
     const content = records.find((r: any) => r.content_id === contentId)
 
     if (!content) {
@@ -353,7 +400,6 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Log which content is being downloaded for debugging
     let seoMetaForLog: any = {}
     try {
       seoMetaForLog = JSON.parse(content.seo_metadata || '{}')
@@ -362,10 +408,8 @@ export async function GET(request: NextRequest) {
     }
     console.log(`✅ Downloading markdown for content_id: ${contentId}, title: "${seoMetaForLog.title || 'N/A'}"`)
 
-    // Format markdown using inline formatter (includes SEO metadata, FAQ schema, etc.)
     const markdownContent = formatMarkdown(content, content.primary_keyword)
 
-    // Parse SEO metadata for filename
     let seoMeta: any = {}
     try {
       seoMeta = JSON.parse(content.seo_metadata || '{}')
@@ -373,7 +417,6 @@ export async function GET(request: NextRequest) {
       // Ignore parse errors
     }
 
-    // Generate filename from title (no content_id suffix)
     const sanitizedTitle = (seoMeta.title || content.topic_id || 'article')
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
@@ -381,7 +424,6 @@ export async function GET(request: NextRequest) {
 
     const filename = `${sanitizedTitle}.md`
 
-    // Return markdown file with appropriate headers for download
     return new NextResponse(markdownContent, {
       status: 200,
       headers: {

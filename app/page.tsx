@@ -720,28 +720,21 @@ export default function Home() {
                           📥 Download CSV
                         </button>
 
-                        {/* Download Markdown Button (for content stages 4-5) */}
+                        {/* Download Markdown Button (for content stages 4-5) - downloads latest N articles (single file or ZIP) */}
                         {(stage.id === 4 || stage.id === 5) && stageData[stage.id].data.some((row: any) => row.content_id && row.article_content) && (
                           <button
                             onClick={async () => {
                               try {
-                                // Get the most recent content entry (last one in the array)
                                 const contentRows = stageData[stage.id].data.filter((row: any) => row.content_id && row.article_content)
                                 if (contentRows.length === 0) {
                                   alert('No content ID found')
                                   return
                                 }
-
-                                // Use the last entry (most recently generated content)
-                                const contentRow = contentRows[contentRows.length - 1]
-
-                                if (!contentRow || !contentRow.content_id) {
-                                  alert('No content ID found')
-                                  return
-                                }
-
-                                console.log(`📥 Downloading markdown for content_id: ${contentRow.content_id}, title: ${JSON.parse(contentRow.seo_metadata || '{}').title || 'N/A'}`)
-                                const response = await fetch(`/api/workflow/download-markdown?contentId=${encodeURIComponent(contentRow.content_id)}`)
+                                const ids = contentRows.map((r: any) => r.content_id)
+                                const query = ids.length === 1
+                                  ? `contentId=${encodeURIComponent(ids[0])}`
+                                  : `contentIds=${ids.map((id: string) => encodeURIComponent(id)).join(',')}`
+                                const response = await fetch(`/api/workflow/download-markdown?${query}`)
                                 if (!response.ok) {
                                   const contentType = response.headers.get('content-type') || ''
                                   const error = contentType.includes('application/json')
@@ -754,12 +747,12 @@ export default function Home() {
                                 const url = window.URL.createObjectURL(blob)
                                 const a = document.createElement('a')
                                 a.href = url
-                                a.download = response.headers.get('Content-Disposition')?.split('filename=')[1]?.replace(/"/g, '') || 'article.md'
+                                a.download = response.headers.get('Content-Disposition')?.split('filename=')[1]?.replace(/"/g, '') || (ids.length > 1 ? 'articles-markdown.zip' : 'article.md')
                                 document.body.appendChild(a)
                                 a.click()
                                 window.URL.revokeObjectURL(url)
                                 document.body.removeChild(a)
-                                addLog(`✅ Downloaded Markdown`)
+                                addLog(`✅ Downloaded Markdown${ids.length > 1 ? ` (${ids.length} articles)` : ''}`)
                               } catch (error) {
                                 alert('Markdown download failed: ' + (error instanceof Error ? error.message : 'Unknown error'))
                               }
@@ -770,28 +763,21 @@ export default function Home() {
                           </button>
                         )}
 
-                        {/* Download HTML Button (for content stages 4-5) */}
+                        {/* Download HTML Button (for content stages 4-5) - downloads latest N articles (single file or ZIP) */}
                         {(stage.id === 4 || stage.id === 5) && stageData[stage.id].data.some((row: any) => row.content_id && row.article_content) && (
                           <button
                             onClick={async () => {
                               try {
-                                // Get the most recent content entry (last one in the array)
                                 const contentRows = stageData[stage.id].data.filter((row: any) => row.content_id && row.article_content)
                                 if (contentRows.length === 0) {
                                   alert('No content ID found')
                                   return
                                 }
-
-                                // Use the last entry (most recently generated content)
-                                const contentRow = contentRows[contentRows.length - 1]
-
-                                if (!contentRow || !contentRow.content_id) {
-                                  alert('No content ID found')
-                                  return
-                                }
-
-                                console.log(`📥 Downloading HTML for content_id: ${contentRow.content_id}, title: ${JSON.parse(contentRow.seo_metadata || '{}').title || 'N/A'}`)
-                                const response = await fetch(`/api/workflow/download-html?contentId=${encodeURIComponent(contentRow.content_id)}`)
+                                const ids = contentRows.map((r: any) => r.content_id)
+                                const query = ids.length === 1
+                                  ? `contentId=${encodeURIComponent(ids[0])}`
+                                  : `contentIds=${ids.map((id: string) => encodeURIComponent(id)).join(',')}`
+                                const response = await fetch(`/api/workflow/download-html?${query}`)
                                 if (!response.ok) {
                                   const contentType = response.headers.get('content-type') || ''
                                   const error = contentType.includes('application/json')
@@ -804,12 +790,12 @@ export default function Home() {
                                 const url = window.URL.createObjectURL(blob)
                                 const a = document.createElement('a')
                                 a.href = url
-                                a.download = response.headers.get('Content-Disposition')?.split('filename=')[1]?.replace(/"/g, '') || 'article.html'
+                                a.download = response.headers.get('Content-Disposition')?.split('filename=')[1]?.replace(/"/g, '') || (ids.length > 1 ? 'articles-html.zip' : 'article.html')
                                 document.body.appendChild(a)
                                 a.click()
                                 window.URL.revokeObjectURL(url)
                                 document.body.removeChild(a)
-                                addLog(`✅ Downloaded HTML`)
+                                addLog(`✅ Downloaded HTML${ids.length > 1 ? ` (${ids.length} articles)` : ''}`)
                               } catch (error) {
                                 alert('HTML download failed: ' + (error instanceof Error ? error.message : 'Unknown error'))
                               }
@@ -820,28 +806,21 @@ export default function Home() {
                           </button>
                         )}
 
-                        {/* Download Raw Content Button (for content stages 4-5) */}
+                        {/* Download Raw Content Button (for content stages 4-5) - downloads latest N articles (single file or ZIP) */}
                         {(stage.id === 4 || stage.id === 5) && stageData[stage.id].data.some((row: any) => row.content_id && row.article_content) && (
                           <button
                             onClick={async () => {
                               try {
-                                // Get the most recent content entry (last one in the array)
                                 const contentRows = stageData[stage.id].data.filter((row: any) => row.content_id && row.article_content)
                                 if (contentRows.length === 0) {
                                   alert('No content ID found')
                                   return
                                 }
-
-                                // Use the last entry (most recently generated content)
-                                const contentRow = contentRows[contentRows.length - 1]
-
-                                if (!contentRow || !contentRow.content_id) {
-                                  alert('No content ID found')
-                                  return
-                                }
-
-                                console.log(`📥 Downloading raw content for content_id: ${contentRow.content_id}, topic_id: ${contentRow.topic_id || 'N/A'}`)
-                                const response = await fetch(`/api/workflow/download-raw-markdown?contentId=${encodeURIComponent(contentRow.content_id)}`)
+                                const ids = contentRows.map((r: any) => r.content_id)
+                                const query = ids.length === 1
+                                  ? `contentId=${encodeURIComponent(ids[0])}`
+                                  : `contentIds=${ids.map((id: string) => encodeURIComponent(id)).join(',')}`
+                                const response = await fetch(`/api/workflow/download-raw-markdown?${query}`)
                                 if (!response.ok) {
                                   const contentType = response.headers.get('content-type') || ''
                                   const error = contentType.includes('application/json')
@@ -854,12 +833,12 @@ export default function Home() {
                                 const url = window.URL.createObjectURL(blob)
                                 const a = document.createElement('a')
                                 a.href = url
-                                a.download = response.headers.get('Content-Disposition')?.split('filename=')[1]?.replace(/"/g, '') || 'article-raw.md'
+                                a.download = response.headers.get('Content-Disposition')?.split('filename=')[1]?.replace(/"/g, '') || (ids.length > 1 ? 'articles-raw-markdown.zip' : 'article-raw.md')
                                 document.body.appendChild(a)
                                 a.click()
                                 window.URL.revokeObjectURL(url)
                                 document.body.removeChild(a)
-                                addLog(`✅ Downloaded Raw Content`)
+                                addLog(`✅ Downloaded Raw Content${ids.length > 1 ? ` (${ids.length} articles)` : ''}`)
                               } catch (error) {
                                 alert('Raw content download failed: ' + (error instanceof Error ? error.message : 'Unknown error'))
                               }
