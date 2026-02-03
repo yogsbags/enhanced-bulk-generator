@@ -810,7 +810,9 @@ export default function Home() {
                                   : 'bg-purple-500 text-white hover:bg-purple-600 shadow-md hover:shadow-lg'
                               }`}
                             >
-                              {executingStage === stage.id ? (
+                              {stage.status === 'completed' ? (
+                                '✓ Completed'
+                              ) : executingStage === stage.id ? (
                                 <span className="flex items-center gap-2">
                                   <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
                                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
@@ -818,8 +820,6 @@ export default function Home() {
                                   </svg>
                                   Executing...
                                 </span>
-                              ) : stage.status === 'completed' ? (
-                                '✓ Completed'
                               ) : (
                                 '▶ Execute Stage'
                               )}
@@ -844,7 +844,9 @@ export default function Home() {
                                   : 'bg-purple-500 text-white hover:bg-purple-600 shadow-md hover:shadow-lg'
                               }`}
                             >
-                              {executingStage === stage.id ? (
+                              {stage.status === 'completed' ? (
+                                '✓ Completed'
+                              ) : executingStage === stage.id ? (
                                 <span className="flex items-center gap-2">
                                   <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
                                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
@@ -852,8 +854,6 @@ export default function Home() {
                                   </svg>
                                   Executing...
                                 </span>
-                              ) : stage.status === 'completed' ? (
-                                '✓ Completed'
                               ) : stages[stage.id - 2]?.status !== 'completed' ? (
                                 '⏸ Waiting'
                               ) : (
