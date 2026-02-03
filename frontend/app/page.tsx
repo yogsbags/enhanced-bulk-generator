@@ -120,9 +120,8 @@ export default function Home() {
     }
   }
 
-  const pollJobStatus = async (jobId: string, options: { isFullWorkflow?: boolean } = {}) => {
+  const pollJobStatus = async (jobId: string) => {
     const pollIntervalMs = 4000
-    const { isFullWorkflow = false } = options
     let lastLogCount = 0
     let consecutiveErrors = 0
     const MAX_CONSECUTIVE_ERRORS = 5
@@ -154,25 +153,7 @@ export default function Home() {
         }
         if (data.status === 'completed') {
           addLog('✅ Completed successfully!')
-          if (isFullWorkflow) {
-            try {
-              for (let s = 1; s <= 7; s++) {
-                const dataRes = await fetchWorkflowData(s)
-                if (dataRes.ok) {
-                  const stageDataRes = await dataRes.json()
-                  setStageData(prev => ({ ...prev, [s]: stageDataRes }))
-                }
-              }
-            } catch (_) {}
-          } else if (data.stage != null) {
-            try {
-              const dataRes = await fetchWorkflowData(data.stage)
-              if (dataRes.ok) {
-                const stageDataRes = await dataRes.json()
-                setStageData(prev => ({ ...prev, [data.stage]: stageDataRes }))
-              }
-            } catch (_) {}
-          }
+          // Break immediately to reset executing state
           break
         }
         if (data.status === 'failed') {
@@ -241,8 +222,20 @@ export default function Home() {
       if (contentType.includes('application/json')) {
         const { jobId } = await response.json()
         if (jobId) {
-          await pollJobStatus(jobId, { isFullWorkflow: false })
+          await pollJobStatus(jobId)
           addLog(`✅ Stage ${stageId} completed!`)
+
+          // Fetch stage data in background (don't block state reset)
+          setTimeout(() => {
+            fetchWorkflowData(stageId).then(async (dataRes) => {
+              if (dataRes.ok) {
+                const stageDataRes = await dataRes.json()
+                setStageData(prev => ({ ...prev, [stageId]: stageDataRes }))
+              }
+            }).catch(err => {
+              console.warn(`Failed to fetch stage ${stageId} data:`, err)
+            })
+          }, 100)
         }
         return
       }
@@ -366,7 +359,21 @@ export default function Home() {
         const { jobId } = await response.json()
         if (jobId) {
           addLog('📡 Polling mode (avoids proxy timeouts). Refreshing status every few seconds...')
-          await pollJobStatus(jobId, { isFullWorkflow: true })
+          await pollJobStatus(jobId)
+
+          // Fetch all stage data in background after polling completes
+          setTimeout(() => {
+            for (let s = 1; s <= 7; s++) {
+              fetchWorkflowData(s).then(async (dataRes) => {
+                if (dataRes.ok) {
+                  const stageDataRes = await dataRes.json()
+                  setStageData(prev => ({ ...prev, [s]: stageDataRes }))
+                }
+              }).catch(err => {
+                console.warn(`Failed to fetch stage ${s} data:`, err)
+              })
+            }
+          }, 100)
         }
         return
       }
