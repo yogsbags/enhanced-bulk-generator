@@ -176,9 +176,16 @@ export default function Home() {
     }
   }
 
-  const executeStage = async (stageId: number) => {
-    setExecutingStage(stageId)
-    addLog(`🚀 Starting Stage ${stageId} execution...`)
+  const executeStage = async (stageId: number, retryCount = 0): Promise<void> => {
+    const MAX_RETRIES = 3
+    const RETRY_DELAY_MS = 2000
+
+    if (retryCount === 0) {
+      setExecutingStage(stageId)
+      addLog(`🚀 Starting Stage ${stageId} execution...`)
+    } else {
+      addLog(`🔄 Retry attempt ${retryCount}/${MAX_RETRIES} for Stage ${stageId}...`)
+    }
 
     try {
       const response = await fetch('/api/workflow/stage', {
@@ -213,38 +220,84 @@ export default function Home() {
       const decoder = new TextDecoder()
 
       if (reader) {
+        let buffer = '' // Buffer for incomplete SSE messages
+
         while (true) {
           const { done, value } = await reader.read()
           if (done) break
 
-          const chunk = decoder.decode(value)
-          const lines = chunk.split('\n\n')
+          // Append chunk to buffer (don't decode with flush=true until we're sure)
+          buffer += decoder.decode(value, { stream: true })
 
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
+          // Split by \n\n (SSE message delimiter)
+          const messages = buffer.split('\n\n')
+
+          // Last item might be incomplete, keep it in buffer
+          buffer = messages.pop() || ''
+
+          // Process complete messages
+          for (const message of messages) {
+            if (message.startsWith('data: ')) {
               try {
-                const data = JSON.parse(line.slice(6))
+                const jsonStr = message.slice(6).trim()
+                if (jsonStr) {
+                  const data = JSON.parse(jsonStr)
 
-                if (data.stage) {
-                  await updateStage(data.stage, data.status, data.message)
-                  addLog(`Stage ${data.stage}: ${data.message}`)
-                } else if (data.log) {
-                  addLog(data.log)
+                  if (data.stage) {
+                    await updateStage(data.stage, data.status, data.message)
+                    addLog(`Stage ${data.stage}: ${data.message}`)
+                  } else if (data.log) {
+                    addLog(data.log)
+                  }
                 }
               } catch (e) {
                 console.error('Parse error:', e)
+                // Don't break the stream on parse errors
               }
             }
+          }
+        }
+
+        // Process any remaining buffered data
+        if (buffer && buffer.startsWith('data: ')) {
+          try {
+            const jsonStr = buffer.slice(6).trim()
+            if (jsonStr) {
+              const data = JSON.parse(jsonStr)
+              if (data.stage) {
+                await updateStage(data.stage, data.status, data.message)
+                addLog(`Stage ${data.stage}: ${data.message}`)
+              } else if (data.log) {
+                addLog(data.log)
+              }
+            }
+          } catch (e) {
+            console.error('Final buffer parse error:', e)
           }
         }
       }
 
       addLog(`✅ Stage ${stageId} completed!`)
     } catch (error) {
-      addLog(`❌ Error in Stage ${stageId}: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      const isTransientError = errorMessage.includes('ERR_CONNECTION_RESET') ||
+                               errorMessage.includes('Failed to fetch') ||
+                               errorMessage.includes('network error') ||
+                               errorMessage.includes('NetworkError')
+
+      if (isTransientError && retryCount < MAX_RETRIES) {
+        addLog(`⚠️  Transient network error: ${errorMessage}. Retrying in ${RETRY_DELAY_MS/1000}s...`)
+        await new Promise(r => setTimeout(r, RETRY_DELAY_MS))
+        return executeStage(stageId, retryCount + 1)
+      }
+
+      addLog(`❌ Error in Stage ${stageId}: ${errorMessage}`)
       console.error('Stage error:', error)
+      await updateStage(stageId, 'error', errorMessage)
     } finally {
-      setExecutingStage(null)
+      if (retryCount === 0) {
+        setExecutingStage(null)
+      }
     }
   }
 
