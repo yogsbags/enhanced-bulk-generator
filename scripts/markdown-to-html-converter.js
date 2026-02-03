@@ -124,9 +124,31 @@ class MarkdownToHtmlConverter {
    * Removes everything from "RESEARCH VERIFICATION" heading to the first horizontal rule
    */
   stripResearchVerification(content) {
-    // Match "### RESEARCH VERIFICATION" or similar heading followed by content until "---"
-    const researchRegex = /^###?\s*RESEARCH VERIFICATION[\s\S]*?^---\s*$/im;
-    return content.replace(researchRegex, '').trim();
+    // First, unescape any literal \n\n strings in the content
+    let processed = content.replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\t/g, '\t');
+
+    // Match "### RESEARCH VERIFICATION" heading followed by content until "---" or "## Summary"
+    // Be more careful - stop at "## Summary" if it appears before "---"
+    const researchRegex = /^###?\s*RESEARCH\s+VERIFICATION\s*\n\n?([\s\S]*?)(?=^---\s*$|^##\s+Summary\s*$)/im;
+    processed = processed.replace(researchRegex, (match, p1) => {
+      // Only remove if we find "---" separator, otherwise keep the content
+      // This handles cases where research verification doesn't have a clear end
+      if (match.includes('---')) {
+        return '';
+      }
+      // If no "---" found, try to find where Summary starts
+      const summaryIndex = match.indexOf('## Summary');
+      if (summaryIndex > 0) {
+        return match.substring(summaryIndex);
+      }
+      return '';
+    }).trim();
+
+    // Also handle case where RESEARCH VERIFICATION appears twice (remove first occurrence)
+    const duplicateRegex = /^###?\s*RESEARCH\s+VERIFICATION\s*\n\n?[\s\S]*?^###?\s*RESEARCH\s+VERIFICATION\s*\n\n?/im;
+    processed = processed.replace(duplicateRegex, '### RESEARCH VERIFICATION\n\n').trim();
+
+    return processed;
   }
 
   /**

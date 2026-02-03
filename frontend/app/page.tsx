@@ -426,7 +426,7 @@ export default function Home() {
                 value={customTitle}
                 onChange={(e) => setCustomTitle(e.target.value)}
                 disabled={isRunning || executingStage !== null}
-                placeholder="e.g., Best Options Strategies for Beginners in 2025"
+                placeholder="e.g., Best Options Strategies for Beginners"
                 className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none font-medium text-gray-800 disabled:bg-gray-100 disabled:cursor-not-allowed"
               />
               <p className="text-xs text-gray-500 mt-1">

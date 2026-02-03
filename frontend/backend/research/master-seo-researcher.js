@@ -1137,7 +1137,9 @@ IMPORTANT: Extract ALL fields from the source text including content_gaps, quick
     console.log('🛠️  Creating structured fallback response from browser search content...');
 
     const researchId = this.generateResearchId();
-    const date = new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const date = now.toISOString().split('T')[0];
+    const currentYear = now.getFullYear();
 
     // Create a minimal but valid response structure
     const fallbackResponse = {
@@ -1149,7 +1151,7 @@ IMPORTANT: Extract ALL fields from the source text including content_gaps, quick
         {
           gap_id: 'GAP-FB-001',
           topic_area: 'mutual_funds',
-          gap_title: 'Index Funds vs Mutual Funds: 2025 Complete Analysis',
+          gap_title: `Index Funds vs Mutual Funds: ${currentYear} Complete Analysis`,
           search_volume: 12000,
           keyword_difficulty: 28,
           commercial_intent: 'High',
@@ -1158,7 +1160,7 @@ IMPORTANT: Extract ALL fields from the source text including content_gaps, quick
           estimated_ranking_time: '45-60 days',
           priority_score: 95,
           primary_keyword: 'index funds vs mutual funds',
-          secondary_keywords: 'best index funds 2025,index fund calculator,mutual fund comparison',
+          secondary_keywords: `best index funds ${currentYear},index fund calculator,mutual fund comparison`,
           content_type_recommendation: 'ymyl',
           word_count_target: 2500,
           expert_required: 'true',
@@ -1169,7 +1171,7 @@ IMPORTANT: Extract ALL fields from the source text including content_gaps, quick
         {
           gap_id: 'GAP-FB-002',
           topic_area: 'tax_planning',
-          gap_title: 'ELSS vs Tax-Saving FDs: 2025 Tax Benefits Comparison',
+          gap_title: `ELSS vs Tax-Saving FDs: ${currentYear} Tax Benefits Comparison`,
           search_volume: 8500,
           keyword_difficulty: 32,
           commercial_intent: 'High',
@@ -1189,7 +1191,7 @@ IMPORTANT: Extract ALL fields from the source text including content_gaps, quick
         {
           gap_id: 'GAP-FB-003',
           topic_area: 'stock_market',
-          gap_title: 'Small Cap vs Mid Cap vs Large Cap: Performance Analysis 2025',
+          gap_title: `Small Cap vs Mid Cap vs Large Cap: Performance Analysis ${currentYear}`,
           search_volume: 6800,
           keyword_difficulty: 25,
           commercial_intent: 'Medium',
@@ -1209,7 +1211,7 @@ IMPORTANT: Extract ALL fields from the source text including content_gaps, quick
         {
           gap_id: 'GAP-FB-004',
           topic_area: 'retirement_planning',
-          gap_title: 'NPS vs PPF vs ELSS: Best Retirement Strategy 2025',
+          gap_title: `NPS vs PPF vs ELSS: Best Retirement Strategy ${currentYear}`,
           search_volume: 9200,
           keyword_difficulty: 35,
           commercial_intent: 'High',
@@ -1229,7 +1231,7 @@ IMPORTANT: Extract ALL fields from the source text including content_gaps, quick
         {
           gap_id: 'GAP-FB-005',
           topic_area: 'personal_finance',
-          gap_title: 'Emergency Fund Calculator: 2025 Savings Guide',
+          gap_title: `Emergency Fund Calculator: ${currentYear} Savings Guide`,
           search_volume: 4500,
           keyword_difficulty: 18,
           commercial_intent: 'Medium',
@@ -1250,7 +1252,7 @@ IMPORTANT: Extract ALL fields from the source text including content_gaps, quick
       quick_wins: [
         {
           gap_id: 'GAP-FB-002',
-          topic_title: 'ELSS vs Tax-Saving FDs: 2025 Tax Benefits Comparison',
+          topic_title: `ELSS vs Tax-Saving FDs: ${currentYear} Tax Benefits Comparison`,
           search_volume: 8500,
           keyword_difficulty: 32,
           ranking_probability: '85%',
@@ -1259,7 +1261,7 @@ IMPORTANT: Extract ALL fields from the source text including content_gaps, quick
         },
         {
           gap_id: 'GAP-FB-003',
-          topic_title: 'Small Cap vs Mid Cap vs Large Cap: Performance Analysis 2025',
+          topic_title: `Small Cap vs Mid Cap vs Large Cap: Performance Analysis ${currentYear}`,
           search_volume: 6800,
           keyword_difficulty: 25,
           ranking_probability: '90%',
@@ -1299,6 +1301,8 @@ IMPORTANT: Extract ALL fields from the source text including content_gaps, quick
       focusSection = `\n\n⚠️ CATEGORY FOCUS: Primary focus on "${this.selectedCategory.replace('_', ' ').toUpperCase()}" category. Prioritize content gaps in this area.\n`;
       focusArea = this.selectedCategory.replace('_', ' ').toUpperCase();
     }
+
+    const currentYear = new Date().getFullYear();
 
     return `Execute comprehensive Master SEO Research for Indian WealthTech niche.${focusSection}
 
@@ -1351,16 +1355,16 @@ OUTPUT FORMAT - Return ONLY valid JSON (no markdown, no explanations):
     {
       "gap_id": "GAP-001",
       "topic_area": "mutual_funds",
-      "gap_title": "Complete Guide to Index Funds vs Mutual Funds 2025",
+    "gap_title": "Complete Guide to Index Funds vs Mutual Funds ${currentYear}",
       "search_volume": 12000,
       "keyword_difficulty": 28,
       "commercial_intent": "High",
-      "competitor_weakness": "Groww has outdated 2023 data; Zerodha focuses only on passive investing",
-      "our_competitive_edge": "Include 2025 expense ratio changes, calculator tool, video comparison",
+    "competitor_weakness": "Groww has outdated data; Zerodha focuses only on passive investing",
+    "our_competitive_edge": "Include latest expense ratio changes, calculator tool, video comparison",
       "estimated_ranking_time": "45-60 days",
       "priority_score": 95,
       "primary_keyword": "index funds vs mutual funds",
-      "secondary_keywords": "best index funds 2025,index fund calculator,index fund returns",
+    "secondary_keywords": "best index funds ${currentYear},index fund calculator,index fund returns",
       "content_type_recommendation": "ymyl",
       "word_count_target": 2500,
       "expert_required": "true",

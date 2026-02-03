@@ -89,12 +89,12 @@ Enable these APIs in your project:
 ### Set Environment Variable
 
 ```bash
-export GOOGLE_APPLICATION_CREDENTIALS="/Users/yogs87/Downloads/PL/website-project-473310-2de85d4e7a7c.json"
+export GOOGLE_APPLICATION_CREDENTIALS="/path/to/service-account.json"
 ```
 
 **Make it permanent** (add to ~/.zshrc or ~/.bashrc):
 ```bash
-echo 'export GOOGLE_APPLICATION_CREDENTIALS="/Users/yogs87/Downloads/PL/website-project-473310-2de85d4e7a7c.json"' >> ~/.zshrc
+echo 'export GOOGLE_APPLICATION_CREDENTIALS="/path/to/service-account.json"' >> ~/.zshrc
 source ~/.zshrc
 ```
 
@@ -155,7 +155,7 @@ export GOOGLE_ADS_CUSTOMER_ID="123-456-7890"  # Without dashes: 1234567890
 
 1. Go to [Credentials](https://console.cloud.google.com/apis/credentials)
 2. Click "Create Credentials" → "API key"
-3. Copy the API key (e.g., `AIzaSyBTQvqn-o7D9LpR2iM2MyHG8srAsweVkXc`)
+3. Copy the API key (example format: `AIza...`)
 4. Click "Restrict Key"
 5. Under "API restrictions", select "Restrict key"
 6. Choose "Custom Search API"
@@ -168,13 +168,13 @@ export GOOGLE_ADS_CUSTOMER_ID="123-456-7890"  # Without dashes: 1234567890
 3. **Sites to search**: Enter your domain (e.g., `plindia.com`)
 4. **Name**: `PLIndia Content Search`
 5. Click "Create"
-6. Copy the **Search engine ID** (e.g., `925912f53ec3949e7`)
+6. Copy the **Search engine ID** (example format: `0123456789abcdef0`)
 
 ### C. Set Environment Variables
 
 ```bash
-export GOOGLE_CSE_API_KEY="AIzaSyBTQvqn-o7D9LpR2iM2MyHG8srAsweVkXc"
-export GOOGLE_CSE_ENGINE_ID="925912f53ec3949e7"
+export GOOGLE_CSE_API_KEY="your-api-key"
+export GOOGLE_CSE_ENGINE_ID="your-engine-id"
 ```
 
 ---

@@ -1,8 +1,0 @@
-#!/usr/bin/env node
-
-/**
- * Content Publisher for Enhanced Bulk Generator
- * Publishes SEO-ready content to WordPress and Sanity
- */
-
-// Resolve module paths for Vercel deployment

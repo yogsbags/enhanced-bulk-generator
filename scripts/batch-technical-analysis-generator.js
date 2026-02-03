@@ -5,8 +5,23 @@
  * Generates markdown and HTML articles for a list of technical analysis topics
  */
 
+// Load environment variables from .env.local
+const dotenv = require('dotenv');
 const fs = require('fs');
 const path = require('path');
+
+// Load .env.local from project root
+const projectRoot = path.resolve(__dirname, '..');
+const envLocalPath = path.join(projectRoot, '.env.local');
+const envPath = path.join(projectRoot, '.env');
+
+// Load .env.local first, then .env (local takes precedence)
+if (fs.existsSync(envLocalPath)) {
+  dotenv.config({ path: envLocalPath, override: false });
+} else if (fs.existsSync(envPath)) {
+  dotenv.config({ path: envPath, override: false });
+}
+
 const ContentCreator = require('../frontend/backend/content/content-creator');
 const MarkdownToHtmlConverter = require('./markdown-to-html-converter');
 
@@ -263,28 +278,73 @@ Summary with CTA
     let markdown = '';
 
     // Add H1 title (only at top of file)
-    if (seo_metadata?.title) {
-      markdown += `# ${seo_metadata.title}\n\n`;
+    // Use seo_metadata title, or fallback to research primary_keyword
+    let title = seo_metadata?.title || research.primary_keyword || 'Article';
+    // Ensure title is not truncated - if it ends with "...", use primary_keyword
+    if (title.endsWith('...') || title.includes('...')) {
+      title = research.primary_keyword || title.replace(/\.\.\./g, '').trim();
     }
+    markdown += `# ${title}\n\n`;
 
     // Add RESEARCH VERIFICATION section (BEFORE Summary)
     if (research_log && research_log !== 'N/A - Fallback mode (JSON parsing failed)') {
-      markdown += `### RESEARCH VERIFICATION\n\n${research_log}\n\n---\n\n`;
+      // Unescape newlines in research_log and ensure proper formatting
+      let cleanedResearchLog = research_log
+        .replace(/\\n/g, '\n')
+        .replace(/\\"/g, '"')
+        .replace(/\\t/g, '\t')
+        .trim();
+      markdown += `### RESEARCH VERIFICATION\n\n${cleanedResearchLog}\n\n---\n\n`;
     }
+
+    // Clean article content - remove any JSON fragments that might be mixed in
+    let cleanedArticleContent = article_content || '';
+
+    // Remove JSON fragments that appear as standalone lines or embedded in content
+    const lines = cleanedArticleContent.split('\n');
+    const cleanedLines = lines.filter(line => {
+      // Skip lines that are pure JSON (start with quote and colon, or are array elements)
+      if (/^\s*"[^"]+":\s*(\[|"|$)/.test(line)) {
+        return false;
+      }
+      // Skip lines that are just closing brackets/braces
+      if (/^\s*[\]\}]+,?\s*$/.test(line)) {
+        return false;
+      }
+      // Skip lines that contain only JSON field names like "content_upgrades", "compliance", "quality_metrics"
+      if (/^\s*"(content_upgrades|compliance|quality_metrics)":\s*/.test(line)) {
+        return false;
+      }
+      return true;
+    });
+    cleanedArticleContent = cleanedLines.join('\n');
+
+    // Remove any remaining JSON-like patterns in the middle of content
+    // Remove patterns like: "content_upgrades": [...], "compliance": "...", "quality_metrics": {...}
+    cleanedArticleContent = cleanedArticleContent.replace(/\s*"content_upgrades":\s*\[[^\]]*\],?\s*/g, '');
+    cleanedArticleContent = cleanedArticleContent.replace(/\s*"compliance":\s*"[^"]*",?\s*/g, '');
+    cleanedArticleContent = cleanedArticleContent.replace(/\s*"quality_metrics":\s*\{[^\}]*\},?\s*/g, '');
+    cleanedArticleContent = cleanedArticleContent.replace(/\s*"[^"]+":\s*\[[^\]]*\],?\s*/g, '');
+    cleanedArticleContent = cleanedArticleContent.replace(/\s*"[^"]+":\s*"[^"]*",?\s*/g, '');
+
+    // Remove any trailing JSON fragments that might be at the end
+    // Pattern: content ends with JSON-like structure
+    cleanedArticleContent = cleanedArticleContent.replace(/\s*,\s*"[^"]+":\s*(\[|"|{)[\s\S]*$/m, '');
 
     // Add article content (starts with ## Summary)
-    markdown += article_content || '';
+    markdown += cleanedArticleContent;
 
-    // Add compliance/disclaimer at the end
-    if (compliance) {
-      markdown += `\n\n---\n\n${compliance}`;
-    }
+    // Skip compliance/disclaimer section (not needed for batch generation)
+    // if (compliance) {
+    //   markdown += `\n\n---\n\n${compliance}`;
+    // }
 
     // Add SEO metadata section
     markdown += '\n\n---\n\n## SEO Metadata\n\n';
 
-    if (seo_metadata?.title) {
-      markdown += `### SEO Meta Title\n\`\`\`\n${seo_metadata.title}\n\`\`\`\n\n`;
+    // Use the same title we used for H1 (already cleaned/fixed)
+    if (title) {
+      markdown += `### SEO Meta Title\n\`\`\`\n${title}\n\`\`\`\n\n`;
     }
 
     if (seo_metadata?.meta_description) {
