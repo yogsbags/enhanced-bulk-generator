@@ -1,5 +1,6 @@
 import { parse } from 'csv-parse/sync'
 import fs from 'fs'
+import JSZip from 'jszip'
 import { NextRequest, NextResponse } from 'next/server'
 import path from 'path'
 
@@ -496,13 +497,7 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
     const contentId = searchParams.get('contentId')
-
-    if (!contentId) {
-      return NextResponse.json(
-        { error: 'contentId parameter is required' },
-        { status: 400 }
-      )
-    }
+    const contentIdsParam = searchParams.get('contentIds')
 
     // Construct path to created-content.csv
     const possiblePaths = [
@@ -520,7 +515,6 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Read and parse CSV
     const fileContent = fs.readFileSync(csvPath, 'utf-8')
     const records = parse(fileContent, {
       columns: true,
@@ -528,7 +522,69 @@ export async function GET(request: NextRequest) {
       trim: true
     })
 
-    // Find the content by ID (exact match required)
+    // Multiple content IDs → return ZIP of HTML files
+    if (contentIdsParam) {
+      const ids = contentIdsParam.split(',').map((id: string) => id.trim()).filter(Boolean)
+      if (ids.length === 0) {
+        return NextResponse.json(
+          { error: 'contentIds must contain at least one ID' },
+          { status: 400 }
+        )
+      }
+
+      const contents = ids
+        .map((id: string) => records.find((r: any) => r.content_id === id))
+        .filter(Boolean) as any[]
+
+      if (contents.length === 0) {
+        return NextResponse.json(
+          { error: `No content found for IDs: ${ids.join(', ')}` },
+          { status: 404 }
+        )
+      }
+
+      const zip = new JSZip()
+      for (const content of contents) {
+        let markdownContent = content.article_content || ''
+        if (typeof markdownContent === 'string') {
+          markdownContent = markdownContent.replace(/\\n/g, '\n')
+        }
+        let seoMeta: any = {}
+        try {
+          seoMeta = JSON.parse(content.seo_metadata || '{}')
+        } catch (e) {
+          // Ignore
+        }
+        const title = seoMeta.title || 'Article'
+        const metaDescription = seoMeta.meta_description || ''
+        const htmlContent = markdownToHtml(markdownContent, title, metaDescription)
+        const sanitizedTitle = (seoMeta.title || content.topic_id || content.content_id || 'article')
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '')
+        const filename = `${sanitizedTitle}-${content.content_id}.html`
+        zip.file(filename, htmlContent)
+      }
+
+      const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' })
+      return new NextResponse(zipBuffer, {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/zip',
+          'Content-Disposition': 'attachment; filename="articles-html.zip"',
+          'Cache-Control': 'no-cache',
+        },
+      })
+    }
+
+    // Single content ID
+    if (!contentId) {
+      return NextResponse.json(
+        { error: 'contentId or contentIds parameter is required' },
+        { status: 400 }
+      )
+    }
+
     const content = records.find((r: any) => r.content_id === contentId)
 
     if (!content) {
@@ -544,7 +600,6 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Log which content is being downloaded for debugging
     let seoMetaForLog: any = {}
     try {
       seoMetaForLog = JSON.parse(content.seo_metadata || '{}')
@@ -553,10 +608,7 @@ export async function GET(request: NextRequest) {
     }
     console.log(`✅ Downloading HTML for content_id: ${contentId}, title: "${seoMetaForLog.title || 'N/A'}"`)
 
-    // Get markdown content and metadata
     let markdownContent = content.article_content || ''
-
-    // Normalize escaped newlines from CSV storage
     if (typeof markdownContent === 'string') {
       markdownContent = markdownContent.replace(/\\n/g, '\n')
     }
@@ -571,10 +623,8 @@ export async function GET(request: NextRequest) {
     const title = seoMeta.title || 'Article'
     const metaDescription = seoMeta.meta_description || ''
 
-    // Convert markdown to HTML (RESEARCH VERIFICATION will be removed in markdownToHtml)
     const htmlContent = markdownToHtml(markdownContent, title, metaDescription)
 
-    // Generate filename from title
     const sanitizedTitle = (seoMeta.title || content.topic_id || 'article')
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
@@ -582,7 +632,6 @@ export async function GET(request: NextRequest) {
 
     const filename = `${sanitizedTitle}-${contentId}.html`
 
-    // Return HTML file with appropriate headers for download
     return new NextResponse(htmlContent, {
       status: 200,
       headers: {
