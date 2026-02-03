@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { fetchWorkflowData } from '../lib/fetch-workflow-data'
 import EditModal from './components/EditModal'
 
 type WorkflowStage = {
@@ -85,10 +86,10 @@ export default function Home() {
       stage.id === stageId ? { ...stage, status, message } : stage
     ))
 
-    // Fetch CSV data when stage completes
+    // Fetch CSV data when stage completes (with retry for transient errors)
     if (status === 'completed') {
       try {
-        const response = await fetch(`/api/workflow/data?stage=${stageId}`)
+        const response = await fetchWorkflowData(stageId)
         if (response.ok) {
           const data = await response.json()
           setStageData(prev => ({ ...prev, [stageId]: data }))
@@ -146,7 +147,7 @@ export default function Home() {
         if (isFullWorkflow) {
           try {
             for (let s = 1; s <= 7; s++) {
-              const dataRes = await fetch(`/api/workflow/data?stage=${s}`)
+              const dataRes = await fetchWorkflowData(s)
               if (dataRes.ok) {
                 const stageDataRes = await dataRes.json()
                 setStageData(prev => ({ ...prev, [s]: stageDataRes }))
@@ -155,7 +156,7 @@ export default function Home() {
           } catch (_) {}
         } else if (data.stage != null) {
           try {
-            const dataRes = await fetch(`/api/workflow/data?stage=${data.stage}`)
+            const dataRes = await fetchWorkflowData(data.stage)
             if (dataRes.ok) {
               const stageDataRes = await dataRes.json()
               setStageData(prev => ({ ...prev, [data.stage]: stageDataRes }))
@@ -370,8 +371,8 @@ export default function Home() {
 
       const result = await response.json()
 
-      // Refresh stage data
-      const dataResponse = await fetch(`/api/workflow/data?stage=${editingRow.stageId}`)
+      // Refresh stage data (with retry for transient errors)
+      const dataResponse = await fetchWorkflowData(editingRow.stageId)
       if (dataResponse.ok) {
         const data = await dataResponse.json()
         setStageData(prev => ({ ...prev, [editingRow.stageId]: data }))
