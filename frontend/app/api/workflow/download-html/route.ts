@@ -566,8 +566,8 @@ export async function GET(request: NextRequest) {
         zip.file(filename, htmlContent)
       }
 
-      const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' })
-      return new NextResponse(zipBuffer, {
+      const zipBuffer = await zip.generateAsync({ type: 'uint8array' })
+      return new NextResponse(zipBuffer as unknown as BodyInit, {
         status: 200,
         headers: {
           'Content-Type': 'application/zip',
