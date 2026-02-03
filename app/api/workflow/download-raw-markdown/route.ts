@@ -117,11 +117,11 @@ export async function GET(request: NextRequest) {
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, '-')
           .replace(/^-+|-+$/g, '')
-        zip.file(`${sanitizedTitle}-raw.md`, rawContent)
+        zip.file(`${sanitizedTitle}-raw.md`, rawContent ?? '')
       }
 
-      const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' })
-      return new NextResponse(zipBuffer, {
+      const zipBuffer = await zip.generateAsync({ type: 'uint8array' })
+      return new NextResponse(zipBuffer as unknown as BodyInit, {
         status: 200,
         headers: {
           'Content-Type': 'application/zip',
