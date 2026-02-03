@@ -119,6 +119,62 @@ export default function Home() {
     }
   }
 
+  const pollJobStatus = async (jobId: string, options: { isFullWorkflow?: boolean } = {}) => {
+    const pollIntervalMs = 4000
+    const { isFullWorkflow = false } = options
+    let lastLogCount = 0
+
+    while (true) {
+      const res = await fetch(`/api/workflow/status?jobId=${encodeURIComponent(jobId)}`)
+      if (!res.ok) {
+        addLog(`❌ Status check failed: ${res.status}`)
+        break
+      }
+      const data = await res.json()
+      if (data.logs?.length > lastLogCount) {
+        for (let i = lastLogCount; i < data.logs.length; i++) {
+          addLog(data.logs[i])
+        }
+        lastLogCount = data.logs.length
+      }
+      if (data.stage != null && data.message != null) {
+        const status = data.status === 'failed' ? 'error' : (data.status === 'completed' ? 'completed' : 'running')
+        await updateStage(data.stage, status, data.message)
+      }
+      if (data.status === 'completed') {
+        addLog('✅ Completed successfully!')
+        if (isFullWorkflow) {
+          try {
+            for (let s = 1; s <= 7; s++) {
+              const dataRes = await fetch(`/api/workflow/data?stage=${s}`)
+              if (dataRes.ok) {
+                const stageDataRes = await dataRes.json()
+                setStageData(prev => ({ ...prev, [s]: stageDataRes }))
+              }
+            }
+          } catch (_) {}
+        } else if (data.stage != null) {
+          try {
+            const dataRes = await fetch(`/api/workflow/data?stage=${data.stage}`)
+            if (dataRes.ok) {
+              const stageDataRes = await dataRes.json()
+              setStageData(prev => ({ ...prev, [data.stage]: stageDataRes }))
+            }
+          } catch (_) {}
+        }
+        break
+      }
+      if (data.status === 'failed') {
+        addLog(`❌ Failed: ${data.error || 'Unknown error'}`)
+        if (data.stage != null) {
+          await updateStage(data.stage, 'error', data.error || 'Failed')
+        }
+        break
+      }
+      await new Promise(r => setTimeout(r, pollIntervalMs))
+    }
+  }
+
   const executeStage = async (stageId: number) => {
     setExecutingStage(stageId)
     addLog(`🚀 Starting Stage ${stageId} execution...`)
@@ -127,11 +183,29 @@ export default function Home() {
       const response = await fetch('/api/workflow/stage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stageId, topicLimit, category: selectedCategory, customTopic, customTitle, contentOutline }),
+        body: JSON.stringify({
+          stageId,
+          topicLimit,
+          category: selectedCategory,
+          customTopic,
+          customTitle,
+          contentOutline,
+          usePolling: true,
+        }),
       })
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const contentType = response.headers.get('content-type') || ''
+      if (contentType.includes('application/json')) {
+        const { jobId } = await response.json()
+        if (jobId) {
+          await pollJobStatus(jobId, { isFullWorkflow: false })
+          addLog(`✅ Stage ${stageId} completed!`)
+        }
+        return
       }
 
       const reader = response.body?.getReader()
@@ -180,7 +254,6 @@ export default function Home() {
     setStageData({})
     setExpandedStage(null)
 
-    // Reset all stages
     setStages(stages.map(s => ({ ...s, status: 'idle', message: '' })))
 
     try {
@@ -189,11 +262,28 @@ export default function Home() {
       const response = await fetch('/api/workflow/execute', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topicLimit, category: selectedCategory, customTopic, customTitle, contentOutline }),
+        body: JSON.stringify({
+          topicLimit,
+          category: selectedCategory,
+          customTopic,
+          customTitle,
+          contentOutline,
+          usePolling: true,
+        }),
       })
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const contentType = response.headers.get('content-type') || ''
+      if (contentType.includes('application/json')) {
+        const { jobId } = await response.json()
+        if (jobId) {
+          addLog('📡 Polling mode (avoids proxy timeouts). Refreshing status every few seconds...')
+          await pollJobStatus(jobId, { isFullWorkflow: true })
+        }
+        return
       }
 
       const reader = response.body?.getReader()

@@ -1,11 +1,17 @@
-import { NextRequest, NextResponse } from 'next/server'
+import {
+    appendJobLog,
+    createJob,
+    setJobCompleted,
+    setJobFailed,
+    updateJob,
+} from '@/lib/workflow-job-store'
 import { spawn } from 'child_process'
+import { NextRequest, NextResponse } from 'next/server'
 import path from 'path'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-// Map stage IDs to stage names for main.js
 const STAGE_NAMES: Record<number, string> = {
   1: 'research',
   2: 'topics',
@@ -14,97 +20,100 @@ const STAGE_NAMES: Record<number, string> = {
   5: 'validation',
   6: 'seo',
   7: 'publication',
-  8: 'completion'
+  8: 'completion',
 }
 
 export async function POST(req: NextRequest) {
-  const encoder = new TextEncoder()
+  const body = await req.json().catch(() => ({}))
+  const usePolling = body.usePolling === true
+  const isServerless = process.env.VERCEL === '1' || process.env.NETLIFY === 'true' || process.env.AWS_LAMBDA_FUNCTION_NAME
 
+  const stageId = body.stageId
+  const topicLimit = body.topicLimit || 1
+  const category = body.category || 'derivatives'
+  const customTopic = body.customTopic || ''
+  const customTitle = body.customTitle || ''
+  const contentOutline = body.contentOutline || ''
+
+  if (!stageId || !STAGE_NAMES[stageId]) {
+    return NextResponse.json({ error: `Invalid stage ID: ${stageId}` }, { status: 400 })
+  }
+
+  const stageName = STAGE_NAMES[stageId]
+  const workingDir = path.join(process.cwd(), 'backend')
+  const mainJsPath = path.join(workingDir, 'main.js')
+  const parentNodeModules = path.join(process.cwd(), 'node_modules')
+  const nodeEnv = {
+    ...process.env,
+    NODE_PATH: parentNodeModules + (process.env.NODE_PATH ? ':' + process.env.NODE_PATH : ''),
+    CONTENT_OUTLINE: contentOutline,
+  }
+  const args = [mainJsPath, 'stage', stageName, '--auto-approve', '--topic-limit', topicLimit.toString(), '--category', category]
+  if (customTopic) args.push('--custom-topic', customTopic)
+  if (customTitle) args.push('--custom-title', customTitle)
+  if (contentOutline) args.push('--content-outline-provided')
+
+  if (usePolling && !isServerless) {
+    const jobId = createJob()
+    updateJob(jobId, { stage: stageId, message: `Executing ${stageName}...` })
+    appendJobLog(jobId, `🔧 Executing Stage ${stageId}: ${stageName}... (polling mode)`)
+    appendJobLog(jobId, `📊 Topic Limit: ${topicLimit}`)
+    appendJobLog(jobId, `📂 Category: ${category}`)
+
+    const nodeProcess = spawn('node', args, { cwd: workingDir, env: nodeEnv })
+    nodeProcess.stdout.on('data', (data: Buffer) => {
+      const lines = data.toString().split('\n').filter((l: string) => l.trim())
+      for (const line of lines) {
+        appendJobLog(jobId, line)
+      }
+    })
+    nodeProcess.stderr.on('data', (data: Buffer) => {
+      appendJobLog(jobId, `⚠️  ${data.toString()}`)
+    })
+    nodeProcess.on('close', (code) => {
+      if (code === 0) {
+        appendJobLog(jobId, `✅ Stage ${stageId} completed successfully!`)
+        updateJob(jobId, { stage: stageId, message: 'Stage completed' })
+        setJobCompleted(jobId)
+      } else {
+        appendJobLog(jobId, `❌ Stage ${stageId} exited with code ${code}`)
+        setJobFailed(jobId, `Process exited with code ${code}`)
+      }
+    })
+    nodeProcess.on('error', (err) => {
+      appendJobLog(jobId, `❌ Process error: ${err.message}`)
+      setJobFailed(jobId, err.message)
+    })
+    return NextResponse.json({ jobId })
+  }
+
+  const encoder = new TextEncoder()
   const stream = new ReadableStream({
     async start(controller) {
       const sendEvent = (data: any) => {
-        const message = `data: ${JSON.stringify(data)}\n\n`
-        controller.enqueue(encoder.encode(message))
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`))
       }
 
       try {
-        // Parse request body
-        const body = await req.json()
-        const stageId = body.stageId
-        const topicLimit = body.topicLimit || 1
-        const category = body.category || 'derivatives'
-        const customTopic = body.customTopic || ''
-        const customTitle = body.customTitle || ''
-        const contentOutline = body.contentOutline || ''
-
-        if (!stageId || !STAGE_NAMES[stageId]) {
-          throw new Error(`Invalid stage ID: ${stageId}`)
-        }
-
-        const stageName = STAGE_NAMES[stageId]
-
-        // Path to main.js (backend directory)
-        const workingDir = path.join(process.cwd(), 'backend')
-        const mainJsPath = path.join(workingDir, 'main.js')
-
         sendEvent({ log: `🔧 Executing Stage ${stageId}: ${stageName}...` })
         sendEvent({ log: `📊 Topic Limit: ${topicLimit}` })
         sendEvent({ log: `📂 Category Focus: ${category}` })
-        if (customTopic) {
-          sendEvent({ log: `✨ Custom Topic: "${customTopic}"` })
-        }
-        if (customTitle) {
-          sendEvent({ log: `🚀 Custom Title: "${customTitle}"` })
-        }
-        if (contentOutline) {
-          const lineCount = contentOutline.split('\n').length
-          sendEvent({ log: `📝 Content Outline: ${lineCount} lines provided` })
-        }
+        if (customTopic) sendEvent({ log: `✨ Custom Topic: "${customTopic}"` })
+        if (customTitle) sendEvent({ log: `🚀 Custom Title: "${customTitle}"` })
+        if (contentOutline) sendEvent({ log: `📝 Content Outline: ${contentOutline.split('\n').length} lines provided` })
         sendEvent({ stage: stageId, status: 'running', message: `Executing ${stageName}...` })
 
-        // Execute stage with NODE_PATH for module resolution
-        const parentNodeModules = path.join(process.cwd(), 'node_modules')
-        const nodeEnv = {
-          ...process.env,
-          NODE_PATH: parentNodeModules + (process.env.NODE_PATH ? ':' + process.env.NODE_PATH : ''),
-          // Pass content outline via environment variable to preserve newlines and special chars
-          CONTENT_OUTLINE: contentOutline
-        }
-
-        const args = [mainJsPath, 'stage', stageName, '--auto-approve', '--topic-limit', topicLimit.toString(), '--category', category]
-        if (customTopic) {
-          args.push('--custom-topic', customTopic)
-        }
-        if (customTitle) {
-          args.push('--custom-title', customTitle)
-        }
-        if (contentOutline) {
-          args.push('--content-outline-provided')
-        }
-        const nodeProcess = spawn('node', args, {
-          cwd: workingDir,
-          env: nodeEnv,
-        })
-
+        const nodeProcess = spawn('node', args, { cwd: workingDir, env: nodeEnv })
         sendEvent({ log: `🚀 Command: node ${args.slice(1).join(' ')}` })
 
-        // Handle stdout
         nodeProcess.stdout.on('data', (data: Buffer) => {
-          const output = data.toString()
-          const lines = output.split('\n').filter(line => line.trim())
-
-          for (const line of lines) {
-            sendEvent({ log: line })
-          }
+          const lines = data.toString().split('\n').filter((l: string) => l.trim())
+          for (const line of lines) sendEvent({ log: line })
         })
-
-        // Handle stderr
         nodeProcess.stderr.on('data', (data: Buffer) => {
-          const error = data.toString()
-          sendEvent({ log: `⚠️  ${error}` })
+          sendEvent({ log: `⚠️  ${data.toString()}` })
         })
 
-        // Handle process completion
         await new Promise<void>((resolve, reject) => {
           nodeProcess.on('close', (code) => {
             if (code === 0) {
@@ -117,17 +126,15 @@ export async function POST(req: NextRequest) {
               reject(new Error(`Process exited with code ${code}`))
             }
           })
-
-          nodeProcess.on('error', (error) => {
-            sendEvent({ log: `❌ Process error: ${error.message}` })
-            sendEvent({ stage: stageId, status: 'error', message: error.message })
-            reject(error)
+          nodeProcess.on('error', (err) => {
+            sendEvent({ log: `❌ Process error: ${err.message}` })
+            sendEvent({ stage: stageId, status: 'error', message: err.message })
+            reject(err)
           })
         })
-
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-        sendEvent({ log: `❌ Fatal error: ${errorMessage}` })
+        const msg = error instanceof Error ? error.message : 'Unknown error'
+        sendEvent({ log: `❌ Fatal error: ${msg}` })
       } finally {
         controller.close()
       }

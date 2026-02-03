@@ -334,7 +334,8 @@ export async function GET(request: NextRequest) {
       trim: true
     })
 
-    // Multiple content IDs → return ZIP of markdown files
+    // Multiple content IDs → return ZIP; single ID → fall through to single-file below
+    let singleIdFromList: string | null = null
     if (contentIdsParam) {
       const ids = contentIdsParam.split(',').map((id: string) => id.trim()).filter(Boolean)
       if (ids.length === 0) {
@@ -343,59 +344,65 @@ export async function GET(request: NextRequest) {
           { status: 400 }
         )
       }
-
-      const contents = ids
-        .map((id: string) => records.find((r: any) => r.content_id === id))
-        .filter(Boolean) as any[]
-
-      if (contents.length === 0) {
-        return NextResponse.json(
-          { error: `No content found for IDs: ${ids.join(', ')}` },
-          { status: 404 }
-        )
+      if (ids.length === 1) {
+        singleIdFromList = ids[0]
       }
 
-      const zip = new JSZip()
-      for (const content of contents) {
-        const markdownContent = formatMarkdown(content, content.primary_keyword)
-        let seoMeta: any = {}
-        try {
-          seoMeta = JSON.parse(content.seo_metadata || '{}')
-        } catch (e) {
-          // Ignore
+      if (ids.length > 1) {
+        const contents = ids
+          .map((id: string) => records.find((r: any) => r.content_id === id))
+          .filter(Boolean) as any[]
+
+        if (contents.length === 0) {
+          return NextResponse.json(
+            { error: `No content found for IDs: ${ids.join(', ')}` },
+            { status: 404 }
+          )
         }
-        const sanitizedTitle = (seoMeta.title || content.topic_id || content.content_id || 'article')
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, '-')
-          .replace(/^-+|-+$/g, '')
-        zip.file(`${sanitizedTitle}.md`, markdownContent)
-      }
 
-      const zipBuffer = await zip.generateAsync({ type: 'uint8array' })
-      return new NextResponse(zipBuffer as unknown as BodyInit, {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/zip',
-          'Content-Disposition': 'attachment; filename="articles-markdown.zip"',
-          'Cache-Control': 'no-cache',
-        },
-      })
+        const zip = new JSZip()
+        for (const content of contents) {
+          const markdownContent = formatMarkdown(content, content.primary_keyword)
+          let seoMeta: any = {}
+          try {
+            seoMeta = JSON.parse(content.seo_metadata || '{}')
+          } catch (e) {
+            // Ignore
+          }
+          const sanitizedTitle = (seoMeta.title || content.topic_id || content.content_id || 'article')
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '')
+          zip.file(`${sanitizedTitle}.md`, markdownContent)
+        }
+
+        const zipBuffer = await zip.generateAsync({ type: 'uint8array' })
+        return new NextResponse(zipBuffer as unknown as BodyInit, {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/zip',
+            'Content-Disposition': 'attachment; filename="articles-markdown.zip"',
+            'Cache-Control': 'no-cache',
+          },
+        })
+      }
     }
 
-    if (!contentId) {
+    const effectiveContentId = contentId || singleIdFromList
+    if (!effectiveContentId) {
       return NextResponse.json(
         { error: 'contentId or contentIds parameter is required' },
         { status: 400 }
       )
     }
 
-    const content = records.find((r: any) => r.content_id === contentId)
+    const content = records.find((r: any) => r.content_id === effectiveContentId)
 
     if (!content) {
-      console.error(`❌ Content not found in CSV: ${contentId}`)
+      console.error(`❌ Content not found in CSV: ${effectiveContentId}`)
       console.log(`Available content_ids: ${records.filter((r: any) => r.content_id).map((r: any) => r.content_id).slice(0, 10).join(', ')}`)
       return NextResponse.json(
-        { error: `Content not found: ${contentId}` },
+        { error: `Content not found: ${effectiveContentId}` },
         { status: 404 }
       )
     }
@@ -406,7 +413,7 @@ export async function GET(request: NextRequest) {
     } catch (e) {
       // Ignore
     }
-    console.log(`✅ Downloading markdown for content_id: ${contentId}, title: "${seoMetaForLog.title || 'N/A'}"`)
+    console.log(`✅ Downloading markdown for content_id: ${effectiveContentId}, title: "${seoMetaForLog.title || 'N/A'}"`)
 
     const markdownContent = formatMarkdown(content, content.primary_keyword)
 
