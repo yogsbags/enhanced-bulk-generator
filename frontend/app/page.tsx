@@ -124,55 +124,86 @@ export default function Home() {
     const pollIntervalMs = 4000
     const { isFullWorkflow = false } = options
     let lastLogCount = 0
+    let consecutiveErrors = 0
+    const MAX_CONSECUTIVE_ERRORS = 5
 
     while (true) {
-      const res = await fetch(`/api/workflow/status?jobId=${encodeURIComponent(jobId)}`)
-      if (!res.ok) {
-        addLog(`❌ Status check failed: ${res.status}`)
-        break
-      }
-      const data = await res.json()
-      if (data.logs?.length > lastLogCount) {
-        for (let i = lastLogCount; i < data.logs.length; i++) {
-          addLog(data.logs[i])
+      try {
+        const res = await fetch(`/api/workflow/status?jobId=${encodeURIComponent(jobId)}`)
+
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`)
         }
-        lastLogCount = data.logs.length
-      }
-      if (data.stage != null && data.message != null) {
-        const status = data.status === 'failed' ? 'error' : (data.status === 'completed' ? 'completed' : 'running')
-        await updateStage(data.stage, status, data.message)
-      }
-      if (data.status === 'completed') {
-        addLog('✅ Completed successfully!')
-        if (isFullWorkflow) {
-          try {
-            for (let s = 1; s <= 7; s++) {
-              const dataRes = await fetchWorkflowData(s)
+
+        const data = await res.json()
+
+        // Reset error counter on successful fetch
+        if (consecutiveErrors > 0) {
+          addLog(`✅ Connection restored after ${consecutiveErrors} error(s)`)
+          consecutiveErrors = 0
+        }
+        if (data.logs?.length > lastLogCount) {
+          for (let i = lastLogCount; i < data.logs.length; i++) {
+            addLog(data.logs[i])
+          }
+          lastLogCount = data.logs.length
+        }
+        if (data.stage != null && data.message != null) {
+          const status = data.status === 'failed' ? 'error' : (data.status === 'completed' ? 'completed' : 'running')
+          await updateStage(data.stage, status, data.message)
+        }
+        if (data.status === 'completed') {
+          addLog('✅ Completed successfully!')
+          if (isFullWorkflow) {
+            try {
+              for (let s = 1; s <= 7; s++) {
+                const dataRes = await fetchWorkflowData(s)
+                if (dataRes.ok) {
+                  const stageDataRes = await dataRes.json()
+                  setStageData(prev => ({ ...prev, [s]: stageDataRes }))
+                }
+              }
+            } catch (_) {}
+          } else if (data.stage != null) {
+            try {
+              const dataRes = await fetchWorkflowData(data.stage)
               if (dataRes.ok) {
                 const stageDataRes = await dataRes.json()
-                setStageData(prev => ({ ...prev, [s]: stageDataRes }))
+                setStageData(prev => ({ ...prev, [data.stage]: stageDataRes }))
               }
-            }
-          } catch (_) {}
-        } else if (data.stage != null) {
-          try {
-            const dataRes = await fetchWorkflowData(data.stage)
-            if (dataRes.ok) {
-              const stageDataRes = await dataRes.json()
-              setStageData(prev => ({ ...prev, [data.stage]: stageDataRes }))
-            }
-          } catch (_) {}
+            } catch (_) {}
+          }
+          break
         }
-        break
-      }
-      if (data.status === 'failed') {
-        addLog(`❌ Failed: ${data.error || 'Unknown error'}`)
-        if (data.stage != null) {
-          await updateStage(data.stage, 'error', data.error || 'Failed')
+        if (data.status === 'failed') {
+          addLog(`❌ Failed: ${data.error || 'Unknown error'}`)
+          if (data.stage != null) {
+            await updateStage(data.stage, 'error', data.error || 'Failed')
+          }
+          break
         }
-        break
+
+        await new Promise(r => setTimeout(r, pollIntervalMs))
+      } catch (error) {
+        consecutiveErrors++
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+        const isTransientError = errorMessage.includes('ERR_CONNECTION_RESET') ||
+                                 errorMessage.includes('Failed to fetch') ||
+                                 errorMessage.includes('network error') ||
+                                 errorMessage.includes('NetworkError') ||
+                                 errorMessage.includes('HTTP 5')
+
+        if (isTransientError && consecutiveErrors <= MAX_CONSECUTIVE_ERRORS) {
+          // Exponential backoff: 2s, 4s, 8s, 16s, 32s
+          const retryDelay = Math.min(pollIntervalMs * Math.pow(2, consecutiveErrors - 1), 32000)
+          addLog(`⚠️  Polling error (${consecutiveErrors}/${MAX_CONSECUTIVE_ERRORS}): ${errorMessage}. Retrying in ${retryDelay/1000}s...`)
+          await new Promise(r => setTimeout(r, retryDelay))
+          continue // Retry the poll
+        } else {
+          addLog(`❌ Polling failed after ${consecutiveErrors} attempts: ${errorMessage}`)
+          break
+        }
       }
-      await new Promise(r => setTimeout(r, pollIntervalMs))
     }
   }
 
