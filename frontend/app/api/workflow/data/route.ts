@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
-import fs from 'fs'
-import path from 'path'
 import { parse } from 'csv-parse/sync'
+import fs from 'fs'
+import { NextRequest, NextResponse } from 'next/server'
+import path from 'path'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -81,79 +81,34 @@ export async function GET(req: NextRequest) {
       })
     }
 
-    // For large files, read only last N lines instead of parsing entire file
+    // Parse full CSV so multi-line fields (e.g. article_content) stay correct.
+    // Splitting by newline then "last N lines" would break created-content.csv (content has newlines).
     const MAX_RECORDS_TO_SHOW = 10
     const csvContent = fs.readFileSync(csvPath, 'utf-8')
-    const lines = csvContent.trim().split('\n')
 
-    // If file is very large (>100 lines), only parse last N+1 lines (header + records)
-    let recordsToParse: string
-    let totalLineCount = lines.length - 1 // Exclude header
-
-    if (lines.length > 100) {
-      // Take header + last N lines only
-      const header = lines[0]
-      const lastNLines = lines.slice(-(MAX_RECORDS_TO_SHOW))
-      recordsToParse = [header, ...lastNLines].join('\n')
-    } else {
-      recordsToParse = csvContent
-    }
-
-    // Parse only the subset of lines with lenient options
     let records: any[] = []
     try {
-      records = parse(recordsToParse, {
+      records = parse(csvContent, {
         columns: true,
         skip_empty_lines: true,
         relax_quotes: true,
         relax_column_count: true,
         trim: true,
+        bom: true,
         on_record: (record: any) => {
-          // Skip malformed records
           if (!record || typeof record !== 'object') return null
           return record
         }
       })
     } catch (parseError) {
-      // If parsing fails completely, try line-by-line manual parsing
-      console.warn('CSV parsing failed, attempting manual line parsing:', parseError)
-      const headerLine = lines[0]
-      const headers = headerLine.split(',').map((h: string) => h.replace(/^"|"$/g, '').trim())
-
-      // Try to parse at least the header and a few valid lines
-      for (let i = 1; i < Math.min(lines.length, 10); i++) {
-        try {
-          const lineData = lines[i].split(',').slice(0, headers.length)
-          const record: any = {}
-          headers.forEach((header: string, idx: number) => {
-            record[header] = lineData[idx]?.replace(/^"|"$/g, '') || ''
-          })
-          records.push(record)
-        } catch (e) {
-          continue // Skip malformed lines
-        }
-      }
+      console.warn('CSV parse failed:', parseError)
     }
 
-    // Limit to last 10 records
+    const totalLineCount = records.length
     const limitedRecords = records.slice(-MAX_RECORDS_TO_SHOW)
-
-    // For large files, count approved by scanning all lines (faster than full parse)
-    let approvedCount = 0
-    if (lines.length > 100) {
-      // Quick scan: count lines containing approval markers
-      approvedCount = lines.filter(line =>
-        line.includes('"Yes"') ||
-        line.includes(',Yes,') ||
-        line.includes('"SEO-Ready"') ||
-        line.includes(',SEO-Ready,')
-      ).length
-    } else {
-      // Small file: accurate count
-      approvedCount = records.filter((r: any) =>
-        r.approval_status === 'Yes' || r.approval_status === 'SEO-Ready'
-      ).length
-    }
+    const approvedCount = records.filter((r: any) =>
+      r.approval_status === 'Yes' || r.approval_status === 'SEO-Ready'
+    ).length
 
     // Get summary stats
     const summary = {
