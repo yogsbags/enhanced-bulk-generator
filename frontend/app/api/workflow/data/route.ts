@@ -99,13 +99,41 @@ export async function GET(req: NextRequest) {
       recordsToParse = csvContent
     }
 
-    // Parse only the subset of lines
-    const records = parse(recordsToParse, {
-      columns: true,
-      skip_empty_lines: true,
-      relax_quotes: true,
-      trim: true,
-    })
+    // Parse only the subset of lines with lenient options
+    let records: any[] = []
+    try {
+      records = parse(recordsToParse, {
+        columns: true,
+        skip_empty_lines: true,
+        relax_quotes: true,
+        relax_column_count: true,
+        trim: true,
+        on_record: (record: any) => {
+          // Skip malformed records
+          if (!record || typeof record !== 'object') return null
+          return record
+        }
+      })
+    } catch (parseError) {
+      // If parsing fails completely, try line-by-line manual parsing
+      console.warn('CSV parsing failed, attempting manual line parsing:', parseError)
+      const headerLine = lines[0]
+      const headers = headerLine.split(',').map((h: string) => h.replace(/^"|"$/g, '').trim())
+
+      // Try to parse at least the header and a few valid lines
+      for (let i = 1; i < Math.min(lines.length, 10); i++) {
+        try {
+          const lineData = lines[i].split(',').slice(0, headers.length)
+          const record: any = {}
+          headers.forEach((header: string, idx: number) => {
+            record[header] = lineData[idx]?.replace(/^"|"$/g, '') || ''
+          })
+          records.push(record)
+        } catch (e) {
+          continue // Skip malformed lines
+        }
+      }
+    }
 
     // Limit to last 10 records
     const limitedRecords = records.slice(-MAX_RECORDS_TO_SHOW)

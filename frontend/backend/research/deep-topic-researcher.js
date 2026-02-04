@@ -817,7 +817,16 @@ Focus on Indian market context and SEBI/RBI compliance where applicable.`;
           .replace(/,\s*}/g, '}')
           .replace(/,\s*]/g, ']')
           .replace(/\r?\n/g, ' ')
-          .replace(/\s+/g, ' ');
+          .replace(/\s+/g, ' ')
+          // Fix broken quotes and malformed strings
+          .replace(/,Yes,/g, ',"Yes",')
+          .replace(/,Yes\s/g, ',"Yes" ')
+          .replace(/Yes,"/g, '","')
+          .replace(/\\""/g, '\\"')
+          // Fix common quote mismatches in JSON values
+          .replace(/""([^"]*)""/g, '"$1"')
+          // Remove any stray "Yes" without proper quotes
+          .replace(/([,{]\s*)Yes(\s*[,}])/g, '$1"Yes"$2');
 
         try {
           const parsed = JSON.parse(jsonString);
