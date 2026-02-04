@@ -81,25 +81,57 @@ export async function GET(req: NextRequest) {
       })
     }
 
-    // Read and parse CSV
+    // For large files, read only last N lines instead of parsing entire file
+    const MAX_RECORDS_TO_SHOW = 10
     const csvContent = fs.readFileSync(csvPath, 'utf-8')
-    const records = parse(csvContent, {
+    const lines = csvContent.trim().split('\n')
+
+    // If file is very large (>100 lines), only parse last N+1 lines (header + records)
+    let recordsToParse: string
+    let totalLineCount = lines.length - 1 // Exclude header
+
+    if (lines.length > 100) {
+      // Take header + last N lines only
+      const header = lines[0]
+      const lastNLines = lines.slice(-(MAX_RECORDS_TO_SHOW))
+      recordsToParse = [header, ...lastNLines].join('\n')
+    } else {
+      recordsToParse = csvContent
+    }
+
+    // Parse only the subset of lines
+    const records = parse(recordsToParse, {
       columns: true,
       skip_empty_lines: true,
       relax_quotes: true,
       trim: true,
     })
 
-    // Limit to last 10 records to avoid overwhelming the UI
-    const limitedRecords = records.slice(-10)
+    // Limit to last 10 records
+    const limitedRecords = records.slice(-MAX_RECORDS_TO_SHOW)
+
+    // For large files, count approved by scanning all lines (faster than full parse)
+    let approvedCount = 0
+    if (lines.length > 100) {
+      // Quick scan: count lines containing approval markers
+      approvedCount = lines.filter(line =>
+        line.includes('"Yes"') ||
+        line.includes(',Yes,') ||
+        line.includes('"SEO-Ready"') ||
+        line.includes(',SEO-Ready,')
+      ).length
+    } else {
+      // Small file: accurate count
+      approvedCount = records.filter((r: any) =>
+        r.approval_status === 'Yes' || r.approval_status === 'SEO-Ready'
+      ).length
+    }
 
     // Get summary stats
     const summary = {
-      total: records.length,
+      total: totalLineCount,
       showing: limitedRecords.length,
-      approved: records.filter((r: any) =>
-        r.approval_status === 'Yes' || r.approval_status === 'SEO-Ready'
-      ).length
+      approved: approvedCount
     }
 
     // Get Google Sheets URL for this CSV
