@@ -54,6 +54,7 @@ export default function Home() {
   const [contentOutline, setContentOutline] = useState<string>('')
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [editingRow, setEditingRow] = useState<{stageId: number, data: any, index: number} | null>(null)
+  const [sessionContentIds, setSessionContentIds] = useState<string[]>([])
 
   // Comprehensive broking & wealth categories
   const categories = [
@@ -195,6 +196,18 @@ export default function Home() {
     if (retryCount === 0) {
       setExecutingStage(stageId)
       addLog(`🚀 Starting Stage ${stageId} execution...`)
+
+      // Track existing content IDs before Stage 4 execution
+      if (stageId === 4) {
+        setSessionContentIds([])  // Clear previous session IDs
+
+        const existingIds = stageData[4]?.data
+          ?.filter((row: any) => row.content_id)
+          ?.map((row: any) => row.content_id) || []
+
+        // Store in closure for comparison after execution
+        ;(executeStage as any)._preExecutionIds = existingIds
+      }
     } else {
       addLog(`🔄 Retry attempt ${retryCount}/${MAX_RETRIES} for Stage ${stageId}...`)
     }
@@ -234,6 +247,21 @@ export default function Home() {
                 const stageDataRes = await dataRes.json()
                 setStageData(prev => ({ ...prev, [stageId]: stageDataRes }))
                 addLog(`✅ Data loaded for Stage ${stageId}: ${stageDataRes.summary?.total || 0} items`)
+
+                // For Stage 4: identify and store newly created content IDs
+                if (stageId === 4 && stageDataRes.data) {
+                  const preExecutionIds = (executeStage as any)._preExecutionIds || []
+                  const currentIds = stageDataRes.data
+                    .filter((row: any) => row.content_id)
+                    .map((row: any) => row.content_id)
+
+                  const newIds = currentIds.filter((id: string) => !preExecutionIds.includes(id))
+
+                  if (newIds.length > 0) {
+                    setSessionContentIds(newIds)
+                    addLog(`🎯 Session created ${newIds.length} new article(s)`)
+                  }
+                }
               } else {
                 const errorText = await dataRes.text()
                 addLog(`⚠️  Failed to load Stage ${stageId} data: ${dataRes.status} ${errorText}`)
@@ -338,6 +366,7 @@ export default function Home() {
     setPublishedUrls({})
     setStageData({})
     setExpandedStage(null)
+    setSessionContentIds([])  // Clear session content IDs for new workflow
 
     setStages(stages.map(s => ({ ...s, status: 'idle', message: '' })))
 
@@ -377,6 +406,18 @@ export default function Home() {
                 if (dataRes.ok) {
                   const stageDataRes = await dataRes.json()
                   setStageData(prev => ({ ...prev, [s]: stageDataRes }))
+
+                  // For Stage 4: store all content IDs as session IDs (full workflow created all of them)
+                  if (s === 4 && stageDataRes.data) {
+                    const contentIds = stageDataRes.data
+                      .filter((row: any) => row.content_id)
+                      .map((row: any) => row.content_id)
+
+                    if (contentIds.length > 0) {
+                      setSessionContentIds(contentIds)
+                      addLog(`🎯 Workflow created ${contentIds.length} article(s) in total`)
+                    }
+                  }
                 } else {
                   console.warn(`Stage ${s} data fetch returned ${dataRes.status}`)
                 }
@@ -913,17 +954,22 @@ export default function Home() {
                           📥 Download CSV
                         </button>
 
-                        {/* Download Markdown Button (for content stages 4-5) - downloads latest N articles (single file or ZIP) */}
+                        {/* Download Markdown Button (for content stages 4-5) - downloads current session or all visible articles */}
                         {(stage.id === 4 || stage.id === 5) && stageData[stage.id].data.some((row: any) => row.content_id && row.article_content) && (
                           <button
                             onClick={async () => {
                               try {
-                                const contentRows = stageData[stage.id].data.filter((row: any) => row.content_id && row.article_content)
-                                if (contentRows.length === 0) {
-                                  alert('No content ID found')
+                                // Use session content IDs if available (current execution only), otherwise all visible
+                                const ids = sessionContentIds.length > 0
+                                  ? sessionContentIds
+                                  : stageData[stage.id].data
+                                      .filter((row: any) => row.content_id && row.article_content)
+                                      .map((r: any) => r.content_id)
+
+                                if (ids.length === 0) {
+                                  alert('No content to download')
                                   return
                                 }
-                                const ids = contentRows.map((r: any) => r.content_id)
                                 const query = ids.length === 1
                                   ? `contentId=${encodeURIComponent(ids[0])}`
                                   : `contentIds=${ids.map((id: string) => encodeURIComponent(id)).join(',')}`
@@ -956,17 +1002,22 @@ export default function Home() {
                           </button>
                         )}
 
-                        {/* Download HTML Button (for content stages 4-5) - downloads latest N articles (single file or ZIP) */}
+                        {/* Download HTML Button (for content stages 4-5) - downloads current session or all visible articles */}
                         {(stage.id === 4 || stage.id === 5) && stageData[stage.id].data.some((row: any) => row.content_id && row.article_content) && (
                           <button
                             onClick={async () => {
                               try {
-                                const contentRows = stageData[stage.id].data.filter((row: any) => row.content_id && row.article_content)
-                                if (contentRows.length === 0) {
-                                  alert('No content ID found')
+                                // Use session content IDs if available (current execution only), otherwise all visible
+                                const ids = sessionContentIds.length > 0
+                                  ? sessionContentIds
+                                  : stageData[stage.id].data
+                                      .filter((row: any) => row.content_id && row.article_content)
+                                      .map((r: any) => r.content_id)
+
+                                if (ids.length === 0) {
+                                  alert('No content to download')
                                   return
                                 }
-                                const ids = contentRows.map((r: any) => r.content_id)
                                 const query = ids.length === 1
                                   ? `contentId=${encodeURIComponent(ids[0])}`
                                   : `contentIds=${ids.map((id: string) => encodeURIComponent(id)).join(',')}`
@@ -999,17 +1050,22 @@ export default function Home() {
                           </button>
                         )}
 
-                        {/* Download Raw Content Button (for content stages 4-5) - downloads latest N articles (single file or ZIP) */}
+                        {/* Download Raw Content Button (for content stages 4-5) - downloads current session or all visible articles */}
                         {(stage.id === 4 || stage.id === 5) && stageData[stage.id].data.some((row: any) => row.content_id && row.article_content) && (
                           <button
                             onClick={async () => {
                               try {
-                                const contentRows = stageData[stage.id].data.filter((row: any) => row.content_id && row.article_content)
-                                if (contentRows.length === 0) {
-                                  alert('No content ID found')
+                                // Use session content IDs if available (current execution only), otherwise all visible
+                                const ids = sessionContentIds.length > 0
+                                  ? sessionContentIds
+                                  : stageData[stage.id].data
+                                      .filter((row: any) => row.content_id && row.article_content)
+                                      .map((r: any) => r.content_id)
+
+                                if (ids.length === 0) {
+                                  alert('No content to download')
                                   return
                                 }
-                                const ids = contentRows.map((r: any) => r.content_id)
                                 const query = ids.length === 1
                                   ? `contentId=${encodeURIComponent(ids[0])}`
                                   : `contentIds=${ids.map((id: string) => encodeURIComponent(id)).join(',')}`
