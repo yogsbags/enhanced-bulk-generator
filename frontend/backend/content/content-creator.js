@@ -1323,6 +1323,9 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
     const params = this.modelParams.stages.content;
     let lastError;
 
+    // Groq models have a hard limit of 8192 max_tokens
+    const groqMaxTokens = Math.min(params.max_tokens || 8192, 8192);
+
     for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
       try {
         const response = await fetch(this.groqApiUrl, {
@@ -1346,7 +1349,7 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
             top_p: params.top_p,
             frequency_penalty: params.frequency_penalty,
             presence_penalty: params.presence_penalty,
-            max_tokens: params.max_tokens,
+            max_tokens: groqMaxTokens,
           }),
         });
 
