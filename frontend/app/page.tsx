@@ -55,6 +55,7 @@ export default function Home() {
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [editingRow, setEditingRow] = useState<{stageId: number, data: any, index: number} | null>(null)
   const [sessionContentIds, setSessionContentIds] = useState<string[]>([])
+  const [stageStartTimes, setStageStartTimes] = useState<Record<number, number>>({})
 
   // Comprehensive broking & wealth categories
   const categories = [
@@ -83,6 +84,17 @@ export default function Home() {
   ]
 
   const updateStage = async (stageId: number, status: WorkflowStage['status'], message: string) => {
+    // Track stage start time when it begins running (for full workflow)
+    if (status === 'running' && !stageStartTimes[stageId]) {
+      setStageStartTimes(prev => ({ ...prev, [stageId]: Date.now() }))
+    }
+
+    // Log stage completion duration (for full workflow)
+    if (status === 'completed' && stageStartTimes[stageId]) {
+      const duration = Date.now() - stageStartTimes[stageId]
+      addLog(`⏱️  Stage ${stageId} duration: ${formatDuration(duration)}`)
+    }
+
     setStages(prev => prev.map(stage =>
       stage.id === stageId ? { ...stage, status, message } : stage
     ))
@@ -99,6 +111,17 @@ export default function Home() {
         console.error(`Failed to fetch data for stage ${stageId}:`, error)
       }
     }
+  }
+
+  const formatDuration = (durationMs: number): string => {
+    const totalSeconds = Math.floor(durationMs / 1000)
+    const minutes = Math.floor(totalSeconds / 60)
+    const seconds = totalSeconds % 60
+
+    if (minutes > 0) {
+      return `${minutes}m ${seconds}s`
+    }
+    return `${seconds}s`
   }
 
   const addLog = (message: string) => {
@@ -195,6 +218,10 @@ export default function Home() {
 
     if (retryCount === 0) {
       setExecutingStage(stageId)
+
+      // Record start time for performance tracking
+      const startTime = Date.now()
+      setStageStartTimes(prev => ({ ...prev, [stageId]: startTime }))
       addLog(`🚀 Starting Stage ${stageId} execution...`)
 
       // Track existing content IDs before Stage 4 execution
@@ -236,10 +263,18 @@ export default function Home() {
         const { jobId } = await response.json()
         if (jobId) {
           await pollJobStatus(jobId)
-          addLog(`✅ Stage ${stageId} completed!`)
+
+          // Calculate and log execution duration
+          const startTime = stageStartTimes[stageId]
+          if (startTime) {
+            const duration = Date.now() - startTime
+            addLog(`✅ Stage ${stageId} completed! ⏱️  Duration: ${formatDuration(duration)}`)
+          } else {
+            addLog(`✅ Stage ${stageId} completed!`)
+          }
 
           // Fetch stage data in background with retry (Railway filesystem can be slow)
-          const fetchStageDataWithRetry = async (attempt = 1, maxAttempts = 3) => {
+          const fetchStageDataWithRetry = async (attempt = 1, maxAttempts = 3): Promise<void> => {
             const delay = attempt === 1 ? 3000 : 2000 * attempt // 3s, 4s, 6s
 
             await new Promise(r => setTimeout(r, delay))
@@ -369,7 +404,14 @@ export default function Home() {
         }
       }
 
-      addLog(`✅ Stage ${stageId} completed!`)
+      // Calculate and log execution duration (SSE path)
+      const startTime = stageStartTimes[stageId]
+      if (startTime) {
+        const duration = Date.now() - startTime
+        addLog(`✅ Stage ${stageId} completed! ⏱️  Duration: ${formatDuration(duration)}`)
+      } else {
+        addLog(`✅ Stage ${stageId} completed!`)
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
       const isTransientError = errorMessage.includes('ERR_CONNECTION_RESET') ||
@@ -400,8 +442,11 @@ export default function Home() {
     setStageData({})
     setExpandedStage(null)
     setSessionContentIds([])  // Clear session content IDs for new workflow
+    setStageStartTimes({})  // Clear stage timings
 
     setStages(stages.map(s => ({ ...s, status: 'idle', message: '' })))
+
+    const workflowStartTime = Date.now()
 
     try {
       addLog('🚀 Starting full workflow execution...')
@@ -511,7 +556,9 @@ export default function Home() {
         }
       }
 
-      addLog('✅ Workflow completed successfully!')
+      // Log total workflow duration
+      const workflowDuration = Date.now() - workflowStartTime
+      addLog(`✅ Workflow completed successfully! ⏱️  Total Duration: ${formatDuration(workflowDuration)}`)
     } catch (error) {
       addLog(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`)
       console.error('Workflow error:', error)
