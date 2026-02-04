@@ -57,7 +57,7 @@ class ContentCreator {
       return false;
     }
     if (this.geminiApiKey) {
-      console.log('✅ Content Creator initialized with Google Gemini 3.0 Pro Preview (gemini-3-pro-preview)');
+      console.log('✅ Content Creator initialized with Google Gemini 3.0 Flash Preview (gemini-3-flash-preview)');
     } else {
       console.log('✅ Content Creator initialized');
     }
@@ -1208,11 +1208,11 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
     // Try Gemini first (primary model)
     if (this.geminiApiKey) {
       try {
-        const result = await this.callGeminiModel('gemini-3-pro-preview', prompt);
-        console.log('🤖 Draft generated via Google Gemini 3.0 Pro Preview (primary)');
+        const result = await this.callGeminiModel('gemini-3-flash-preview', prompt);
+        console.log('🤖 Draft generated via Google Gemini 3.0 Flash Preview (primary)');
         return result;
       } catch (error) {
-        console.warn(`⚠️  Gemini 3.0 Pro Preview failed: ${error.message}`);
+        console.warn(`⚠️  Gemini 3.0 Flash Preview failed: ${error.message}`);
       }
     }
 
