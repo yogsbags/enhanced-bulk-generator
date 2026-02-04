@@ -331,9 +331,6 @@ export default function Home() {
                 // Mark stage as completed only after data is successfully loaded
                 await updateStage(stageId, 'completed', 'Stage completed')
 
-                // Clear executing state only after completion
-                setExecutingStage(null)
-
                 // For Stage 4: identify and store newly created content IDs
                 if (stageId === 4 && stageDataRes.data) {
                   const preExecutionIds = (executeStage as any)._preExecutionIds || []
@@ -373,7 +370,9 @@ export default function Home() {
             }
           }
 
-          fetchStageDataWithRetry()
+          // IMPORTANT: Wait for data load to finish before clearing executingStage,
+          // so the button stays in \"Executing...\" state while data is loading.
+          await fetchStageDataWithRetry()
         }
         return
       }
@@ -1056,7 +1055,11 @@ export default function Home() {
                             <button
                               onClick={() => executeStage(stage.id)}
                               disabled={
+                                // Disable while any stage is executing, while this stage
+                                // is in running/loading state, after completion, or if
+                                // the previous stage hasn't completed.
                                 executingStage !== null ||
+                                stage.status === 'running' ||
                                 isRunning ||
                                 stage.status === 'completed' ||
                                 stages[stage.id - 2]?.status !== 'completed'
@@ -1070,10 +1073,10 @@ export default function Home() {
                                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                   : 'bg-purple-500 text-white hover:bg-purple-600 shadow-md hover:shadow-lg'
                               }`}
-                            >
+                              >
                               {stage.status === 'completed' ? (
                                 '✓ Completed'
-                              ) : executingStage === stage.id ? (
+                              ) : (executingStage === stage.id || stage.status === 'running') ? (
                                 <span className="flex items-center gap-2">
                                   <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
                                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
