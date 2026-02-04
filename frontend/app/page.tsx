@@ -309,6 +309,9 @@ export default function Home() {
                 // Mark stage as completed only after data is successfully loaded
                 await updateStage(stageId, 'completed', 'Stage completed')
 
+                // Clear executing state only after completion
+                setExecutingStage(null)
+
                 // For Stage 4: identify and store newly created content IDs
                 if (stageId === 4 && stageDataRes.data) {
                   const preExecutionIds = (executeStage as any)._preExecutionIds || []

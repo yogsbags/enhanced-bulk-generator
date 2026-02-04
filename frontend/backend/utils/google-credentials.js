@@ -55,16 +55,30 @@ function getGoogleCredentials() {
     }
   }
 
-  // Local development (file path)
+  // GOOGLE_APPLICATION_CREDENTIALS set: may be file path or inline JSON (Railway sometimes has JSON pasted here)
   if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-    const credPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    const raw = process.env.GOOGLE_APPLICATION_CREDENTIALS.trim();
+    if (raw.startsWith('{')) {
+      try {
+        const credentials = JSON.parse(raw);
+        const tempPath = '/tmp/google-credentials.json';
+        fs.writeFileSync(tempPath, JSON.stringify(credentials, null, 2));
+        process.env.GOOGLE_APPLICATION_CREDENTIALS = tempPath;
+        console.log('✅ Google credentials from GOOGLE_APPLICATION_CREDENTIALS (inline JSON) → /tmp/google-credentials.json');
+        console.log(`   Service account: ${credentials.client_email || 'unknown'}`);
+        return tempPath;
+      } catch (e) {
+        console.warn('⚠️  GOOGLE_APPLICATION_CREDENTIALS looks like JSON but parse failed:', e.message);
+        return null;
+      }
+    }
+    const credPath = raw;
     if (fs.existsSync(credPath)) {
       console.log(`✅ Using local Google credentials file: ${credPath}`);
       return credPath;
-    } else {
-      console.warn(`⚠️  Google credentials file not found: ${credPath}`);
-      return null;
     }
+    console.warn('⚠️  Google credentials file not found (GOOGLE_APPLICATION_CREDENTIALS is set). Use a file path or paste JSON for inline credentials.');
+    return null;
   }
 
   console.log('ℹ️  Google Application Credentials not configured (optional for AI-only mode)');

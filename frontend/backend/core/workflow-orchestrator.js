@@ -853,15 +853,24 @@ class WorkflowOrchestrator {
       if (result.success && result.syncedSheets) {
         console.log(`📊 Synced ${result.syncedSheets} sheet(s) to Google Sheets`);
 
-        // Import the URL helper functions
+        // Import the URL helper functions (backend/scripts on Railway, repo scripts locally)
+        const path = require('path');
         let googleSheetsSyncModule;
-        try {
-          // Path goes up 3 levels: frontend/backend/core -> frontend/backend -> frontend -> root
-          googleSheetsSyncModule = require('../../../scripts/sync-google-sheets');
-        } catch (error) {
-          // Module not available, skip URL display
-          return result;
+        const syncPaths = [
+          path.join(__dirname, '..', 'scripts', 'sync-google-sheets'),
+          path.join(__dirname, '..', '..', '..', 'scripts', 'sync-google-sheets')
+        ];
+        for (const syncPath of syncPaths) {
+          try {
+            googleSheetsSyncModule = require(syncPath);
+            break;
+          } catch (e) {
+            if (syncPath === syncPaths[syncPaths.length - 1]) {
+              return result;
+            }
+          }
         }
+        if (!googleSheetsSyncModule) return result;
 
         // Show the "View on Google Sheets" button
         const allUrls = googleSheetsSyncModule.getAllSheetUrls();
