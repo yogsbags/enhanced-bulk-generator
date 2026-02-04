@@ -238,13 +238,31 @@ export default function Home() {
           await pollJobStatus(jobId)
           addLog(`✅ Stage ${stageId} completed!`)
 
-          // Fetch stage data in background (don't block state reset)
-          // Increased delay to 2000ms for Railway filesystem sync
-          setTimeout(() => {
-            addLog(`📊 Fetching data for Stage ${stageId}...`)
-            fetchWorkflowData(stageId).then(async (dataRes) => {
+          // Fetch stage data in background with retry (Railway filesystem can be slow)
+          const fetchStageDataWithRetry = async (attempt = 1, maxAttempts = 3) => {
+            const delay = attempt === 1 ? 3000 : 2000 * attempt // 3s, 4s, 6s
+
+            await new Promise(r => setTimeout(r, delay))
+
+            addLog(`📊 Fetching data for Stage ${stageId}... (attempt ${attempt}/${maxAttempts})`)
+
+            try {
+              const dataRes = await fetchWorkflowData(stageId)
+
               if (dataRes.ok) {
                 const stageDataRes = await dataRes.json()
+
+                // Check if we got actual data or empty response
+                if (!stageDataRes.data || stageDataRes.data.length === 0) {
+                  if (attempt < maxAttempts) {
+                    addLog(`⏳ No data yet, retrying in ${2 * (attempt + 1)}s...`)
+                    return fetchStageDataWithRetry(attempt + 1, maxAttempts)
+                  } else {
+                    addLog(`⚠️  Stage ${stageId} completed but no data found after ${maxAttempts} attempts`)
+                    return
+                  }
+                }
+
                 setStageData(prev => ({ ...prev, [stageId]: stageDataRes }))
                 addLog(`✅ Data loaded for Stage ${stageId}: ${stageDataRes.summary?.total || 0} items`)
 
@@ -264,13 +282,28 @@ export default function Home() {
                 }
               } else {
                 const errorText = await dataRes.text()
+
+                if (attempt < maxAttempts && (dataRes.status === 500 || dataRes.status === 404)) {
+                  addLog(`⏳ Data fetch failed (${dataRes.status}), retrying in ${2 * (attempt + 1)}s...`)
+                  return fetchStageDataWithRetry(attempt + 1, maxAttempts)
+                }
+
                 addLog(`⚠️  Failed to load Stage ${stageId} data: ${dataRes.status} ${errorText}`)
               }
-            }).catch(err => {
-              addLog(`❌ Error fetching Stage ${stageId} data: ${err.message}`)
+            } catch (err) {
+              const error = err as Error
+
+              if (attempt < maxAttempts) {
+                addLog(`⏳ Network error, retrying in ${2 * (attempt + 1)}s...`)
+                return fetchStageDataWithRetry(attempt + 1, maxAttempts)
+              }
+
+              addLog(`❌ Error fetching Stage ${stageId} data: ${error.message}`)
               console.error(`Failed to fetch stage ${stageId} data:`, err)
-            })
-          }, 2000)
+            }
+          }
+
+          fetchStageDataWithRetry()
         }
         return
       }
@@ -397,35 +430,53 @@ export default function Home() {
           addLog('📡 Polling mode (avoids proxy timeouts). Refreshing status every few seconds...')
           await pollJobStatus(jobId)
 
-          // Fetch all stage data in background after polling completes
-          // Increased delay to 2000ms for Railway filesystem sync
-          setTimeout(() => {
+          // Fetch all stage data in background after polling completes (with retry for Railway)
+          const fetchAllStagesWithRetry = async () => {
+            await new Promise(r => setTimeout(r, 3000)) // Initial 3s delay
             addLog('📊 Fetching data for all stages...')
+
             for (let s = 1; s <= 7; s++) {
-              fetchWorkflowData(s).then(async (dataRes) => {
-                if (dataRes.ok) {
-                  const stageDataRes = await dataRes.json()
-                  setStageData(prev => ({ ...prev, [s]: stageDataRes }))
+              let attempts = 0
+              const maxAttempts = 2
 
-                  // For Stage 4: store all content IDs as session IDs (full workflow created all of them)
-                  if (s === 4 && stageDataRes.data) {
-                    const contentIds = stageDataRes.data
-                      .filter((row: any) => row.content_id)
-                      .map((row: any) => row.content_id)
+              while (attempts < maxAttempts) {
+                attempts++
 
-                    if (contentIds.length > 0) {
-                      setSessionContentIds(contentIds)
-                      addLog(`🎯 Workflow created ${contentIds.length} article(s) in total`)
+                try {
+                  const dataRes = await fetchWorkflowData(s)
+
+                  if (dataRes.ok) {
+                    const stageDataRes = await dataRes.json()
+                    setStageData(prev => ({ ...prev, [s]: stageDataRes }))
+
+                    // For Stage 4: store all content IDs as session IDs (full workflow created all of them)
+                    if (s === 4 && stageDataRes.data) {
+                      const contentIds = stageDataRes.data
+                        .filter((row: any) => row.content_id)
+                        .map((row: any) => row.content_id)
+
+                      if (contentIds.length > 0) {
+                        setSessionContentIds(contentIds)
+                        addLog(`🎯 Workflow created ${contentIds.length} article(s) in total`)
+                      }
                     }
+                    break // Success, exit retry loop
+                  } else if (attempts < maxAttempts) {
+                    await new Promise(r => setTimeout(r, 2000))
+                    continue
                   }
-                } else {
-                  console.warn(`Stage ${s} data fetch returned ${dataRes.status}`)
+                } catch (err) {
+                  if (attempts < maxAttempts) {
+                    await new Promise(r => setTimeout(r, 2000))
+                    continue
+                  }
+                  console.warn(`Failed to fetch stage ${s} data after ${maxAttempts} attempts:`, err)
                 }
-              }).catch(err => {
-                console.warn(`Failed to fetch stage ${s} data:`, err)
-              })
+              }
             }
-          }, 2000)
+          }
+
+          fetchAllStagesWithRetry()
         }
         return
       }
