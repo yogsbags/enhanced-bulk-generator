@@ -226,16 +226,23 @@ export default function Home() {
           addLog(`✅ Stage ${stageId} completed!`)
 
           // Fetch stage data in background (don't block state reset)
+          // Increased delay to 2000ms for Railway filesystem sync
           setTimeout(() => {
+            addLog(`📊 Fetching data for Stage ${stageId}...`)
             fetchWorkflowData(stageId).then(async (dataRes) => {
               if (dataRes.ok) {
                 const stageDataRes = await dataRes.json()
                 setStageData(prev => ({ ...prev, [stageId]: stageDataRes }))
+                addLog(`✅ Data loaded for Stage ${stageId}: ${stageDataRes.summary?.total || 0} items`)
+              } else {
+                const errorText = await dataRes.text()
+                addLog(`⚠️  Failed to load Stage ${stageId} data: ${dataRes.status} ${errorText}`)
               }
             }).catch(err => {
-              console.warn(`Failed to fetch stage ${stageId} data:`, err)
+              addLog(`❌ Error fetching Stage ${stageId} data: ${err.message}`)
+              console.error(`Failed to fetch stage ${stageId} data:`, err)
             })
-          }, 100)
+          }, 2000)
         }
         return
       }
@@ -362,18 +369,22 @@ export default function Home() {
           await pollJobStatus(jobId)
 
           // Fetch all stage data in background after polling completes
+          // Increased delay to 2000ms for Railway filesystem sync
           setTimeout(() => {
+            addLog('📊 Fetching data for all stages...')
             for (let s = 1; s <= 7; s++) {
               fetchWorkflowData(s).then(async (dataRes) => {
                 if (dataRes.ok) {
                   const stageDataRes = await dataRes.json()
                   setStageData(prev => ({ ...prev, [s]: stageDataRes }))
+                } else {
+                  console.warn(`Stage ${s} data fetch returned ${dataRes.status}`)
                 }
               }).catch(err => {
                 console.warn(`Failed to fetch stage ${s} data:`, err)
               })
             }
-          }, 100)
+          }, 2000)
         }
         return
       }
