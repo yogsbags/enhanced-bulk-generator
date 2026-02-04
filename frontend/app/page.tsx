@@ -172,12 +172,13 @@ export default function Home() {
           lastLogCount = data.logs.length
         }
         if (data.stage != null && data.message != null) {
-          const status = data.status === 'failed' ? 'error' : (data.status === 'completed' ? 'completed' : 'running')
+          // Don't mark as completed yet - wait for data fetch
+          const status = data.status === 'failed' ? 'error' : 'running'
           await updateStage(data.stage, status, data.message)
         }
         if (data.status === 'completed') {
-          addLog('✅ Completed successfully!')
-          // Break immediately to reset executing state
+          addLog('✅ Backend execution completed, loading data...')
+          // Break immediately to trigger data fetch
           break
         }
         if (data.status === 'failed') {
@@ -264,14 +265,17 @@ export default function Home() {
         if (jobId) {
           await pollJobStatus(jobId)
 
-          // Calculate and log execution duration
+          // Calculate execution duration but don't mark as complete yet
           const startTime = stageStartTimes[stageId]
           if (startTime) {
             const duration = Date.now() - startTime
-            addLog(`✅ Stage ${stageId} completed! ⏱️  Duration: ${formatDuration(duration)}`)
+            addLog(`⏱️  Stage ${stageId} backend execution finished. Duration: ${formatDuration(duration)}`)
           } else {
-            addLog(`✅ Stage ${stageId} completed!`)
+            addLog(`⏱️  Stage ${stageId} backend execution finished`)
           }
+
+          // Keep stage in "running" status while loading data
+          await updateStage(stageId, 'running', 'Loading data...')
 
           // Fetch stage data in background with retry (Railway filesystem can be slow)
           const fetchStageDataWithRetry = async (attempt = 1, maxAttempts = 3): Promise<void> => {
@@ -294,12 +298,16 @@ export default function Home() {
                     return fetchStageDataWithRetry(attempt + 1, maxAttempts)
                   } else {
                     addLog(`⚠️  Stage ${stageId} completed but no data found after ${maxAttempts} attempts`)
+                    await updateStage(stageId, 'error', 'No data found')
                     return
                   }
                 }
 
                 setStageData(prev => ({ ...prev, [stageId]: stageDataRes }))
                 addLog(`✅ Data loaded for Stage ${stageId}: ${stageDataRes.summary?.total || 0} items`)
+
+                // Mark stage as completed only after data is successfully loaded
+                await updateStage(stageId, 'completed', 'Stage completed')
 
                 // For Stage 4: identify and store newly created content IDs
                 if (stageId === 4 && stageDataRes.data) {
@@ -324,6 +332,7 @@ export default function Home() {
                 }
 
                 addLog(`⚠️  Failed to load Stage ${stageId} data: ${dataRes.status} ${errorText}`)
+                await updateStage(stageId, 'error', `Data load failed: ${dataRes.status}`)
               }
             } catch (err) {
               const error = err as Error
@@ -335,6 +344,7 @@ export default function Home() {
 
               addLog(`❌ Error fetching Stage ${stageId} data: ${error.message}`)
               console.error(`Failed to fetch stage ${stageId} data:`, err)
+              await updateStage(stageId, 'error', `Network error: ${error.message}`)
             }
           }
 
@@ -408,9 +418,51 @@ export default function Home() {
       const startTime = stageStartTimes[stageId]
       if (startTime) {
         const duration = Date.now() - startTime
-        addLog(`✅ Stage ${stageId} completed! ⏱️  Duration: ${formatDuration(duration)}`)
+        addLog(`⏱️  Stage ${stageId} backend execution finished. Duration: ${formatDuration(duration)}`)
       } else {
-        addLog(`✅ Stage ${stageId} completed!`)
+        addLog(`⏱️  Stage ${stageId} backend execution finished`)
+      }
+
+      // Keep stage in "running" status while loading data (SSE path)
+      await updateStage(stageId, 'running', 'Loading data...')
+
+      // Fetch data with retry (same logic as polling path)
+      await new Promise(r => setTimeout(r, 3000))
+      addLog(`📊 Fetching data for Stage ${stageId}...`)
+
+      try {
+        const dataRes = await fetchWorkflowData(stageId)
+        if (dataRes.ok) {
+          const stageDataRes = await dataRes.json()
+          if (stageDataRes.data && stageDataRes.data.length > 0) {
+            setStageData(prev => ({ ...prev, [stageId]: stageDataRes }))
+            addLog(`✅ Data loaded for Stage ${stageId}: ${stageDataRes.summary?.total || 0} items`)
+            await updateStage(stageId, 'completed', 'Stage completed')
+
+            // Track session content for Stage 4
+            if (stageId === 4 && stageDataRes.data) {
+              const preExecutionIds = (executeStage as any)._preExecutionIds || []
+              const currentIds = stageDataRes.data
+                .filter((row: any) => row.content_id)
+                .map((row: any) => row.content_id)
+              const newIds = currentIds.filter((id: string) => !preExecutionIds.includes(id))
+              if (newIds.length > 0) {
+                setSessionContentIds(newIds)
+                addLog(`🎯 Session created ${newIds.length} new article(s)`)
+              }
+            }
+          } else {
+            addLog(`⚠️  Stage ${stageId} completed but no data found`)
+            await updateStage(stageId, 'error', 'No data found')
+          }
+        } else {
+          addLog(`⚠️  Failed to load Stage ${stageId} data: ${dataRes.status}`)
+          await updateStage(stageId, 'error', `Data load failed: ${dataRes.status}`)
+        }
+      } catch (err) {
+        const error = err as Error
+        addLog(`❌ Error fetching Stage ${stageId} data: ${error.message}`)
+        await updateStage(stageId, 'error', `Network error: ${error.message}`)
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
