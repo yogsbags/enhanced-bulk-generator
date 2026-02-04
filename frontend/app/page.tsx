@@ -229,9 +229,31 @@ export default function Home() {
       if (stageId === 4) {
         setSessionContentIds([])  // Clear previous session IDs
 
-        const existingIds = stageData[4]?.data
-          ?.filter((row: any) => row.content_id)
-          ?.map((row: any) => row.content_id) || []
+        let existingIds: string[] = []
+
+        // If we already have Stage 4 data in state, use it as baseline
+        if (stageData[4]?.data) {
+          existingIds = stageData[4].data
+            .filter((row: any) => row.content_id)
+            .map((row: any) => row.content_id)
+        } else {
+          // First Stage 4 run after page load: fetch current data as baseline
+          try {
+            const baselineRes = await fetchWorkflowData(4)
+            if (baselineRes.ok) {
+              const baselineData = await baselineRes.json()
+              if (baselineData?.data) {
+                existingIds = baselineData.data
+                  .filter((row: any) => row.content_id)
+                  .map((row: any) => row.content_id)
+                // Populate stageData so UI shows pre-existing rows if expanded
+                setStageData(prev => ({ ...prev, 4: baselineData }))
+              }
+            }
+          } catch {
+            // Baseline fetch is best-effort; safe to continue without it
+          }
+        }
 
         // Store in closure for comparison after execution
         ;(executeStage as any)._preExecutionIds = existingIds
