@@ -1301,50 +1301,95 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
       throw new Error('GROQ_API_KEY not configured');
     }
 
+    const maxRetries = 3; // 4 total attempts
+    const baseRetryDelayMs = 5000; // Start at 5s (faster than Gemini)
+
+    const isRetryable = (error) => {
+      const msg = error.message ? String(error.message).toLowerCase() : '';
+      const statusRetryable = error.status && (error.status === 429 || error.status >= 500);
+      return (
+        statusRetryable ||
+        msg.includes('failed to fetch') ||
+        msg.includes('fetch failed') ||
+        msg.includes('econnreset') ||
+        msg.includes('etimedout') ||
+        msg.includes('network') ||
+        msg.includes('timeout') ||
+        msg.includes('rate limit') ||
+        msg.includes('429')
+      );
+    };
+
     const params = this.modelParams.stages.content;
-    const response = await fetch(this.groqApiUrl, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${this.groqApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: modelName,
-        response_format: params.response_format,
-        messages: [
-          {
-            role: 'system',
-            content:
-              'You are a senior financial content strategist. Always respond with valid JSON following the provided schema.',
+    let lastError;
+
+    for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
+      try {
+        const response = await fetch(this.groqApiUrl, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${this.groqApiKey}`,
+            'Content-Type': 'application/json',
           },
-          { role: 'user', content: prompt },
-        ],
-        temperature: params.temperature,
-        top_p: params.top_p,
-        frequency_penalty: params.frequency_penalty,
-        presence_penalty: params.presence_penalty,
-        max_tokens: params.max_tokens,
-      }),
-    });
+          body: JSON.stringify({
+            model: modelName,
+            response_format: params.response_format,
+            messages: [
+              {
+                role: 'system',
+                content:
+                  'You are a senior financial content strategist. Always respond with valid JSON following the provided schema.',
+              },
+              { role: 'user', content: prompt },
+            ],
+            temperature: params.temperature,
+            top_p: params.top_p,
+            frequency_penalty: params.frequency_penalty,
+            presence_penalty: params.presence_penalty,
+            max_tokens: params.max_tokens,
+          }),
+        });
 
-    if (!response.ok) {
-      const detail = await response.text().catch(() => '');
-      throw new Error(`${response.status} ${detail ? `- ${detail}` : ''}`.trim());
+        if (!response.ok) {
+          const detail = await response.text().catch(() => '');
+          const error = new Error(`${response.status} ${detail ? `- ${detail}` : ''}`.trim());
+          error.status = response.status;
+          throw error;
+        }
+
+        const data = await response.json();
+        const message = data.choices?.[0]?.message || {};
+        const content = message.parsed
+          ? typeof message.parsed === 'string'
+            ? message.parsed
+            : JSON.stringify(message.parsed)
+          : message.content || '';
+
+        if (!content) {
+          throw new Error('Model returned an empty response');
+        }
+
+        // Log successful retry recovery
+        if (attempt > 1) {
+          console.log(`✅ Groq request succeeded on attempt ${attempt}`);
+        }
+
+        return content;
+      } catch (error) {
+        lastError = error;
+        if (attempt <= maxRetries && isRetryable(error)) {
+          // Exponential backoff: 5s, 10s, 20s (capped at 20s for faster API)
+          const retryDelayMs = Math.min(baseRetryDelayMs * Math.pow(2, attempt - 1), 20000);
+          console.warn(`⚠️  Groq ${modelName} request failed (attempt ${attempt}/${maxRetries + 1}): ${error.message}`);
+          console.warn(`⏳ Retrying in ${retryDelayMs / 1000}s...`);
+          await new Promise((r) => setTimeout(r, retryDelayMs));
+          continue;
+        }
+        throw error;
+      }
     }
 
-    const data = await response.json();
-    const message = data.choices?.[0]?.message || {};
-    const content = message.parsed
-      ? typeof message.parsed === 'string'
-        ? message.parsed
-        : JSON.stringify(message.parsed)
-      : message.content || '';
-
-    if (!content) {
-      throw new Error('Model returned an empty response');
-    }
-
-    return content;
+    throw lastError;
   }
 
   /**
@@ -1356,18 +1401,23 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
       throw new Error('GEMINI_API_KEY not configured');
     }
 
-    const maxRetries = 2;
-    const retryDelayMs = 15000; // 15s between retries for long-running requests
+    const maxRetries = 4; // Increased from 2 to 4 (5 total attempts)
+    const baseRetryDelayMs = 10000; // Start at 10s
 
     const isRetryable = (err) => {
       const msg = (err && err.message) ? String(err.message).toLowerCase() : '';
       return (
         msg.includes('failed to fetch') ||
+        msg.includes('fetch failed') ||
+        msg.includes('error fetching') ||
         msg.includes('econnreset') ||
         msg.includes('etimedout') ||
         msg.includes('network') ||
         msg.includes('socket hang up') ||
-        msg.includes('aborted')
+        msg.includes('aborted') ||
+        msg.includes('timeout') ||
+        msg.includes('connection') ||
+        msg.includes('enotfound')
       );
     };
 
@@ -1395,11 +1445,19 @@ Focus on outperforming top competitors in depth, freshness, and authority while 
           throw new Error('Gemini returned an empty response');
         }
 
+        // Log successful retry recovery
+        if (attempt > 1) {
+          console.log(`✅ Gemini request succeeded on attempt ${attempt}`);
+        }
+
         return content;
       } catch (error) {
         lastError = error;
         if (attempt <= maxRetries && isRetryable(error)) {
-          console.warn(`⚠️  Gemini request failed (attempt ${attempt}/${maxRetries + 1}): ${error.message}. Retrying in ${retryDelayMs / 1000}s...`);
+          // Exponential backoff: 10s, 20s, 40s, 80s (capped at 80s)
+          const retryDelayMs = Math.min(baseRetryDelayMs * Math.pow(2, attempt - 1), 80000);
+          console.warn(`⚠️  Gemini request failed (attempt ${attempt}/${maxRetries + 1}): ${error.message}`);
+          console.warn(`⏳ Retrying in ${retryDelayMs / 1000}s with exponential backoff...`);
           await new Promise((r) => setTimeout(r, retryDelayMs));
           continue;
         }
